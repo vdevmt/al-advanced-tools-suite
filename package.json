@@ -1,0 +1,124 @@
+{
+  "name": "al-advanced-tools-suite",
+  "displayName": "Advanced Tools Suite for AL Language",
+  "description": "Advanced Tools Suite for AL Language",
+  "version": "1.0.50",
+  "publisher": "viacovone",
+  "icon": "images/logo.png",
+  "author": {
+    "name": "Vito Iacovone"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "preview": false,
+  "keywords": [
+    "Dynamics 365 Business Central",
+    "AL",
+    "launch",
+    "region"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vdevmt/al-advanced-tools-suite.git"
+  },
+  "categories": [
+    "Other",
+    "Extension Packs",
+    "Snippets"
+  ],
+  "license": "MIT",
+  "activationEvents": [
+    "onLanguage:al"
+],  
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ats.importLaunchFile",
+        "title": "ATS: Import 'launch.json'"
+      },
+      {
+        "command": "ats.exportLaunchFile",
+        "title": "ATS: Export 'launch.json'"
+      },
+      {
+        "command": "ats.runBusinessCentral",
+        "title": "ATS: Run Business Central Client"
+      },
+      {
+        "command": "ats.createRegionBySelection",
+        "title": "ATS: Create region by selection"
+      },
+      {
+        "command": "ats.setNamespaceByFilePath",
+        "title": "ATS: Set object namespace based on file position"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "al",
+        "path": "./snippets/alSingleLineFields.json"
+      },
+      {
+        "language": "al",
+        "path": "./snippets/alSingleLineFieldsWithCaptionTop.json"
+      },
+      {
+        "language": "al",
+        "path": "./snippets/alRegion.json"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Advanced Tools Suite for AL Language",
+        "properties": {
+          "ATS.DefaultLaunchArchiveFolder": {
+            "type": "string",
+            "default": "",            
+            "description": "Default folder for launch.json import/export utiltities"
+          },
+          "ATS.UseObjectFilePathAsNamespace": {
+            "type": "boolean",
+            "default": "false",
+            "description": "Allow use of object file path for namespace declaration"
+          },
+          "ATS.DefaultNamespaces":{
+            "type":"array",
+            "items": {"type": "string"},
+            "default": "",
+            "description": "List of default namespaces for AL objects"
+          }
+        }
+      }
+    ],
+    "keybindings":[
+      {
+        "command": "ats.runBusinessCentral",
+        "key": "ctrl+f6"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.9",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.95.0",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.13.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "strip-json-comments": "^5.0.1"
+  }
+}

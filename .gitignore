@@ -1,0 +1,11 @@
+node_modules/
+bower_components/
+*.log
+build/
+dist/
+out
+.vscode-test/
+.vsix
+secret.json
+*.vsix
+*.zip

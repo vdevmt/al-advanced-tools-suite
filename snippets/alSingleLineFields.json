@@ -1,0 +1,34 @@
+{
+    "Snippet (viacovone): single-line fields": {
+        "prefix": "tsingleLineFields",
+        "description": "Snippet (viacovone): organize page fields in a single-line structure",
+        "scope": "al",
+        "body": [
+            "group(FieldsGroup)",
+            "{",
+            "    ShowCaption = false;",
+            "",
+            "    grid(SingleLineFields)",
+            "    {",
+            "        ShowCaption = false;",
+            "",
+            "        field(Field1; Field1)",
+            "        {",
+            "            ApplicationArea = All;",
+            "            Caption = 'Field 1';",
+            "        }",
+            "        field(Field2; Field2)",
+            "        {",
+            "            ApplicationArea = All;",
+            "            Caption = 'Field 2';",
+            "        }",
+            "        field(Field3; Field3)",
+            "        {",
+            "            ApplicationArea = All;",
+            "            Caption = 'Field 3';",
+            "        }",
+            "    }",
+            "}"
+        ]        
+    }
+}
