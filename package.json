@@ -2,11 +2,12 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
-    "name": "Vito Iacovone"
+    "name": "Vito Iacovone",
+    "email": "vdevmt@outlook.it"
   },
   "engines": {
     "vscode": "^1.95.0"
