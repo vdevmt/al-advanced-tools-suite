@@ -52,7 +52,7 @@
       },
       {
         "command": "ats.setNamespaceByFilePath",
-        "title": "ATS: Set object namespace based on file position"
+        "title": "ATS: Set object namespace based on file path"
       }
     ],
     "snippets": [

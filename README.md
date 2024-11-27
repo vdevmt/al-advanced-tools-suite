@@ -16,12 +16,12 @@ With these features you can easily share launchers with your colleagues:
 
 ## Namespace utilities
 
-* Set object namespace based on current file path (max 4 position) by command **ATS: Set object namespace based on file position**<br />
+* Set object namespace based on current file path (max 4 elements) by command **ATS: Set object namespace based on file path**<br />
    
 <img src="./images/NamespaceByPathCmd.gif" alt="Namespace By Path" height="400">
 
 * Namespace completion providers based on:
-    - Current File path if **ats.UseObjectFilePathAsNamespace** setting is enabled (max 4 position)
+    - Current File path if **ats.UseObjectFilePathAsNamespace** setting is enabled (max 4 elements)
     - Default Root Namespace defined by **al.RootNamespace** setting
     - Additional custom Namespaces defined in **ats.DefaultNamespaces** setting
 
