@@ -1,7 +1,7 @@
 {
-    "Snippet (viacovone): single-line fields": {
+    "Snippet (ATS): single-line fields": {
         "prefix": "tsingleLineFields",
-        "description": "Snippet (viacovone): organize page fields in a single-line structure",
+        "description": "Snippet (ATS): organize page fields in a single-line structure",
         "scope": "al",
         "body": [
             "group(FieldsGroup)",

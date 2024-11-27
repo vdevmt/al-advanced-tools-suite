@@ -1,7 +1,7 @@
 {
-    "Snippet (viacovone): AL Region (viacovone)": {
+    "Snippet (ATS): AL Region": {
         "prefix": "tregion",
-        "description": "Snippet (viacovone): creates region for AL objects",
+        "description": "Snippet (ATS): creates region for AL objects",
         "scope": "al",
         "body": [
             "#region ${1:regionName}",
