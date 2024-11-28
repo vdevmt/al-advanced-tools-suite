@@ -31,7 +31,7 @@
   "license": "MIT",
   "activationEvents": [
     "onLanguage:al"
-],  
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -76,7 +76,7 @@
         "properties": {
           "ATS.DefaultLaunchArchiveFolder": {
             "type": "string",
-            "default": "",            
+            "default": "",
             "description": "Default folder for launch.json import/export utiltities"
           },
           "ATS.UseObjectFilePathAsNamespace": {
@@ -84,16 +84,18 @@
             "default": "false",
             "description": "Allow use of object file path for namespace declaration"
           },
-          "ATS.DefaultNamespaces":{
-            "type":"array",
-            "items": {"type": "string"},
+          "ATS.DefaultNamespaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "default": "",
             "description": "List of default namespaces for AL objects"
           }
         }
       }
     ],
-    "keybindings":[
+    "keybindings": [
       {
         "command": "ats.runBusinessCentral",
         "key": "ctrl+f6"
@@ -120,6 +122,6 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "strip-json-comments": "^5.0.1"
+    "strip-json-comments": "3.1"
   }
 }
