@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import stripJsonComments = require("strip-json-comments");
 
 function getDefaultLaunchArchiveFolder(): string
 {
@@ -118,7 +119,6 @@ export async function exportLaunchFile() {
 }
 
 export async function runBusinessCentral(){
-    const stripJsonComments = await import('strip-json-comments');
     const workspaceFolders = vscode.workspace.workspaceFolders;
     
     if (!workspaceFolders) {
@@ -137,26 +137,22 @@ export async function runBusinessCentral(){
         }
         
         try {
-            // Conversione dati in formato Json corretto
-            let normalizedJsonData = await normalizeALLaunchJson(data);
-
             // Lettura file json                    
-            const jsonData = JSON.parse(normalizedJsonData);
+            const jsonData = JSON.parse(normalizeALLaunchJsonData(data));
             const configurations: LaunchConfig[] = jsonData.configurations;
 
             // Crea una lista di opzioni basata sul nome delle configurazioni
             const items = configurations.map(config => ({
                 label: config.name,
-                url: config.server
+                description: makeClientUri(config)
             }));
-            
+           
             const selected = await vscode.window.showQuickPick(items, {
                 placeHolder: 'Select a Business Central configuration'
             });
-            
-            if (selected && selected.url) {
-                const uri = vscode.Uri.parse(selected.url);
-                vscode.env.openExternal(uri);
+          
+            if (selected && selected.description) {
+                vscode.env.openExternal(vscode.Uri.parse(selected.description));
             } else {
                 vscode.window.showErrorMessage('URL not defined for this configuration');
             }
@@ -167,26 +163,49 @@ export async function runBusinessCentral(){
     });
 }
 
-async function normalizeALLaunchJson(launchContent: string): Promise<string> {
-    // Importazione dinamica del modulo `strip-json-comments`
-    const stripJsonComments = (await import('strip-json-comments')).default;
+function normalizeALLaunchJsonData(launchContent: string): string {
+    try {
+        // Eliminazione commenti presenti nel file json
+        let normalizedJsonData = stripJsonComments(launchContent);
 
-    // Eliminazione commenti presenti nel file json
-    let normalizedJsonData = stripJsonComments(launchContent);
+        // Aggiunge virgolette a numeri e boolean
+        normalizedJsonData = normalizedJsonData.replace(/(\s*:\s*)(\b\d+\b|\btrue\b|\bfalse\b)(\s*[,\n\r}])/g, '$1"$2"$3');
 
-    // Aggiunge virgolette a numeri e boolean
-    normalizedJsonData = normalizedJsonData.replace(/(\s*:\s*)(\b\d+\b|\btrue\b|\bfalse\b)(\s*[,\n\r}])/g, '$1"$2"$3');
+        // Eliminazione virgole non consentite prima di una parentesi di chiusura '}' o ']'   
+        normalizedJsonData = normalizedJsonData.replace(/,\s*(\}|\])\s*/g, '$1');
 
-    // Eliminazione virgole non consentite prima di una parentesi di chiusura '}' o ']'   
-    normalizedJsonData = normalizedJsonData.replace(/,\s*(\}|\])\s*/g, '$1');
+        // Eliminazione righe vuote
+        normalizedJsonData = normalizedJsonData.replace(/^\s*[\r\n]/gm, '');
 
-    // Eliminazione righe vuote
-    normalizedJsonData = normalizedJsonData.replace(/^\s*[\r\n]/gm, '');
+        return normalizedJsonData;    
+    } catch (e) {
+        vscode.window.showErrorMessage('Error parsing launch.json');
+    }    
+}
 
-    return normalizedJsonData;    
+function makeClientUri(config: LaunchConfig): string{
+    let clientUrl = config.server;
+
+    if (config.tenant){
+        clientUrl = `${clientUrl}&tenant=${config.tenant}`;
+    }
+    else{
+        clientUrl = `${clientUrl}&tenant=default`;
+    }
+
+    if (config.startupObjectId){
+        if (config.startupObjectId !== 0){
+            clientUrl = `${clientUrl}&${config.startupObjectType}=${config.startupObjectId}`;
+        }
+    }
+return clientUrl;
+    //return vscode.Uri.parse(clientUrl);
 }
 
 interface LaunchConfig {
     name: string;
     server?: string; 
+    tenant?: string; 
+    startupObjectId?: Number; 
+    startupObjectType?: string; 
 }

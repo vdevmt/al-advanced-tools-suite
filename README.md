@@ -56,10 +56,5 @@ With this structure you can create a complex grid like this:<br />
 
 <img src="./images/singlelinefieldscaptionupper.jpg" alt="Single-Line fields with upper caption">
 
-## tregion:
-An easy way to create regions in AL objects
-
-<img src="./images/RegionSnippet.gif" alt="Create Region Snippet" height="400">
-
 # Requirements
 * AL Language extension
