@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-
+import * as alFileMgr from './alFileMgr';
+import {ATSSettings} from './settings/atsSettings';
+import {ALSettings} from './settings/alSettings';
 
 export async function setNamespaceByFilePath(){
     const editor = vscode.window.activeTextEditor;
 
     // Verifica la presenza di un editor attivo
     if (editor) {
-        if (isALObject(editor.document.uri)) {
+        if (alFileMgr.isALObject(editor.document.uri)) {
             const namespace = makeNamespaceByCurrentFilePath();
             if (namespace) {
                 setObjectNamespace(editor.document,namespace);
@@ -16,78 +17,55 @@ export async function setNamespaceByFilePath(){
     }
 }
 
-function isALObject(file: vscode.Uri): Boolean {
-    if (file.fsPath.toLowerCase().endsWith('.al')) {         
-        return true;
-    }
-
-    return false;
-}
-
 async function setObjectNamespace(document: vscode.TextDocument,namespace: string) {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
         if (namespace) {
-            const firstLine = document.lineAt(0); // La prima riga del file
-            const namespaceRegex = /^\s*namespace\s+[\w.]+/; // Regex per individuare una dichiarazione namespace
-
-            await editor.edit(editBuilder => {
-                if (namespaceRegex.test(firstLine.text)) {
-                    // Sostituisce la dichiarazione esistente
-                    const range = new vscode.Range(firstLine.range.start, firstLine.range.end);
-                    editBuilder.replace(range, `namespace ${namespace};`);
-                } else {
-                    // Inserisce una nuova dichiarazione sulla prima riga
-                    editBuilder.insert(firstLine.range.start, `namespace ${namespace};\n`);
+            let currentNamespace = alFileMgr.getObjectNamespace(document);
+            if (currentNamespace !== namespace) {
+                
+                let firstLinePos = alFileMgr.getFirstNonEmptyObjectLinePos(document);
+                if (firstLinePos < 0) {
+                    firstLinePos = 0;
                 }
-            });
+
+                const firstLine = document.lineAt(firstLinePos); // La prima riga del file
+
+                await editor.edit(editBuilder => {
+                    if (currentNamespace){
+                        // Sostituisce la dichiarazione esistente
+                        const range = new vscode.Range(firstLine.range.start, firstLine.range.end);
+                        editBuilder.replace(range, `namespace ${namespace};`);
+                    }
+                    else{
+                        // Inserisce una nuova dichiarazione sulla prima riga
+                        editBuilder.insert(firstLine.range.start, `namespace ${namespace};\n`);
+                    }
+                });
+            }
         }
     }
 }
 
-function makeNamespaceByCurrentFilePath(): string| undefined  {
+function makeNamespaceByCurrentFilePath(): string | undefined {
     const editor = vscode.window.activeTextEditor;    
+    let namespace = "";
 
     // Verifica la presenza di un editor attivo
     if (editor) {                
         let currentfile = editor.document.uri;
 
-        if (isALObject(currentfile)) {
-            return getNamespaceFromPath(currentfile);
+        if (alFileMgr.isALObject(currentfile)) {
+            namespace = getNamespaceFromPath(currentfile);            
         }
     }
 
-    return undefined;
+    return namespace;
 }
 
 function getNamespaceFromPath(file: vscode.Uri): string {
     let rootNamespace = getDefaultRootNamespace();     
-
-    // Verifico se esiste un workspace aperto
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage("No workspace is open.");
-        return "";
-    }
-
-    const workspacePath = workspaceFolders[0].uri.fsPath;
-    if (!workspacePath) {
-        if (rootNamespace){
-            return rootNamespace;
-        }
-        else {
-            return "";
-        }
-    }
-
-    let relativePath = path.relative(workspacePath, file.fsPath);
-    relativePath = path.dirname(relativePath);  // Escludo il nome del file
-
-    // Rimuovi il prefisso "src/" se presente
-    if (relativePath.startsWith("src" + path.sep)) {
-        relativePath = relativePath.substring(4);
-    }
+    let relativePath = alFileMgr.getRelativePath(file);
 
     let namespace = relativePath
         .replace(/\\/g, ".")
@@ -104,10 +82,8 @@ function getNamespaceFromPath(file: vscode.Uri): string {
 }
 
 function getDefaultRootNamespace(): string | undefined {
-    // Leggi la configurazione del linguaggio AL
-    const config = vscode.workspace.getConfiguration('al');
-    // Ottieni il valore di rootNamespace
-    return config.get<string>('rootNamespace');
+    const alSettings = ALSettings.GetConfigSettings(null);
+    return alSettings[ALSettings.rootNamespace];    
 }
 
 function truncateNamespace(namespace: string, maxPositions:number): string {
@@ -122,32 +98,65 @@ function truncateNamespace(namespace: string, maxPositions:number): string {
     return parts.slice(0, maxPositions).join('.');
 }
 
+
+function collectDefaultNamespaces(): atsNameSpace[]{
+    let defaultNamespaces: atsNameSpace[] = [];
+    let atsNamespace: atsNameSpace = {};
+
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+    let useObjectFilePathAsNamespace = atsSettings[ATSSettings.UseObjectFilePathAsNamespace];
+
+    if (useObjectFilePathAsNamespace){
+        atsNamespace = {};
+        atsNamespace.value = makeNamespaceByCurrentFilePath(); 
+        if (atsNamespace.value){
+            atsNamespace.description = 'ATS: Namespace by current file path';
+            atsNamespace.priority = 1;
+            defaultNamespaces.push(atsNamespace);
+        }
+    }    
+
+    atsNamespace = {};
+    atsNamespace.value = getDefaultRootNamespace();
+    if (atsNamespace.value){
+        atsNamespace.description = 'ATS: Default root namespace';
+        atsNamespace.priority = 2;
+        defaultNamespaces.push(atsNamespace);        
+    }
+
+    let DefaultNamespaces = atsSettings[ATSSettings.DefaultNamespaces];
+    
+    if ((DefaultNamespaces) && (DefaultNamespaces.length > 0)) {
+        for (let i=0; i<DefaultNamespaces.length; i++) {
+            atsNamespace = {};
+            atsNamespace.value = DefaultNamespaces[i];
+            if (atsNamespace.value){
+                atsNamespace.description = 'ATS: Default namespace';
+                atsNamespace.priority = 3;
+                defaultNamespaces.push(atsNamespace);        
+            }
+        }
+    }        
+
+    return defaultNamespaces;
+}
+
 export class NamespaceCompletionProvider {
     async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
-        if (isALObject(document.uri)) {
-            if (isFirstObjectLine(document,position)){
+        if (alFileMgr.isALObject(document.uri)) {
+            if (alFileMgr.isFirstObjectLine(document,position)){
                 const line = document.lineAt(position.line).text;
                 
                 if (line.trim().startsWith('namespace')) {           
                     const items: vscode.CompletionItem[] = [];
 
-                    let NamespaceValue = makeNamespaceByCurrentFilePath();
-
-                    if (NamespaceValue) {                   
-                        const config = vscode.workspace.getConfiguration('ATS');           
-                        let useObjectFilePathAsNamespace = config.get<boolean>('UseObjectFilePathAsNamespace', false);           
-            
-                        if (useObjectFilePathAsNamespace){
-                            addCompletionItem(items,NamespaceValue,NamespaceValue,'ATS: Namespace by current file path','1');
+                    let defaultNamespaces = collectDefaultNamespaces();
+                    if ((defaultNamespaces) && (defaultNamespaces.length > 0)) {
+                        for (let i=0; i<defaultNamespaces.length; i++) {
+                            addNamespaceToCompletionItems(defaultNamespaces[i],items);
                         }
                     }
 
-                    NamespaceValue = getDefaultRootNamespace();
-                    if (NamespaceValue) {
-                        addCompletionItem(items,NamespaceValue,NamespaceValue,'ATS: Default root namespace','2');
-                    }
-
-                    addDefaultCompletionItems(items);
                     return items;
                 }
             }
@@ -155,43 +164,17 @@ export class NamespaceCompletionProvider {
     }
 }    
 
-function addCompletionItem(items: vscode.CompletionItem[], label: string, insertText: string, detail: string,sortText: string){
-    const completionItem = new vscode.CompletionItem(label);
-    completionItem.insertText = insertText;
-    completionItem.detail = detail;
+function addNamespaceToCompletionItems(namespace: atsNameSpace,items: vscode.CompletionItem[],){
+    const completionItem = new vscode.CompletionItem(namespace.value);
+    completionItem.insertText = namespace.value;
+    completionItem.detail = namespace.description;
     completionItem.kind = vscode.CompletionItemKind.Constant;
-    completionItem.sortText = sortText;
+    completionItem.sortText = namespace.priority.toString().padStart(5, '0');;
     items.push(completionItem);
 }
 
-function addDefaultCompletionItems(items: vscode.CompletionItem[]) {
-    const config = vscode.workspace.getConfiguration('ATS');           
-    let DefaultNamespaces = config.get<string[]>('DefaultNamespaces');       
-    
-    if ((DefaultNamespaces) && (DefaultNamespaces.length > 0)) {
-        for (let i=0; i<DefaultNamespaces.length; i++) {
-            addCompletionItem(items,DefaultNamespaces[i],DefaultNamespaces[i],'ATS: Default namespace','3');
-        }
-    }    
-}
-
-function isFirstObjectLine(document: vscode.TextDocument, position: vscode.Position): boolean {
-    let firstNonEmptyLinePosition = getFirstNonEmptyObjectLinePosition(document);
-
-    if (firstNonEmptyLinePosition >= 0){
-        return (position.line === firstNonEmptyLinePosition);
-    }
-
-    return false;
-}
-
-function getFirstNonEmptyObjectLinePosition(document: vscode.TextDocument):number {
-    for (let i = 0; i < document.lineCount; i++) {
-        const lineText = document.lineAt(i).text.trim();
-        if (lineText !== '') {
-            return i;
-        }
-    }
-
-    return -1; // Documento vuoto
+interface atsNameSpace {
+    value?: string;
+    description?: string; 
+    priority?: number; 
 }

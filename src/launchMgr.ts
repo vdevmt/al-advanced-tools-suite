@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import stripJsonComments = require("strip-json-comments");
+import {ATSSettings} from './settings/atsSettings';
+import {LaunchSettings} from './settings/launchSettings';
 
 function getDefaultLaunchArchiveFolder(): string
 {
-    const config = vscode.workspace.getConfiguration('ATS');
-    let defaultFolder = config.get<string>('DefaultLaunchArchiveFolder', '');
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+    let defaultFolder = atsSettings[ATSSettings.DefaultLaunchArchiveFolder];    
 
     return defaultFolder;
 }
@@ -118,72 +119,63 @@ export async function exportLaunchFile() {
     }
 }
 
-export async function runBusinessCentral(){
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage("No workspace is open.");
-        return;
-    }
+export async function runBusinessCentral() {
+    const configuration = await selectCofiguration(null);
+    let atsLaunchSettings = LaunchSettings.LoadConfinguration(configuration);
+    let bcClientURL = atsLaunchSettings[LaunchSettings.URL];
 
-    const workspacePath = workspaceFolders[0].uri.fsPath;
-    const launchJsonPath = path.join(workspacePath, '.vscode', 'launch.json');
-
-    // Leggi il file launch.json
-    fs.readFile(launchJsonPath, 'utf8', async (err, data) => {
-        if (err) {
-            vscode.window.showErrorMessage('Error reading the launch.json file');
-            return;
-        }
-        
-        try {
-            // Lettura file json                    
-            const jsonData = JSON.parse(normalizeALLaunchJsonData(data));
-            const configurations: LaunchConfig[] = jsonData.configurations;
-
-            // Crea una lista di opzioni basata sul nome delle configurazioni
-            const items = configurations.map(config => ({
-                label: config.name,
-                description: makeClientUri(config)
-            }));
-           
-            const selected = await vscode.window.showQuickPick(items, {
-                placeHolder: 'Select a Business Central configuration'
-            });
-          
-            if (selected && selected.description) {
-                vscode.env.openExternal(vscode.Uri.parse(selected.description));
-            } else {
-                vscode.window.showErrorMessage('URL not defined for this configuration');
-            }
-
-        } catch (e) {
-            vscode.window.showErrorMessage('Error parsing launch.json');
-        }
-    });
-}
-
-function normalizeALLaunchJsonData(launchContent: string): string {
-    try {
-        // Eliminazione commenti presenti nel file json
-        let normalizedJsonData = stripJsonComments(launchContent);
-
-        // Aggiunge virgolette a numeri e boolean
-        normalizedJsonData = normalizedJsonData.replace(/(\s*:\s*)(\b\d+\b|\btrue\b|\bfalse\b)(\s*[,\n\r}])/g, '$1"$2"$3');
-
-        // Eliminazione virgole non consentite prima di una parentesi di chiusura '}' o ']'   
-        normalizedJsonData = normalizedJsonData.replace(/,\s*(\}|\])\s*/g, '$1');
-
-        // Eliminazione righe vuote
-        normalizedJsonData = normalizedJsonData.replace(/^\s*[\r\n]/gm, '');
-
-        return normalizedJsonData;    
-    } catch (e) {
-        vscode.window.showErrorMessage('Error parsing launch.json');
+    if (bcClientURL) {
+        vscode.env.openExternal(vscode.Uri.parse(bcClientURL));
+    } else {
+        vscode.window.showErrorMessage('URL not defined for this configuration');
     }    
 }
 
-function makeClientUri(config: LaunchConfig): string{
+export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.WorkspaceConfiguration {
+    const configKey = 'launch';
+    
+    const workspaceConfigurations: vscode.WorkspaceConfiguration = resourceUri ?
+    vscode.workspace.getConfiguration(configKey, resourceUri) :
+    vscode.window.activeTextEditor ?
+        vscode.workspace.getConfiguration(configKey, vscode.window.activeTextEditor.document.uri) :
+        vscode.workspace.getConfiguration(configKey, vscode.workspace.workspaceFolders[0].uri);
+
+    return workspaceConfigurations.configurations;        
+}
+
+export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscode.WorkspaceConfiguration> {
+    const workspaceConfigurations = getWorkspaceConfigurations(resourceUri);
+
+    if (workspaceConfigurations) {
+        if (workspaceConfigurations.length >0){
+            const items: QuickPickItem[] = workspaceConfigurations.map((config: vscode.WorkspaceConfiguration) => ({
+                label: config.name,
+                description: makeClientUri(config),
+                config 
+            }));
+                        
+            const selectedItem = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select a Business Central configuration'
+            });
+
+            if (!selectedItem){
+                vscode.window.showErrorMessage('URL not defined for this configuration');
+                return undefined;
+            }
+
+            return selectedItem.config;
+        }
+        else{
+            return workspaceConfigurations[0];
+        }
+    }
+
+    // Nessuna configurazione disponibile
+    vscode.window.showErrorMessage('No configurations available');
+    return undefined;    
+}
+
+export function makeClientUri(config: vscode.WorkspaceConfiguration): string{
     let clientUrl = config.server;
 
     if (config.tenant){
@@ -198,14 +190,12 @@ function makeClientUri(config: LaunchConfig): string{
             clientUrl = `${clientUrl}&${config.startupObjectType}=${config.startupObjectId}`;
         }
     }
-return clientUrl;
-    //return vscode.Uri.parse(clientUrl);
+
+    return clientUrl;
 }
 
-interface LaunchConfig {
-    name: string;
-    server?: string; 
-    tenant?: string; 
-    startupObjectId?: Number; 
-    startupObjectType?: string; 
+interface QuickPickItem {
+    label: string;
+    url:string;
+    config: vscode.WorkspaceConfiguration;
 }
