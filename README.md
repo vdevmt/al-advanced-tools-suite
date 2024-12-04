@@ -21,12 +21,12 @@ With these features you can easily share launchers with your colleagues:
 
 ## Namespace utilities
 
-* Set object namespace based on current file path (max 4 elements) by command **ATS: Set object namespace based on file path**<br />
+* Set object namespace based on current file path by command **ATS: Set object namespace based on file path**<br />
    
 <img src="./images/NamespaceByPathCmd.gif" alt="Namespace By Path" height="400">
 
 * Namespace completion providers based on:
-    - Current File path if **ats.UseObjectFilePathAsNamespace** setting is enabled (max 4 elements)
+    - Current File path if **ats.UseObjectFilePathAsNamespace** setting is enabled
     - Default Root Namespace defined by **al.RootNamespace** setting
     - Additional custom Namespaces defined in **ats.DefaultNamespaces** setting
 
@@ -55,6 +55,18 @@ An easy way to organize page fields in a single-line structure with caption at t
 With this structure you can create a complex grid like this:<br />
 
 <img src="./images/singlelinefieldscaptionupper.jpg" alt="Single-Line fields with upper caption">
+
+# Extension settings
+* `ATS.DefaultLaunchArchiveFolder`: Default archive folder for import/export utiltities of launch.json file;  
+* `ATS.UseObjectFilePathAsNamespace`: Allow usage of object file path for namespace declarations (default = false). The number of positions included depends on the value defined in the `ATS.MaxNamespaceSize` setting 
+* `ATS.DefaultNamespaces`: List of default namespaces that can be used for AL objects;  
+* `ATS.MaxNamespaceSize`: No. of max elements expected for namespace declaration in AL objects (default = 5);  
+* `ATS.EnableNamespaceDiagnostics`: Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false). 
+    Allowed values: 
+    - `al.rootNamespace` setting value;  
+    - Object file path (if `ATS.UseObjectFilePathAsNamespace` setting is enabled);
+    - Custom namespaces defined in `ATS.DefaultNamespaces` setting.
+* `ATS.NamespaceMandatory`: Enable or disable errors for missing namespace declarations in AL objects (default = false). This setting will be used only if the `ATS.EnableNamespaceDiagnostics` setting is enabled.
 
 # Requirements
 * AL Language extension

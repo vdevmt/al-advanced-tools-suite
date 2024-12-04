@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-
 import * as launchMgr from './launchMgr';
 import * as regionMgr from './regionMgr';
 import * as namespaceMgr from './namespaceMgr';
+import * as diagnosticMgr from './diagnosticMgr';
 
 export function activate(context: vscode.ExtensionContext) {
     // launch.json tools
@@ -17,16 +17,14 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.setNamespaceByFilePath', namespaceMgr.setNamespaceByFilePath));
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider()," "));
 
-    //TODO
-    /*        
-    let eventActivator = vscode.workspace.onWillSaveTextDocument((event) => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document === event.document) {
-            namespaceMgr.HandleOnSaveTextDocument(editor.document);
-        }
-    });    
-    context.subscriptions.push(eventActivator);
-    */
+    // Diagnostic Rules
+    const diagnosticCollection = vscode.languages.createDiagnosticCollection('atsDiagnostics');
+    context.subscriptions.push(diagnosticCollection);
+
+    diagnosticMgr.subscribeToDocumentChanges(context,diagnosticCollection);
+
+    // Scansiona tutti i file AL nel workspace all'avvio
+    diagnosticMgr.ValidateAllFiles(diagnosticCollection);
 }
 
 export function deactivate() {}

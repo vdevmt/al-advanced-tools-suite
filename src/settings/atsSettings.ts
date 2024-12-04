@@ -5,6 +5,9 @@ export class ATSSettings {
     static readonly DefaultLaunchArchiveFolder = 'DefaultLaunchArchiveFolder';
     static readonly UseObjectFilePathAsNamespace = 'UseObjectFilePathAsNamespace';
     static readonly DefaultNamespaces = 'DefaultNamespaces';
+    static readonly EnableNamespaceDiagnostics = 'EnableNamespaceDiagnostics';
+    static readonly NamespaceMandatory = 'NamespaceMandatory';
+    static readonly MaxNamespaceSize = 'MaxNamespaceSize';
     
     private static config: vscode.WorkspaceConfiguration;
     private static SettingCollection = {};
@@ -29,6 +32,9 @@ export class ATSSettings {
         this.SettingCollection[this.DefaultLaunchArchiveFolder] = this.getSetting(this.DefaultLaunchArchiveFolder);
         this.SettingCollection[this.UseObjectFilePathAsNamespace] = this.getSetting(this.UseObjectFilePathAsNamespace);
         this.SettingCollection[this.DefaultNamespaces] = this.getSetting(this.DefaultNamespaces);
+        this.SettingCollection[this.EnableNamespaceDiagnostics] = this.getSetting(this.EnableNamespaceDiagnostics);
+        this.SettingCollection[this.NamespaceMandatory] = this.getSetting(this.NamespaceMandatory);
+        this.SettingCollection[this.MaxNamespaceSize] = this.getSetting(this.MaxNamespaceSize);
     }
 
     public static GetConfigSettings(ResourceUri: vscode.Uri) {

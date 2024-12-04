@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.1.7",
+  "version": "1.2.0",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -77,12 +77,12 @@
           "ATS.DefaultLaunchArchiveFolder": {
             "type": "string",
             "default": "",
-            "description": "Default folder for launch.json import/export utiltities"
+            "description": "Default archive folder for import/export utiltities of launch.json file"
           },
           "ATS.UseObjectFilePathAsNamespace": {
             "type": "boolean",
-            "default": "false",
-            "description": "Allow use of object file path for namespace declaration"
+            "default": false,
+            "description": "Allow usage of object file path for namespace declarations (default = false)"
           },
           "ATS.DefaultNamespaces": {
             "type": "array",
@@ -90,8 +90,23 @@
               "type": "string"
             },
             "default": "",
-            "description": "List of default namespaces for AL objects"
-          }
+            "description": "List of default namespaces that can be used for AL objects"
+          },
+          "ATS.EnableNamespaceDiagnostics": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false)"
+          },          
+          "ATS.NamespaceMandatory": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable or disable errors for missing namespace declarations in AL objects (default = false)"
+          },
+          "ATS.MaxNamespaceSize": {
+            "type": "number",
+            "default": 5,
+            "description": "No. of max elements expected for namespace declaration in AL objects (default = 5)"
+          }          
         }
       }
     ],

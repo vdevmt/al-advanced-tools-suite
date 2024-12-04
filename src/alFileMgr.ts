@@ -2,8 +2,15 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 
-export function isALObject(file: vscode.Uri): Boolean {
+export function isALObjectFile(file: vscode.Uri): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {         
+        return true;
+    }
+
+    return false;
+}
+export function isALObjectDocument(document: vscode.TextDocument): Boolean {
+    if (document.languageId === 'al'){
         return true;
     }
 
@@ -15,7 +22,7 @@ export function getCurrentObjectNamespace(): string {
 
     // Verifica la presenza di un editor attivo
     if (editor) {
-        if (isALObject(editor.document.uri)) {
+        if (isALObjectDocument(editor.document)) {
             return getObjectNamespace(editor.document);
         }
     }
