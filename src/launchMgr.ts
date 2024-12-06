@@ -196,8 +196,9 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
                 if (alObject) {
                     // Configurazione con oggetto corrente                    
                     const clonedConfig = {
-                        label: `${config.name} (Current object)`, // Modifica il label del clone
-                        detail: makeClientURL(config, true, alObject), // Modifica il detail per il clone
+                        label: `${config.name}`, 
+                        description: 'Current object',                        
+                        detail: makeClientURL(config, true, alObject),
                         config
                     };
 
