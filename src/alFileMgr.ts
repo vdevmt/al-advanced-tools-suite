@@ -36,7 +36,7 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 
     if (firstObjectLinePos >= 0){
         const firstLine = document.lineAt(firstObjectLinePos);
-        const namespaceRegex = /^\s*namespace\s+[\w.]+/; // Regex per individuare una dichiarazione namespace
+        const namespaceRegex = /^\s*namespace\s+[\w.]+/i; // Regex per individuare una dichiarazione namespace (case-insensitive)
 
         if (namespaceRegex.test(firstLine.text)) {
             namespace = firstLine.text.substring(10);
