@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as alFileMgr from './alFileMgr';
 import {ATSSettings} from './settings/atsSettings';
-import {LaunchSettings} from './settings/launchSettings';
 import { ALObject } from './alObject';
 
 function getDefaultLaunchArchiveFolder(): string
