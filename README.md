@@ -14,10 +14,29 @@ Store all launch.json files in a local or shared folder and select which one to 
 With these features you can easily share launchers with your colleagues:
 
 * Import launch.json file on your workspace by command **ATS: Import 'launch.json'**
-* Export launch.json file of your workspace by command **ATS: Export 'launch.json'**
-* Run Business Central Client by command **ATS: Run Business Central Client**
+* Export launch.json file of your workspace by command **ATS: Export 'launch.json'** 
 
 <img src="./images/ImportLaunch.gif" alt="Import launch.json" height="400">
+
+## Run Business Central
+The command `ATS: Run Business Central without publishing` allows running the Business Central client by selecting the configuration to use among the various configurations defined in the launch.json file.
+
+You can define `URL Forwarding Rules` in vscode settings to run Business Central using a different URL than the one defined in the launch.json file for each configuration. This can be useful for custom setups or scenarios where URL conversion is needed.
+
+**Use Cases for Forwarding Rules:**<br />
+* Public URL:
+  Run the Business Central client using a public URL different from the local one specified in the launch.json file.<br />
+
+* HTTP to HTTPS Conversion:
+  Automatically convert the URL from HTTP to HTTPS to ensure a secure connection to the Business Central client.
+
+**Rule Mechanism:**<br />
+You can define rules to replace the entire URL or part of it.<br />
+When the command `ATS: Run Business Central without publishing` is executed, the specified URL is replaced or modified according to the forwarding rules.<br />
+Example:<br />
+Configuration in launch.json: http://mybcserver:8080<br />
+Applied Rule: Redirect to https://businesscentral.mydomain.com<br />
+These rules make running the Business Central client more flexible and secure without requiring manual adjustments to every configuration.
 
 ## Namespace utilities
 
@@ -67,6 +86,7 @@ With this structure you can create a complex grid like this:<br />
     - Object file path (if `ATS.UseObjectFilePathAsNamespace` setting is enabled);
     - Custom namespaces defined in `ATS.DefaultNamespaces` setting.
 * `ATS.NamespaceMandatory`: Enable or disable errors for missing namespace declarations in AL objects (default = false). This setting will be used only if the `ATS.EnableNamespaceDiagnostics` setting is enabled.
+* `ATS.URLForwardingRules`: Conversion rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).
 
 # Requirements
 * AL Language extension

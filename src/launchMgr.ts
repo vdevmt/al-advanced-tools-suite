@@ -121,14 +121,18 @@ export async function exportLaunchFile() {
 
 export async function runBusinessCentral() {
     const configuration = await selectCofiguration(null);
-    let atsLaunchSettings = LaunchSettings.LoadConfinguration(configuration);
-    let bcClientURL = atsLaunchSettings[LaunchSettings.URL];
+    if (configuration) {
+        let atsLaunchSettings = LaunchSettings.LoadConfinguration(configuration,true);
+        if (atsLaunchSettings){
+            let bcClientURL = atsLaunchSettings[LaunchSettings.URL];
 
-    if (bcClientURL) {
-        vscode.env.openExternal(vscode.Uri.parse(bcClientURL));
-    } else {
-        vscode.window.showErrorMessage('URL not defined for this configuration');
-    }    
+            if (bcClientURL) {
+                vscode.env.openExternal(vscode.Uri.parse(bcClientURL));
+            } else {
+                vscode.window.showErrorMessage('URL not defined for this configuration');
+            }    
+        }
+    }
 }
 
 export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.WorkspaceConfiguration {
@@ -147,19 +151,19 @@ export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscod
     const workspaceConfigurations = getWorkspaceConfigurations(resourceUri);
 
     if (workspaceConfigurations) {
-        if (workspaceConfigurations.length >0){
+        if (workspaceConfigurations.length > 1){
             const items: QuickPickItem[] = workspaceConfigurations.map((config: vscode.WorkspaceConfiguration) => ({
                 label: config.name,
-                description: makeClientUri(config),
+                detail: makeClientURL(config,true),
                 config 
             }));
                         
             const selectedItem = await vscode.window.showQuickPick(items, {
-                placeHolder: 'Select a Business Central configuration'
+                placeHolder: 'Select a Business Central configuration'                
             });
 
             if (!selectedItem){
-                vscode.window.showErrorMessage('URL not defined for this configuration');
+                vscode.window.showErrorMessage('No configuration selected');
                 return undefined;
             }
 
@@ -175,14 +179,26 @@ export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscod
     return undefined;    
 }
 
-export function makeClientUri(config: vscode.WorkspaceConfiguration): string{
+export function makeClientURL(config: vscode.WorkspaceConfiguration, useForwardingRules: boolean): string{
     let clientUrl = config.server;
 
+    if (useForwardingRules){
+        const atsSettings = ATSSettings.GetConfigSettings(null);
+        let forwardingRules = atsSettings[ATSSettings.URLForwardingRules];    
+        if (forwardingRules){
+            clientUrl = handleURLForwardingRules(clientUrl,forwardingRules);
+        }
+    }
+
+    if (!clientUrl.endsWith("/")){
+        clientUrl = `${clientUrl}/`;
+    }
+
     if (config.tenant){
-        clientUrl = `${clientUrl}&tenant=${config.tenant}`;
+        clientUrl = `${clientUrl}?tenant=${config.tenant}`;
     }
     else{
-        clientUrl = `${clientUrl}&tenant=default`;
+        clientUrl = `${clientUrl}?tenant=default`;
     }
 
     if (config.startupObjectId){
@@ -194,8 +210,30 @@ export function makeClientUri(config: vscode.WorkspaceConfiguration): string{
     return clientUrl;
 }
 
+function handleURLForwardingRules(clientURL: string, forwardingRules: { [key: string]: string }): string {
+    let newClientURL = clientURL;
+
+    // Ordino i valori in base alla lunghezza della stringa in maniera decrescente
+    const sortedValues = Object.keys(forwardingRules).sort((a, b) => {
+        const lengthA = forwardingRules[a].length;
+        const lengthB = forwardingRules[b].length;
+        return lengthB - lengthA; // Ordine decrescente
+    });
+
+    // Sostituisci la prima occorrenza di ogni placeholder
+    for (const key of sortedValues) {
+        const value = forwardingRules[key];
+        const placeholder = new RegExp(`\\b${key}\\b`, 'i'); // RegExp per trovare "key" come parola intera (case-insensitive)
+        if (placeholder.test(newClientURL)) {
+            newClientURL = newClientURL.replace(placeholder, value);
+            return newClientURL;
+        }
+    }
+
+    return newClientURL;
+}
+
 interface QuickPickItem {
     label: string;
-    url:string;
     config: vscode.WorkspaceConfiguration;
 }
