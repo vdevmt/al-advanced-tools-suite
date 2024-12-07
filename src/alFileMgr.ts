@@ -132,3 +132,8 @@ export function cleanObjectFileContent(objectContentText: string): string
 
     return newObjectTxt;
 }
+
+export function isValidObjectToRun(objectType: string):Boolean {
+    const validObjectTypes: Set<string> = new Set(["table", "page", "report"]);
+    return (validObjectTypes.has(objectType.toLowerCase()));
+}

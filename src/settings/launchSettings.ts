@@ -33,7 +33,7 @@ export class LaunchSettings {
         this.LaunchSettingsCollection[this.DefaultRunObjectType] = configuration.startupObjectType;
         this.LaunchSettingsCollection[this.DefaultRunObjectId] = configuration.startupObjectId;
         this.LaunchSettingsCollection[this.SandboxName] = configuration.sandboxName;
-        this.LaunchSettingsCollection[this.URL] = launchMgr.makeClientURL(configuration,useForwardingRules,null);
+        this.LaunchSettingsCollection[this.URL] = launchMgr.makeBcClientURL(configuration,useForwardingRules,null);
     }
 
     public static LoadConfinguration(configuration: vscode.WorkspaceConfiguration, useForwardingRules: boolean) {

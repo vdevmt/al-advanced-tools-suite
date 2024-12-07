@@ -130,8 +130,7 @@ export async function runBusinessCentral() {
             let alObject : ALObject;
             alObject = new ALObject(editor.document.getText(), editor.document.fileName);
 
-            const validObjectTypes: Set<string> = new Set(["table", "page", "report"]);
-            if (validObjectTypes.has(alObject.objectType.toLowerCase())) {
+            if (alFileMgr.isValidObjectToRun(alObject.objectType)) {
                 bcClientURL  = await selectBusinessCentralURL(null,alObject);
                 selectByLaunch = false;        
             }
@@ -147,22 +146,6 @@ export async function runBusinessCentral() {
     } else {
         vscode.window.showErrorMessage('URL not defined for this configuration');
     }  
-
-    /*
-    const configuration = await selectCofiguration(null);
-    if (configuration) {
-        let atsLaunchSettings = LaunchSettings.LoadConfinguration(configuration,true);
-        if (atsLaunchSettings){
-            let bcClientURL = atsLaunchSettings[LaunchSettings.URL];
-
-            if (bcClientURL) {
-                vscode.env.openExternal(vscode.Uri.parse(bcClientURL));
-            } else {
-                vscode.window.showErrorMessage('URL not defined for this configuration');
-            }    
-        }
-    }
-    */
 }
 
 export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.WorkspaceConfiguration {
@@ -181,27 +164,30 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
     const workspaceConfigurations = getWorkspaceConfigurations(resourceUri);
     
     if (workspaceConfigurations) {
-        if (workspaceConfigurations.length > 1) {
+        if ((workspaceConfigurations.length === 1) && (!alObject))  {
+            return makeBcClientURL(workspaceConfigurations[0], true, null); 
+        } else {
             const items: QuickPickItem[] = [];
 
             workspaceConfigurations.forEach((config: vscode.WorkspaceConfiguration) => {
                 // Configurazione originale
                 items.push({
                     label: config.name,
-                    detail: makeClientURL(config, true, null),
+                    description: 'Default configuration',
+                    detail: makeBcClientURL(config, true, null),
                     config
                 });
 
                 if (alObject) {
                     // Configurazione con oggetto corrente                    
-                    const clonedConfig = {
+                    const currObjectConfig = {
                         label: `${config.name}`, 
                         description: 'Current object',                        
-                        detail: makeClientURL(config, true, alObject),
+                        detail: makeBcClientURL(config, true, alObject),
                         config
                     };
 
-                    items.push(clonedConfig);
+                    items.push(currObjectConfig);
                 }
             });
 
@@ -215,8 +201,6 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
             }
 
             return selectedItem.detail;
-        } else {
-            return workspaceConfigurations[0];
         }
     }
     
@@ -232,7 +216,7 @@ export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscod
         if (workspaceConfigurations.length > 1){
             const items: QuickPickItem[] = workspaceConfigurations.map((config: vscode.WorkspaceConfiguration) => ({
                 label: config.name,
-                detail: makeClientURL(config,true,null),
+                detail: makeBcClientURL(config,true,null),
                 config 
             }));
                         
@@ -257,7 +241,7 @@ export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscod
     return undefined;    
 }
 
-export function makeClientURL(config: vscode.WorkspaceConfiguration, useForwardingRules: boolean, alObject: ALObject ): string{
+export function makeBcClientURL(config: vscode.WorkspaceConfiguration, useForwardingRules: boolean, alObjectToRun: ALObject ): string{
     let clientUrl = config.server;
 
     if (useForwardingRules){
@@ -273,24 +257,22 @@ export function makeClientURL(config: vscode.WorkspaceConfiguration, useForwardi
     }
 
     if (config.tenant){
-        clientUrl = `${clientUrl}?tenant=${config.tenant}`;
+        clientUrl = `${clientUrl}?tenant=${config.tenant.trim()}`;
     }
     else{
         clientUrl = `${clientUrl}?tenant=default`;
     }
 
-    let getDefaultStartupObject = true;        
-    if (alObject){
-        if (alObject.objectType){
-            const validObjectTypes: Set<string> = new Set(["table", "page", "report"]);
-            if (validObjectTypes.has(alObject.objectType.toLowerCase())) {        
-                clientUrl = `${clientUrl}&${alObject.objectType}=${alObject.objectId}`;
-                getDefaultStartupObject = false;
-            }                
+    if(config.startupCompany){
+        clientUrl = `${clientUrl}&company=${encodeURI(config.startupCompany.trim())}`;
+    }
+       
+    if (alObjectToRun) {
+        if (alFileMgr.isValidObjectToRun(alObjectToRun.objectType)) {
+            clientUrl = `${clientUrl}&${alObjectToRun.objectType}=${alObjectToRun.objectId}`;            
         }
     }
-
-    if (getDefaultStartupObject){
+    else {
         if (config.startupObjectId){
             if (config.startupObjectId !== 0){
                 clientUrl = `${clientUrl}&${config.startupObjectType}=${config.startupObjectId}`;
