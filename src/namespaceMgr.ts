@@ -24,25 +24,29 @@ async function setObjectNamespace(document: vscode.TextDocument,namespace: strin
         if (namespace) {
             let currentNamespace = alFileMgr.getObjectNamespace(document);
             if (currentNamespace !== namespace) {
-                
-                let firstLinePos = alFileMgr.getFirstNonEmptyObjectLinePos(document);
-                if (firstLinePos < 0) {
-                    firstLinePos = 0;
-                }
+                const document = editor.document;
+                const text = document.getText();
 
-                const firstLine = document.lineAt(firstLinePos); // La prima riga del file
+                // Regex per trovare un namespace con o senza punto e virgola
+                const namespaceRegex = /namespace\s+([A-Za-z0-9_.]+)\s*;?/i;
 
-                await editor.edit(editBuilder => {
-                    if (currentNamespace){
-                        // Sostituisce la dichiarazione esistente
-                        const range = new vscode.Range(firstLine.range.start, firstLine.range.end);
+                // Verifica se esiste un namespace
+                const match = namespaceRegex.exec(text);
+
+                editor.edit(editBuilder => {
+                    if (match) {
+                        // Sostituisci il namespace esistente
+                        const start = document.positionAt(match.index);
+                        const end = document.positionAt(match.index + match[0].length);
+                        const range = new vscode.Range(start, end);
+            
                         editBuilder.replace(range, `namespace ${namespace};`);
+                    } else {
+                        // Aggiungi il namespace all'inizio del file
+                        const position = document.positionAt(0);
+                        editBuilder.insert(position, `namespace ${namespace};\n\n`);
                     }
-                    else{
-                        // Inserisce una nuova dichiarazione sulla prima riga
-                        editBuilder.insert(firstLine.range.start, `namespace ${namespace};\n`);
-                    }
-                });
+                });                
             }
         }
     }

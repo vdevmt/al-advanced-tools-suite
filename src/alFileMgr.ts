@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-
+import {ALObject} from './/alObject';
 
 export function isALObjectFile(file: vscode.Uri): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {         
@@ -31,23 +31,13 @@ export function getCurrentObjectNamespace(): string {
 }
 
 export function getObjectNamespace(document: vscode.TextDocument): string {
-    let namespace = "";
-    let firstObjectLinePos = getFirstNonEmptyObjectLinePos(document);
-
-    if (firstObjectLinePos >= 0){
-        const firstLine = document.lineAt(firstObjectLinePos);
-        const namespaceRegex = /^\s*namespace\s+[\w.]+/i; // Regex per individuare una dichiarazione namespace (case-insensitive)
-
-        if (namespaceRegex.test(firstLine.text)) {
-            namespace = firstLine.text.substring(10);
-        }
-
-        if (namespace.endsWith(";")){
-            namespace = namespace.slice(0,-1);
-        }
+    if (isALObjectDocument(document)) {
+        let alObject : ALObject;
+        alObject = new ALObject(document.getText(), document.fileName);
+        return alObject.objectNamespace;
     }
 
-    return namespace;
+    return "";
 }
 
 export function isFirstObjectLine(document: vscode.TextDocument, position: vscode.Position): boolean {
@@ -61,10 +51,40 @@ export function isFirstObjectLine(document: vscode.TextDocument, position: vscod
 }
 
 export function getFirstNonEmptyObjectLinePos(document: vscode.TextDocument): number {
-    for (let i = 0; i < document.lineCount; i++) {
-        const lineText = document.lineAt(i).text.trim();
-        if (lineText !== '') {
-            return i;
+    // Regex per trovare commenti di riga e multi-linea
+    const singleLineCommentRegex = /\/\/.*/;
+    const multiLineCommentStartRegex = /\/\*/;
+    const multiLineCommentEndRegex = /\*\//;
+
+    let inMultiLineComment = false;  
+    const lines = document.getText().split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim(); 
+
+        if (inMultiLineComment) {
+            // Verifico se si tratta di una riga di fine commento multi-riga
+            if (multiLineCommentEndRegex.test(line)) {
+                // Fine commento multi-linea
+                inMultiLineComment = false;
+            }
+            continue;  // Escludo la riga corrente
+        }
+
+        // Verifico se si tratta di una riga commentata
+        if (singleLineCommentRegex.test(line)) {
+            continue;  // Escludo la riga corrente
+        }
+
+        // Verifico se si tratta di una riga di inizio commento multi-riga
+        if (multiLineCommentStartRegex.test(line)) {
+            inMultiLineComment = true; 
+            continue;  // Escludo la riga corrente
+        }
+
+        // Verifico se la riga contiene dati
+        if (line !== '') {
+            return i;  
         }
     }
 
@@ -92,4 +112,28 @@ export function getRelativePath(file: vscode.Uri): string {
     }
 
     return relativePath;
+}
+
+export function cleanObjectFileContent(objectContentText: string): string
+{
+    var newObjectTxt = objectContentText;
+
+    // Remove comments between /* and */
+    var patternIgnoreRange = new RegExp('/\\*.*?\\*/', 'gs');
+    newObjectTxt = newObjectTxt.replace(patternIgnoreRange, "");
+    
+    // Get all lines excluding commented and empty lines
+    var lines = newObjectTxt.split('\n');
+    var filteredlines = lines.filter(function (line) {
+        return line.trim() !== '' && line.trimStart().indexOf('//') !== 0;
+    });        
+    
+    newObjectTxt = filteredlines.toString();
+
+    return newObjectTxt;
+}
+
+export function isValidObjectToRun(objectType: string):Boolean {
+    const validObjectTypes: Set<string> = new Set(["table", "page", "report"]);
+    return (validObjectTypes.has(objectType.toLowerCase()));
 }
