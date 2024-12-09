@@ -25,6 +25,8 @@ The command `ATS: Run Business Central without publishing` allows running the Bu
 
 You can define `URL Forwarding Rules` in vscode settings to run Business Central using a different URL than the one defined in the launch.json file for each configuration. This can be useful for custom setups or scenarios where URL conversion is needed.
 
+<img src="./images/UrlForwardingRules.png" alt="URL Forwarding Rules">
+
 **Use Cases for Forwarding Rules:**<br />
 * Public URL:
   Run the Business Central client using a public URL different from the local one specified in the launch.json file.<br />
