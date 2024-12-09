@@ -21,6 +21,8 @@ With these features you can easily share launchers with your colleagues:
 ## Run Business Central
 The command `ATS: Run Business Central without publishing` allows running the Business Central client by selecting the configuration to use among the various configurations defined in the launch.json file.
 
+<img src="./images/RunBusinessCentral.png" alt="Run Business Central" height="400">
+
 You can define `URL Forwarding Rules` in vscode settings to run Business Central using a different URL than the one defined in the launch.json file for each configuration. This can be useful for custom setups or scenarios where URL conversion is needed.
 
 **Use Cases for Forwarding Rules:**<br />

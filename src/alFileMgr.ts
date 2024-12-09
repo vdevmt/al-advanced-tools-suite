@@ -133,7 +133,33 @@ export function cleanObjectFileContent(objectContentText: string): string
     return newObjectTxt;
 }
 
+export function IsValidALObjectType(objectType: string): boolean {
+    switch (objectType.toLowerCase()) {
+        case 'codeunit':
+        case 'page':
+        case 'pagecustomization':
+        case 'pageextension':
+        case 'reportextension':
+        case 'profile':
+        case 'query':
+        case 'report':
+        case 'requestpage':
+        case 'table':
+        case 'tableextension':
+        case 'xmlport':
+        case 'enum':
+        case 'enumextension':
+        case 'controladdin':
+        case 'interface':
+        case 'permissionset':
+        case 'permissionsetextension':
+        case 'entitlement':
+            return true;
+        default: return false;
+    }
+}
+
 export function isValidObjectToRun(objectType: string):Boolean {
-    const validObjectTypes: Set<string> = new Set(["table", "page", "report"]);
+    const validObjectTypes: Set<string> = new Set(["table", "page", "report", "xmlport"]);
     return (validObjectTypes.has(objectType.toLowerCase()));
 }
