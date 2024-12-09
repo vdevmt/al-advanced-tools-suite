@@ -154,35 +154,9 @@ export class ALObject {
         this.extendedObjectId = this.extendedObjectId.trim().toString();
         this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, ''); 
 
-        if (!(this.IsValidObjectType(this.objectType))) {
+        if (!(alFileMgr.IsValidALObjectType(this.objectType))) {
             this.initObjectProperties();
             return null;
         }        
-    }
-
-    private IsValidObjectType(objectType: string): boolean {
-        switch (objectType.toLowerCase()) {
-            case 'codeunit':
-            case 'page':
-            case 'pagecustomization':
-            case 'pageextension':
-            case 'reportextension':
-            case 'profile':
-            case 'query':
-            case 'report':
-            case 'requestpage':
-            case 'table':
-            case 'tableextension':
-            case 'xmlport':
-            case 'enum':
-            case 'enumextension':
-            case 'controladdin':
-            case 'interface':
-            case 'permissionset':
-            case 'permissionsetextension':
-            case 'entitlement':
-                return true;
-            default: return false;
-        }
     }
 }
