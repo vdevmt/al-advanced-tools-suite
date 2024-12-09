@@ -17,4 +17,4 @@ Initial release of "Advanced Tools Suite for AL Language"
 ## [1.3.2]
 
 - Enhancement:
-    - `ATS: Run Business Central without publishing`: Run current AL object without edit launch.json configurations
+    - Run current AL object by command `ATS: Run Business Central without publishing` without edit launch.json configurations
