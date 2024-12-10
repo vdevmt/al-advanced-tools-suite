@@ -22,4 +22,4 @@ Initial release of "Advanced Tools Suite for AL Language"
 ## [1.3.4]
 
 - New Features:
-    - Region path information for the current document line in vscode status bar
+    - Status bar with region path info of the current document
