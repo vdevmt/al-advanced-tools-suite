@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -31,7 +31,10 @@
   ],
   "license": "MIT",
   "activationEvents": [
-    "onLanguage:al"
+    "onLanguage:al",
+    "onStartupFinished",
+    "onDidChangeActiveTextEditor",
+    "onDidChangeTextEditorSelection"    
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -73,7 +76,7 @@
     ],
     "configuration": [
       {
-        "title": "Advanced Tools Suite for AL Language",
+        "title": "Advanced Tools Suite for AL Language (ATS)",
         "properties": {
           "ATS.DefaultLaunchArchiveFolder": {
             "type": "string",
@@ -87,6 +90,12 @@
             "default": false,
             "order": 2
           },
+          "ATS.RootNamespace": {
+            "type": "string",
+            "description": "Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the al.rootNamespace setting)",
+            "default": "",
+            "order": 3            
+          },
           "ATS.DefaultNamespaces": {
             "type": "array",
             "items": {
@@ -94,25 +103,25 @@
             },
             "description": "List of default namespaces that can be used for AL objects",
             "default": "",
-            "order": 3
+            "order": 4
           },
           "ATS.MaxNamespaceSize": {
             "type": "number",
             "description": "No. of max elements expected for namespace declaration in AL objects (default = 5)",
             "default": 5,
-            "order": 4
+            "order": 5
           },          
           "ATS.EnableNamespaceDiagnostics": {
             "type": "boolean",
             "description": "Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false)",
             "default": false,
-            "order": 5
+            "order": 6
           },          
           "ATS.NamespaceMandatory": {
             "type": "boolean",
             "description": "Enable or disable errors for missing namespace declarations in AL objects (default = false)",
             "default": false,
-            "order": 6
+            "order": 7
           },
           "ATS.URLForwardingRules":{
             "type": "object",            
@@ -120,7 +129,7 @@
             "additionalProperties": {              
               "type": "string"
             },
-            "order": 7
+            "order": 8
           }
         }
       }

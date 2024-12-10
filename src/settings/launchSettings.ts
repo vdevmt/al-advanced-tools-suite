@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as launchMgr from './../launchMgr';
+import * as launchMgr from '../fileMgt/launchMgr';
 
 export class LaunchSettings {
     static readonly WebServer = 'WebServer';

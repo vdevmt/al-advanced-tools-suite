@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {ALObject} from './/alObject';
+import {ALObject} from './alObject';
 
 export function isALObjectFile(file: vscode.Uri): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {         
@@ -15,6 +15,14 @@ export function isALObjectDocument(document: vscode.TextDocument): Boolean {
     }
 
     return false;
+}
+
+export function IsPreviewALObject(document: vscode.TextDocument): Boolean {
+    if (document.fileName.toLowerCase().endsWith('.dal')) {         
+        return true;
+    }
+
+    return false;    
 }
 
 export function getCurrentObjectNamespace(): string {

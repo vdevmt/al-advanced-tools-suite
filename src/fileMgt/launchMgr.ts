@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as alFileMgr from './alFileMgr';
-import {ATSSettings} from './settings/atsSettings';
+import {ATSSettings} from '../settings/atsSettings';
 import { ALObject } from './alObject';
 
 function getDefaultLaunchArchiveFolder(): string
@@ -126,7 +126,7 @@ export async function runBusinessCentral() {
     
     const editor = vscode.window.activeTextEditor;
     if (editor){
-        if (alFileMgr.isALObjectDocument(editor.document)){
+        if (alFileMgr.isALObjectDocument(editor.document)) {
             let alObject : ALObject;
             alObject = new ALObject(editor.document.getText(), editor.document.fileName);
 
@@ -153,7 +153,7 @@ export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.Work
     
     const workspaceConfigurations: vscode.WorkspaceConfiguration = resourceUri ?
     vscode.workspace.getConfiguration(configKey, resourceUri) :
-    vscode.window.activeTextEditor ?
+    (vscode.window.activeTextEditor && (!alFileMgr.IsPreviewALObject(vscode.window.activeTextEditor.document))) ?
         vscode.workspace.getConfiguration(configKey, vscode.window.activeTextEditor.document.uri) :
         vscode.workspace.getConfiguration(configKey, vscode.workspace.workspaceFolders[0].uri);
 

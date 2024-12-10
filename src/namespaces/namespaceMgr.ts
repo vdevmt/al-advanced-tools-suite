@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from './alFileMgr';
-import {CreateDiagnostic, DIAGNOSTIC_CODE } from './diagnosticMgr';
-import {ATSSettings} from './settings/atsSettings';
-import {ALSettings} from './settings/alSettings';
+import * as alFileMgr from '../fileMgt/alFileMgr';
+import {CreateDiagnostic, DIAGNOSTIC_CODE } from '../diagnostics/diagnosticMgr';
+import {ATSSettings} from '../settings/atsSettings';
+import {ALSettings} from '../settings/alSettings';
 
 export async function setNamespaceByFilePath(){
     const editor = vscode.window.activeTextEditor;
@@ -87,8 +87,15 @@ function getNamespaceFromPath(file: vscode.Uri): string {
 }
 
 function getDefaultRootNamespace(): string | undefined {
-    const alSettings = ALSettings.GetConfigSettings(null);
-    return alSettings[ALSettings.rootNamespace];    
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+
+    if (atsSettings[ATSSettings.RootNamespace]) {
+        return atsSettings[ATSSettings.RootNamespace];
+    }
+    else {
+        const alSettings = ALSettings.GetConfigSettings(null);
+        return alSettings[ALSettings.rootNamespace];    
+    }
 }
 
 function truncateNamespace(namespace: string, maxPositions:number): string {   
@@ -104,7 +111,7 @@ function truncateNamespace(namespace: string, maxPositions:number): string {
 }
 
 
-function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpace[]{
+function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpace[] {
     let defaultNamespaces: atsNameSpace[] = [];
     let atsNamespace: atsNameSpace = {};
 

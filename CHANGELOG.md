@@ -18,3 +18,8 @@ Initial release of "Advanced Tools Suite for AL Language"
 
 - Enhancement:
     - Run current AL object by command `ATS: Run Business Central without publishing` without edit launch.json configurations
+
+## [1.3.4]
+
+- New Features:
+    - Region path information for the current document line in vscode status bar

@@ -4,6 +4,7 @@ export class ATSSettings {
     private static CONFIGKEY: string = 'ATS';
     static readonly DefaultLaunchArchiveFolder = 'DefaultLaunchArchiveFolder';
     static readonly UseObjectFilePathAsNamespace = 'UseObjectFilePathAsNamespace';
+    static readonly RootNamespace = 'RootNamespace';
     static readonly DefaultNamespaces = 'DefaultNamespaces';
     static readonly EnableNamespaceDiagnostics = 'EnableNamespaceDiagnostics';
     static readonly NamespaceMandatory = 'NamespaceMandatory';
@@ -32,6 +33,7 @@ export class ATSSettings {
 
         this.SettingCollection[this.DefaultLaunchArchiveFolder] = this.getSetting(this.DefaultLaunchArchiveFolder);
         this.SettingCollection[this.UseObjectFilePathAsNamespace] = this.getSetting(this.UseObjectFilePathAsNamespace);
+        this.SettingCollection[this.RootNamespace] = this.getSetting(this.RootNamespace);
         this.SettingCollection[this.DefaultNamespaces] = this.getSetting(this.DefaultNamespaces);
         this.SettingCollection[this.EnableNamespaceDiagnostics] = this.getSetting(this.EnableNamespaceDiagnostics);
         this.SettingCollection[this.NamespaceMandatory] = this.getSetting(this.NamespaceMandatory);
