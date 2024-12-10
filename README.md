@@ -92,7 +92,8 @@ With this structure you can create a complex grid like this:<br />
     - Object file path (if `ATS.UseObjectFilePathAsNamespace` setting is enabled);
     - Custom namespaces defined in `ATS.DefaultNamespaces` setting.
 * `ATS.NamespaceMandatory`: Enable or disable errors for missing namespace declarations in AL objects (default = false). This setting will be used only if the `ATS.EnableNamespaceDiagnostics` setting is enabled;
-* `ATS.URLForwardingRules`: Conversion rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).
+* `ATS.URLForwardingRules`: Conversion rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion);
+* `ATS.HideRegionStatusBar`: Controls the visibility of the status bar with document regions info.
 
 # Requirements
 * AL Language extension

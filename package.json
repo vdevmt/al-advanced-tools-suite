@@ -130,6 +130,12 @@
               "type": "string"
             },
             "order": 8
+          },
+          "ATS.ShowRegionsOnStatusBar": {
+            "type": "boolean",
+            "description": "Controls the visibility of the status bar with document regions info",
+            "default": false,
+            "order": 9
           }
         }
       }

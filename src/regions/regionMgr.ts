@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import {ATSSettings} from '../settings/atsSettings';
 
 export async function createRegionBySelection() {
     const editor = vscode.window.activeTextEditor;
@@ -31,6 +32,11 @@ export async function createRegionBySelection() {
             editBuilder.replace(selection, `${indentString}${startRegionTxt}\n\n${selectedText}\n\n${indentString}${endRegionTxt}`);
         });
     });
+}
+
+export function regionPathStatusBarEnabled(): boolean {
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+    return atsSettings[ATSSettings.ShowRegionsOnStatusBar];
 }
 
 export function getRegionPath(document: vscode.TextDocument, line: number): string {

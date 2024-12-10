@@ -10,6 +10,7 @@ export class ATSSettings {
     static readonly NamespaceMandatory = 'NamespaceMandatory';
     static readonly MaxNamespaceSize = 'MaxNamespaceSize';
     static readonly URLForwardingRules = 'URLForwardingRules';
+    static readonly ShowRegionsOnStatusBar = 'ShowRegionsOnStatusBar';
     
     private static config: vscode.WorkspaceConfiguration;
     private static SettingCollection = {};
@@ -39,6 +40,7 @@ export class ATSSettings {
         this.SettingCollection[this.NamespaceMandatory] = this.getSetting(this.NamespaceMandatory);
         this.SettingCollection[this.MaxNamespaceSize] = this.getSetting(this.MaxNamespaceSize);
         this.SettingCollection[this.URLForwardingRules] = this.getSetting(this.URLForwardingRules);
+        this.SettingCollection[this.ShowRegionsOnStatusBar] = this.getSetting(this.ShowRegionsOnStatusBar);
     }
 
     public static GetConfigSettings(ResourceUri: vscode.Uri) {
