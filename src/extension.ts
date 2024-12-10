@@ -41,15 +41,20 @@ export function activate(context: vscode.ExtensionContext) {
     // Aggiorna la barra quando cambiano il file o la selezione
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(InitRegionStatusBar));
     context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(InitRegionStatusBar));
+
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(InitRegionStatusBar));
 
     // Aggiorna la cache quando il documento viene modificato
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((event) => {
         const document = event.document;
-        const reason = event.reason;
         const changes = event.contentChanges;
 
         regionCache.updateRegionCacheForChanges(document, [...changes]);
+    }));
+
+    // Azzera la cache quando il documento viene chiuso
+    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
+        regionCache.clearFileCache(event.fileName);
     }));
 
     function InitRegionStatusBar() {

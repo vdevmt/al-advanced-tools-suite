@@ -9,6 +9,7 @@ const regionCache: { [uri: string]: string[] } = {};
         const lines = document.getText().split('\n');
         const regions: string[] = [];
         const lineToRegionMap: string[] = []; // Mappa riga -> percorso delle regioni
+        const uri = cacheDictionaryKey(document);
 
         lines.forEach((lineText, index) => {
             const trimmed = lineText.trim();
@@ -23,14 +24,16 @@ const regionCache: { [uri: string]: string[] } = {};
         });
 
         // Memorizza la mappa nel cache
-        regionCache[document.uri.toString()] = lineToRegionMap;
+        regionCache[uri] = lineToRegionMap;
     }
 }
 
 // Aggiornamento cache per le sole righe modificate
 export async function updateRegionCacheForChanges(document: vscode.TextDocument, changes: vscode.TextDocumentContentChangeEvent[]) {
     if (alFileMgr.isALObjectDocument(document)) {
-        const uri = document.uri.toString();
+        //const uri = document.uri.toString();
+        const uri = cacheDictionaryKey(document);
+
         const lineToRegionMap = regionCache[uri] || [];
         const regions: string[] = [];
 
@@ -56,14 +59,30 @@ export async function updateRegionCacheForChanges(document: vscode.TextDocument,
     }
 }
 
+export async function clearFileCache(fileName: string) {
+    const uri = vscode.Uri.parse(fileName);
+    if (alFileMgr.isALObjectFile(uri)) {       
+        delete regionCache[uri.toString()];   
+    }
+}
+
 // Ricerca percorso tramite cache
 export async function getRegionPathFromCache(document: vscode.TextDocument, line: number, rebuildCache: boolean): Promise<string> {
     if (alFileMgr.isALObjectDocument(document)) {
-        if ((!regionCache[document.uri.toString()]) || (rebuildCache)) {
+
+        if (rebuildCache) {
+            clearFileCache(document.fileName);
+        }
+
+        if (!regionCache[cacheDictionaryKey(document)]) {
             updateDocumentRegionCache(document);
         }
 
-        const regions = regionCache[document.uri.toString()];
+        const regions = regionCache[cacheDictionaryKey(document)];
         return regions[line] || ''; 
     }
+}
+
+function cacheDictionaryKey(document: vscode.TextDocument): string {
+    return vscode.Uri.parse(document.fileName).toString();
 }
