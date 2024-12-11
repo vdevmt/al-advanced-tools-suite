@@ -39,6 +39,55 @@ export async function createRegionBySelection() {
 
 //#region Status Bar
 const regionsCache: { [uri: string]: string[] } = {};
+let regionStructureCache: documentRegion[] = [{}];
+
+interface documentRegion {
+    documentKey?: string;
+    name?: string;
+    startLine?: number;
+    endLine?: number;
+    level?: number;
+}
+
+export function createRegionsStatusBarItem(): vscode.StatusBarItem {
+    const regionStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    regionStatusBarItem.text = `$(symbol-number)`;
+    regionStatusBarItem.tooltip = 'Regions Path (ATS)';
+    regionStatusBarItem.command = undefined;
+    regionStatusBarItem.show();
+
+    return regionStatusBarItem;
+}
+
+export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusBarItem, rebuildCache: boolean) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        regionStatusBarItem.text = `$(symbol-number)`;
+        regionStatusBarItem.tooltip = 'Regions Path (ATS)';
+        regionStatusBarItem.command = undefined;
+        return;
+    }
+
+    const document = editor.document;
+    const currentLine = editor.selection.active.line;
+
+    // Ottieni il percorso delle regioni per la riga corrente
+    const path = getRegionPathFromCache(document, currentLine, rebuildCache);
+    if (path) {
+        regionStatusBarItem.text = `$(symbol-number) ${truncateRegionPath(path, -1)}`;
+        regionStatusBarItem.tooltip = `Regions Path (ATS): ${path}`;
+
+        // Registra un comando per ogni regione
+        const regionStartLine = findRegionStartLine(document, path, currentLine);
+        regionStatusBarItem.command = {
+            command: 'ats.goToRegionStartLine',
+            arguments: [regionStartLine, path],
+            title: `ATS: Go to Region start position`
+        };
+    }
+
+    regionStatusBarItem.show();
+}
 
 export function regionPathStatusBarEnabled(): boolean {
     const atsSettings = ATSSettings.GetConfigSettings(null);
@@ -62,30 +111,11 @@ export async function refreshDocumentRegions(document: vscode.TextDocument) {
     }
 }
 
-export async function refreshDocumentRegionsForChanges(document: vscode.TextDocument, changes: vscode.TextDocumentContentChangeEvent[]) {
-    // Aggiornamento cache per le sole righe modificate
-    if (alFileMgr.isALObjectDocument(document)) {
-        const openedRegions: string[] = [];
-        const regionsMap = regionsCache[cacheDictionaryKey(document)] || [];
-
-        changes.forEach(change => {
-            const startLine = change.range.start.line;
-            const endLine = change.range.end.line;
-
-            for (let linePos = startLine; linePos <= endLine; linePos++) {
-                const lineText = document.lineAt(linePos).text.trim();
-                findRegionsOfDocument(lineText, linePos, openedRegions, regionsMap);
-            }
-        });
-
-        regionsCache[cacheDictionaryKey(document)] = regionsMap;
-    }
-}
-
 function findRegionsOfDocument(currentLineText: string, currentLinePos: number, openedRegions: string[], regionsMap: string[]) {
     const regionRegex = /#(end)?region(\s+(.+))?/i;
     const match = regionRegex.exec(currentLineText.trim());
     let removeLast = false;
+    let regionStructure: documentRegion = {};
 
     if (match) {
         if (match[1] === 'end') {
@@ -95,6 +125,12 @@ function findRegionsOfDocument(currentLineText: string, currentLinePos: number, 
             // Match for #region and capture the region name
             const regionName = match[3] ? match[3].trim() : '';
             openedRegions.push(regionName);
+
+            regionStructure.documentKey = 'abc';  //TODO
+            regionStructure.name = regionName;
+            regionStructure.startLine = currentLinePos;
+            regionStructure.level = openedRegions.length;
+            regionStructureCache.push(regionStructure);
         }
     }
     // Save the current path in the map
@@ -109,14 +145,16 @@ export async function clearRegionsCache(fileName: string) {
     const uri = vscode.Uri.parse(fileName);
     if (alFileMgr.isALObjectFile(uri)) {
         delete regionsCache[uri.toString()];
+        regionStructureCache = regionStructureCache.filter(regionStructureCache => regionStructureCache.documentKey !== uri.toString());
     }
 }
 
-export async function getRegionPathFromCache(document: vscode.TextDocument, line: number, rebuildCache: boolean): Promise<string> {
+
+function getRegionPathFromCache(document: vscode.TextDocument, line: number, rebuildCache: boolean): string {
     if (alFileMgr.isALObjectDocument(document)) {
 
         if (rebuildCache) {
-            await clearRegionsCache(document.fileName);
+            clearRegionsCache(document.fileName);
         }
 
         if (!regionsCache[cacheDictionaryKey(document)]) {
@@ -132,7 +170,7 @@ function cacheDictionaryKey(document: vscode.TextDocument): string {
     return vscode.Uri.parse(document.fileName).toString();
 }
 
-export function findRegionStartLine(document: vscode.TextDocument, regionPath: string, currentPosition: number): number {
+function findRegionStartLine(document: vscode.TextDocument, regionPath: string, currentPosition: number): number {
     let regions = regionPath.split('>');
     if (regions) {
         let regionName = regions[regions.length - 1].trimEnd();
@@ -147,7 +185,7 @@ export function findRegionStartLine(document: vscode.TextDocument, regionPath: s
     return -1; // Region not found
 }
 
-export function truncateRegionPath(regionPath: string, maxLength: number): string {
+function truncateRegionPath(regionPath: string, maxLength: number): string {
     if (maxLength < 0) {
         maxLength = 60; // Default value
     }
@@ -165,55 +203,20 @@ export function truncateRegionPath(regionPath: string, maxLength: number): strin
 }
 
 export function goToRegionStartLine(regionStartLine: number, regionPath: string) {
-    const editor = vscode.window.activeTextEditor;
-    if (editor) {
-        if (regionStartLine >= 0) {
-            const position = new vscode.Position(regionStartLine, 0);
-            const newSelection = new vscode.Selection(position, position);
-            editor.selection = newSelection;
-            editor.revealRange(new vscode.Range(position, position));
+    if (regionPath) {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            if (regionStartLine >= 0) {
+                const position = new vscode.Position(regionStartLine, 0);
+                const newSelection = new vscode.Selection(position, position);
+                editor.selection = newSelection;
+                editor.revealRange(new vscode.Range(position, position));
 
-            return;
+                return;
+            }
         }
+
+        vscode.window.showInformationMessage(`Unable to find the start position of Region: ${regionPath}`);
     }
-
-    vscode.window.showInformationMessage(`Unable to find the start position of Region: ${regionPath}`);
 }
-
-export function createRegionsStatusBarItem(): vscode.StatusBarItem {
-    const regionStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    regionStatusBarItem.text = '';
-    regionStatusBarItem.tooltip = 'Regions Path (ATS)';
-    regionStatusBarItem.show();
-
-    return regionStatusBarItem;
-}
-
-export async function updateRegionsStatusBar(regionStatusBar: vscode.StatusBarItem, rebuildCache: boolean) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        regionStatusBar.text = '';
-        regionStatusBar.tooltip = 'Regions Path (ATS)';
-        return;
-    }
-
-    const document = editor.document;
-    const currentLine = editor.selection.active.line;
-
-    // Ottieni il percorso delle regioni per la riga corrente
-    const path = await getRegionPathFromCache(document, currentLine, rebuildCache);
-    regionStatusBar.text = `$(symbol-number) ${truncateRegionPath(path, -1)}`;
-    regionStatusBar.tooltip = `Regions Path (ATS): ${path}`;
-
-    // Registra un comando per ogni regione
-    const regionStartLine = findRegionStartLine(document, path, currentLine);
-    regionStatusBar.command = {
-        command: 'ats.goToRegionStartLine',
-        arguments: [regionStartLine, path],
-        title: `ATS: Go to Region start position`
-    };
-
-    regionStatusBar.show();
-}
-
 //#endregion Status Bar

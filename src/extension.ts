@@ -48,14 +48,6 @@ export function activate(context: vscode.ExtensionContext) {
         // Update status bar on document save
         context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(updateRegionsStatusBar));
 
-        // Refresh status bar cache on document change
-        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((event) => {
-            const document = event.document;
-            const changes = event.contentChanges;
-
-            regionMgr.refreshDocumentRegionsForChanges(document, [...changes]);
-        }));
-
         // Clear status bar cache on document close
         context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
             regionMgr.clearRegionsCache(event.fileName);
