@@ -31,10 +31,7 @@
   ],
   "license": "MIT",
   "activationEvents": [
-    "onLanguage:al",
-    "onStartupFinished",
-    "onDidChangeActiveTextEditor",
-    "onDidChangeTextEditorSelection"
+    "onLanguage:al"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -86,19 +83,22 @@
             "type": "string",
             "description": "Default archive folder for import/export utiltities of launch.json file",
             "default": "",
-            "order": 1
+            "order": 1,
+            "scope": "resource"
           },
           "ATS.UseObjectFilePathAsNamespace": {
             "type": "boolean",
             "description": "Allow usage of object file path for namespace declarations (default = false)",
             "default": false,
-            "order": 2
+            "order": 2,
+            "scope": "resource"
           },
           "ATS.RootNamespace": {
             "type": "string",
             "description": "Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the al.rootNamespace setting)",
             "default": "",
-            "order": 3
+            "order": 3,
+            "scope": "resource"
           },
           "ATS.DefaultNamespaces": {
             "type": "array",
@@ -107,25 +107,29 @@
             },
             "description": "List of default namespaces that can be used for AL objects",
             "default": "",
-            "order": 4
+            "order": 4,
+            "scope": "resource"
           },
           "ATS.MaxNamespaceSize": {
             "type": "number",
             "description": "No. of max elements expected for namespace declaration in AL objects (default = 5)",
             "default": 5,
-            "order": 5
+            "order": 5,
+            "scope": "resource"
           },
           "ATS.EnableNamespaceDiagnostics": {
             "type": "boolean",
             "description": "Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false)",
             "default": false,
-            "order": 6
+            "order": 6,
+            "scope": "resource"
           },
           "ATS.NamespaceMandatory": {
             "type": "boolean",
             "description": "Enable or disable errors for missing namespace declarations in AL objects (default = false)",
             "default": false,
-            "order": 7
+            "order": 7,
+            "scope": "resource"
           },
           "ATS.URLForwardingRules": {
             "type": "object",
@@ -133,13 +137,15 @@
             "additionalProperties": {
               "type": "string"
             },
-            "order": 8
+            "order": 8,
+            "scope": "resource"
           },
           "ATS.ShowRegionsOnStatusBar": {
             "type": "boolean",
             "description": "Enable the visibility of the regions path of the current line in the status bar",
             "default": false,
-            "order": 9
+            "order": 9,
+            "scope": "resource"
           }
         }
       }

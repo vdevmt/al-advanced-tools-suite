@@ -115,6 +115,7 @@ function truncateNamespace(namespace: string, maxPositions: number): string {
 function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpace[] {
     let defaultNamespaces: atsNameSpace[] = [];
     let atsNamespace: atsNameSpace = {};
+    let defaultRootNamespace = getDefaultRootNamespace();
 
     const atsSettings = ATSSettings.GetConfigSettings(null);
     let useObjectFilePathAsNamespace = atsSettings[ATSSettings.UseObjectFilePathAsNamespace];
@@ -130,7 +131,7 @@ function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpa
     }
 
     atsNamespace = {};
-    atsNamespace.value = getDefaultRootNamespace();
+    atsNamespace.value = defaultRootNamespace;
     if (atsNamespace.value) {
         atsNamespace.description = 'ATS: Default root namespace';
         atsNamespace.priority = 2;
@@ -144,6 +145,12 @@ function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpa
             atsNamespace = {};
             atsNamespace.value = DefaultNamespaces[i];
             if (atsNamespace.value) {
+                if (defaultRootNamespace) {
+                    if (!atsNamespace.value.startsWith(defaultRootNamespace)) {
+                        atsNamespace.value = defaultRootNamespace + '.' + atsNamespace.value;
+                    }
+                }
+
                 atsNamespace.description = 'ATS: Default namespace';
                 atsNamespace.priority = 3;
                 defaultNamespaces.push(atsNamespace);
