@@ -148,6 +148,10 @@ export function findRegionStartLine(document: vscode.TextDocument, regionPath: s
 }
 
 export function truncateRegionPath(regionPath: string, maxLength: number): string {
+    if (maxLength < 0) {
+        maxLength = 60; // Default value
+    }
+
     if (regionPath.length <= maxLength) {
         return regionPath;
     }
@@ -160,7 +164,7 @@ export function truncateRegionPath(regionPath: string, maxLength: number): strin
     return truncatedText;
 }
 
-export function goToRegionStartLine(regionStartLine: number) {
+export function goToRegionStartLine(regionStartLine: number, regionPath: string) {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
         if (regionStartLine >= 0) {
@@ -173,7 +177,7 @@ export function goToRegionStartLine(regionStartLine: number) {
         }
     }
 
-    vscode.window.showInformationMessage('No region found for the current position.');
+    vscode.window.showInformationMessage(`Unable to find the start position of Region: ${regionPath}`);
 }
 
 //#endregion Status Bar

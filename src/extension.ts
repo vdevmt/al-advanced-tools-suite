@@ -74,22 +74,22 @@ export function activate(context: vscode.ExtensionContext) {
 
             // Ottieni il percorso delle regioni per la riga corrente
             const path = await regionMgr.getRegionPathFromCache(document, currentLine, rebuildCache);
-            regionStatusBar.text = `$(symbol-number) ${regionMgr.truncateRegionPath(path, 60)}`;
+            regionStatusBar.text = `$(symbol-number) ${regionMgr.truncateRegionPath(path, -1)}`;
             regionStatusBar.tooltip = `Region Path (ATS): ${path}`;
 
             // Registra un comando per ogni regione
             const regionStartLine = regionMgr.findRegionStartLine(document, path, currentLine);
             regionStatusBar.command = {
                 command: 'ats.goToRegionStartLine',
-                arguments: [regionStartLine],
+                arguments: [regionStartLine, path],
                 title: `ATS: Go to Region start position`
             };
 
             regionStatusBar.show();
         }
 
-        context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number) => {
-            regionMgr.goToRegionStartLine(line);
+        context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number, regionPath: string) => {
+            regionMgr.goToRegionStartLine(line, regionPath);
         }));
     }
 }
