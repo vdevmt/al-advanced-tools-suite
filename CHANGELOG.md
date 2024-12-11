@@ -22,4 +22,5 @@ Initial release of "Advanced Tools Suite for AL Language"
 ## [1.3.4]
 
 - New Features:
-    - If you are using Regions on your code you can now view the region path of the current line in the status bar
+    - If you are using regions in your code, you can now view the region path of the current line in the status bar.
+    - Open launch.json file by command `ATS: Open 'launch.json'`

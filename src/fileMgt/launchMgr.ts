@@ -121,6 +121,22 @@ export async function exportLaunchFile() {
     }
 }
 
+export async function openLaunchFile() {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage("No workspace is open.");
+        return;
+    }
+
+    const workspacePath = workspaceFolders[0].uri.fsPath;
+    const launchJsonPath = path.join(workspacePath, '.vscode', 'launch.json');
+
+    if (launchJsonPath) {
+        vscode.workspace.openTextDocument(launchJsonPath).then(doc => vscode.window.showTextDocument(doc));
+    }
+}
+
 //#endregion Import/Export utilities
 
 //#region Run Business Central

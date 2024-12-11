@@ -48,6 +48,10 @@
         "title": "ATS: Export 'launch.json'"
       },
       {
+        "command": "ats.openLaunchFile",
+        "title": "ATS: Open 'launch.json'"
+      },
+      {
         "command": "ats.runBusinessCentral",
         "title": "ATS: Run Business Central without publishing"
       },
