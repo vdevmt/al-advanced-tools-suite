@@ -4,7 +4,7 @@ import * as regionMgr from './regions/regionMgr';
 import * as namespaceMgr from './namespaces/namespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 
-let updateTimeout: NodeJS.Timeout | undefined;
+let debounceTimeout = null;
 
 export function activate(context: vscode.ExtensionContext) {
     //#region launch.json tools
@@ -42,19 +42,36 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(regionStatusBar);
 
         // Update status bar on editor change
-        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateRegionsStatusBar));
-        context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateRegionsStatusBar));
+        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshRegionsStatusBar));
+        context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateRegionsStatusBarText));
+
+        // Update status bar on document change
+        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(refreshRegionsStatusBarOnChange));
 
         // Update status bar on document save
-        context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(updateRegionsStatusBar));
+        context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(refreshRegionsStatusBar));
 
         // Clear status bar cache on document close
         context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
             regionMgr.clearRegionsCache(event.fileName);
         }));
 
-        function updateRegionsStatusBar() {
+        function updateRegionsStatusBarText() {
+            regionMgr.updateRegionsStatusBar(regionStatusBar, false);
+        }
+        function refreshRegionsStatusBar() {
             regionMgr.updateRegionsStatusBar(regionStatusBar, true);
+        }
+        function refreshRegionsStatusBarOnChange() {
+            // Cancella il timeout precedente, se presente
+            if (debounceTimeout) {
+                clearTimeout(debounceTimeout);
+            }
+
+            // Imposta un nuovo timeout per l'aggiornamento della status bar
+            debounceTimeout = setTimeout(() => {
+                refreshRegionsStatusBar();
+            }, 300); // 300ms di attesa prima di invocare updateRegionsStatusBar               
         }
 
         context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number, regionPath: string) => {

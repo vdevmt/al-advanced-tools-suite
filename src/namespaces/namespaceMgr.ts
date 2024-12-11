@@ -69,22 +69,26 @@ function makeNamespaceByCurrentFilePath(): string | undefined {
 
 function getNamespaceFromPath(file: vscode.Uri): string {
     let rootNamespace = getDefaultRootNamespace();
-    let relativePath = alFileMgr.getRelativePath(file);
+    let relativePath = alFileMgr.getRelativePath(file, true);
 
-    let namespace = relativePath
-        .replace(/\\/g, ".")
-        .replace(/\//g, ".")
-        .replace(/\.al$/, "");
+    if (relativePath) {
+        let namespace = relativePath
+            .replace(/\\/g, ".")
+            .replace(/\//g, ".")
+            .replace(/\.al$/, "");
 
-    if (rootNamespace) {
-        if (!namespace.startsWith(rootNamespace)) {
-            namespace = rootNamespace + '.' + namespace;
+        if (rootNamespace) {
+            if (!namespace.startsWith(rootNamespace)) {
+                namespace = rootNamespace + '.' + namespace;
+            }
         }
+
+        const atsSettings = ATSSettings.GetConfigSettings(null);
+        const MaxNamespaceSize = atsSettings[ATSSettings.MaxNamespaceSize];
+        return truncateNamespace(namespace, MaxNamespaceSize);
     }
 
-    const atsSettings = ATSSettings.GetConfigSettings(null);
-    const MaxNamespaceSize = atsSettings[ATSSettings.MaxNamespaceSize];
-    return truncateNamespace(namespace, MaxNamespaceSize);
+    return '';
 }
 
 function getDefaultRootNamespace(): string | undefined {
@@ -114,51 +118,50 @@ function truncateNamespace(namespace: string, maxPositions: number): string {
 
 function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpace[] {
     let defaultNamespaces: atsNameSpace[] = [];
-    let atsNamespace: atsNameSpace = {};
     let defaultRootNamespace = getDefaultRootNamespace();
 
     const atsSettings = ATSSettings.GetConfigSettings(null);
     let useObjectFilePathAsNamespace = atsSettings[ATSSettings.UseObjectFilePathAsNamespace];
 
     if (useObjectFilePathAsNamespace) {
-        atsNamespace = {};
-        atsNamespace.value = getNamespaceFromPath(currDocument.uri);
-        if (atsNamespace.value) {
-            atsNamespace.description = 'ATS: Namespace by current file path';
-            atsNamespace.priority = 1;
-            defaultNamespaces.push(atsNamespace);
-        }
+        addNamespaceToList(defaultNamespaces, getNamespaceFromPath(currDocument.uri), 'ATS: Namespace by current file path', 1);
     }
 
-    atsNamespace = {};
-    atsNamespace.value = defaultRootNamespace;
-    if (atsNamespace.value) {
-        atsNamespace.description = 'ATS: Default root namespace';
-        atsNamespace.priority = 2;
-        defaultNamespaces.push(atsNamespace);
-    }
+    addNamespaceToList(defaultNamespaces, defaultRootNamespace, 'ATS: Default root namespace', 2);
 
     let DefaultNamespaces = atsSettings[ATSSettings.DefaultNamespaces];
 
     if ((DefaultNamespaces) && (DefaultNamespaces.length > 0)) {
         for (let i = 0; i < DefaultNamespaces.length; i++) {
-            atsNamespace = {};
-            atsNamespace.value = DefaultNamespaces[i];
-            if (atsNamespace.value) {
+            let namespace = DefaultNamespaces[i];
+            if (namespace) {
                 if (defaultRootNamespace) {
-                    if (!atsNamespace.value.startsWith(defaultRootNamespace)) {
-                        atsNamespace.value = defaultRootNamespace + '.' + atsNamespace.value;
+                    if (!namespace.startsWith(defaultRootNamespace)) {
+                        namespace = defaultRootNamespace + '.' + namespace;
                     }
                 }
 
-                atsNamespace.description = 'ATS: Default namespace';
-                atsNamespace.priority = 3;
-                defaultNamespaces.push(atsNamespace);
+                addNamespaceToList(defaultNamespaces, namespace, 'ATS: Default namespace', 3);
             }
         }
     }
 
     return defaultNamespaces;
+}
+
+function addNamespaceToList(NamespaceList: atsNameSpace[], namespace: string, description: string, priority: number) {
+    if (namespace) {
+        const exists = NamespaceList.some(ns => ns.value === namespace);
+
+        if (!exists) {
+            let atsNamespace: atsNameSpace = {};
+            atsNamespace.value = namespace;
+            atsNamespace.description = description;
+            atsNamespace.priority = priority;
+
+            NamespaceList.push(atsNamespace);
+        }
+    }
 }
 
 export class NamespaceCompletionProvider {

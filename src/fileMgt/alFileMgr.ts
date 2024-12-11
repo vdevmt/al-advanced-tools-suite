@@ -98,7 +98,7 @@ export function getFirstNonEmptyObjectLinePos(document: vscode.TextDocument): nu
     return -1; // Documento vuoto
 }
 
-export function getRelativePath(file: vscode.Uri): string {
+export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): string {
     let relativePath = file.fsPath;
 
     // Verifico se esiste un workspace aperto
@@ -113,9 +113,16 @@ export function getRelativePath(file: vscode.Uri): string {
 
     relativePath = path.dirname(relativePath);  // Escludo il nome del file
 
-    // Rimuovi il prefisso "src/" se presente
-    if (relativePath.startsWith("src" + path.sep)) {
-        relativePath = relativePath.substring(4);
+    if (excludeSrcFolder) {
+        // Rimuovi il prefisso "src/" se presente
+        if (relativePath === "src") {
+            relativePath = '';
+        }
+        else {
+            if (relativePath.startsWith("src" + path.sep)) {
+                relativePath = relativePath.substring(4);
+            }
+        }
     }
 
     return relativePath;

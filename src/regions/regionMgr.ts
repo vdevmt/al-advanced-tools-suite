@@ -35,11 +35,19 @@ export async function createRegionBySelection() {
         });
     });
 }
+
+function documentHasRegion(document: vscode.TextDocument): boolean {
+    const documentText = document.getText();
+    const lines = documentText.split('\n');
+
+    // Verifica se almeno una riga contiene '#region'
+    return lines.some(line => line.includes('#region'));
+}
 //#endregion Regions tools
 
 //#region Status Bar
 const regionsCache: { [uri: string]: string[] } = {};
-let regionStructureCache: documentRegion[] = [{}];
+let regionStructureCache: documentRegion[] = [];
 
 interface documentRegion {
     documentKey?: string;
@@ -62,7 +70,7 @@ export function createRegionsStatusBarItem(): vscode.StatusBarItem {
 export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusBarItem, rebuildCache: boolean) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        regionStatusBarItem.text = `$(symbol-number)`;
+        regionStatusBarItem.text = '';
         regionStatusBarItem.tooltip = 'Regions Path (ATS)';
         regionStatusBarItem.command = undefined;
         return;
@@ -71,7 +79,9 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     const document = editor.document;
     const currentLine = editor.selection.active.line;
 
-    // Ottieni il percorso delle regioni per la riga corrente
+    regionStatusBarItem.text = '$(loading~spin) Searching regions';
+    regionStatusBarItem.show();
+
     const path = getRegionPathFromCache(document, currentLine, rebuildCache);
     if (path) {
         regionStatusBarItem.text = `$(symbol-number) ${truncateRegionPath(path, -1)}`;
@@ -84,6 +94,9 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
             arguments: [regionStartLine, path],
             title: `ATS: Go to Region start position`
         };
+    }
+    else {
+        regionStatusBarItem.text = '';
     }
 
     regionStatusBarItem.show();
@@ -103,7 +116,7 @@ export async function refreshDocumentRegions(document: vscode.TextDocument) {
         const regionsMap: string[] = [];
 
         lines.forEach((lineText, linePos) => {
-            findRegionsOfDocument(lineText, linePos, openedRegions, regionsMap);
+            findRegionsOfDocument(document, lineText, linePos, openedRegions, regionsMap);
         });
 
         // Memorizza la mappa nel cache
@@ -111,7 +124,7 @@ export async function refreshDocumentRegions(document: vscode.TextDocument) {
     }
 }
 
-function findRegionsOfDocument(currentLineText: string, currentLinePos: number, openedRegions: string[], regionsMap: string[]) {
+function findRegionsOfDocument(document: vscode.TextDocument, currentLineText: string, currentLinePos: number, openedRegions: string[], regionsMap: string[]) {
     const regionRegex = /#(end)?region(\s+(.+))?/i;
     const match = regionRegex.exec(currentLineText.trim());
     let removeLast = false;
@@ -126,7 +139,7 @@ function findRegionsOfDocument(currentLineText: string, currentLinePos: number, 
             const regionName = match[3] ? match[3].trim() : '';
             openedRegions.push(regionName);
 
-            regionStructure.documentKey = 'abc';  //TODO
+            regionStructure.documentKey = cacheDictionaryKey(document);
             regionStructure.name = regionName;
             regionStructure.startLine = currentLinePos;
             regionStructure.level = openedRegions.length;
@@ -145,13 +158,21 @@ export async function clearRegionsCache(fileName: string) {
     const uri = vscode.Uri.parse(fileName);
     if (alFileMgr.isALObjectFile(uri)) {
         delete regionsCache[uri.toString()];
-        regionStructureCache = regionStructureCache.filter(regionStructureCache => regionStructureCache.documentKey !== uri.toString());
+
+        if (regionStructureCache) {
+            regionStructureCache = regionStructureCache.filter(regionStructureCache => regionStructureCache.documentKey !== uri.toString());
+        }
     }
 }
 
 
 function getRegionPathFromCache(document: vscode.TextDocument, line: number, rebuildCache: boolean): string {
     if (alFileMgr.isALObjectDocument(document)) {
+
+        if (!documentHasRegion(document)) {
+            clearRegionsCache(document.fileName);
+            return '';
+        }
 
         if (rebuildCache) {
             clearRegionsCache(document.fileName);
