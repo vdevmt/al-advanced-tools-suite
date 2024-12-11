@@ -7,19 +7,22 @@ import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 let updateTimeout: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    // launch.json tools
+    //#region launch.json tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.importLaunchFile', launchMgr.importLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportLaunchFile', launchMgr.exportLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
+    //#endregion launch.json tools
 
-    // Region tools
+    //#region Region tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.createRegionBySelection', regionMgr.createRegionBySelection));
+    //#endregion Region tools
 
-    // Namespace tools
+    //#region Namespace tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.setNamespaceByFilePath', namespaceMgr.setNamespaceByFilePath));
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider(), " "));
+    //#endregion Namespace tools
 
-    // Diagnostic Rules
+    //#region Diagnostic Rules
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('atsDiagnostics');
     context.subscriptions.push(diagnosticCollection);
 
@@ -27,24 +30,21 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Scansiona tutti i file AL nel workspace all'avvio
     diagnosticMgr.ValidateAllFiles(diagnosticCollection);
+    //#endregion Diagnostic Rules
 
-
-    // Barra di stato (Region Path)
+    //#region Region Status Bar
     if (regionMgr.regionPathStatusBarEnabled()) {
-        const regionStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        regionStatusBar.text = '';
-        regionStatusBar.tooltip = 'Region Path (ATS)';
-        regionStatusBar.show();
-
+        const regionStatusBar = regionMgr.createRegionsStatusBarItem();
         context.subscriptions.push(regionStatusBar);
 
-        // Aggiorna la barra quando cambiano il file o la selezione
-        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(InitRegionStatusBar));
-        context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(InitRegionStatusBar));
+        // Update status bar on editor change
+        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateRegionsStatusBar));
+        context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateRegionsStatusBar));
 
-        context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(InitRegionStatusBar));
+        // Update status bar on document save
+        context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(updateRegionsStatusBar));
 
-        // Aggiorna la cache quando il documento viene modificato
+        // Refresh status bar cache on document change
         context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((event) => {
             const document = event.document;
             const changes = event.contentChanges;
@@ -52,46 +52,20 @@ export function activate(context: vscode.ExtensionContext) {
             regionMgr.refreshDocumentRegionsForChanges(document, [...changes]);
         }));
 
-        // Azzera la cache quando il documento viene chiuso
+        // Clear status bar cache on document close
         context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
             regionMgr.clearRegionsCache(event.fileName);
         }));
 
-        function InitRegionStatusBar() {
-            updateRegionStatusBar(true);
-        }
-
-        async function updateRegionStatusBar(rebuildCache: boolean) {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                regionStatusBar.text = '';
-                regionStatusBar.tooltip = 'Region Path (ATS)';
-                return;
-            }
-
-            const document = editor.document;
-            const currentLine = editor.selection.active.line;
-
-            // Ottieni il percorso delle regioni per la riga corrente
-            const path = await regionMgr.getRegionPathFromCache(document, currentLine, rebuildCache);
-            regionStatusBar.text = `$(symbol-number) ${regionMgr.truncateRegionPath(path, -1)}`;
-            regionStatusBar.tooltip = `Region Path (ATS): ${path}`;
-
-            // Registra un comando per ogni regione
-            const regionStartLine = regionMgr.findRegionStartLine(document, path, currentLine);
-            regionStatusBar.command = {
-                command: 'ats.goToRegionStartLine',
-                arguments: [regionStartLine, path],
-                title: `ATS: Go to Region start position`
-            };
-
-            regionStatusBar.show();
+        function updateRegionsStatusBar() {
+            regionMgr.updateRegionsStatusBar(regionStatusBar, true);
         }
 
         context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number, regionPath: string) => {
             regionMgr.goToRegionStartLine(line, regionPath);
         }));
     }
+    //#endregion Region Status Bar
 }
 
 export function deactivate() { }

@@ -180,4 +180,40 @@ export function goToRegionStartLine(regionStartLine: number, regionPath: string)
     vscode.window.showInformationMessage(`Unable to find the start position of Region: ${regionPath}`);
 }
 
+export function createRegionsStatusBarItem(): vscode.StatusBarItem {
+    const regionStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    regionStatusBarItem.text = '';
+    regionStatusBarItem.tooltip = 'Regions Path (ATS)';
+    regionStatusBarItem.show();
+
+    return regionStatusBarItem;
+}
+
+export async function updateRegionsStatusBar(regionStatusBar: vscode.StatusBarItem, rebuildCache: boolean) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        regionStatusBar.text = '';
+        regionStatusBar.tooltip = 'Regions Path (ATS)';
+        return;
+    }
+
+    const document = editor.document;
+    const currentLine = editor.selection.active.line;
+
+    // Ottieni il percorso delle regioni per la riga corrente
+    const path = await getRegionPathFromCache(document, currentLine, rebuildCache);
+    regionStatusBar.text = `$(symbol-number) ${truncateRegionPath(path, -1)}`;
+    regionStatusBar.tooltip = `Regions Path (ATS): ${path}`;
+
+    // Registra un comando per ogni regione
+    const regionStartLine = findRegionStartLine(document, path, currentLine);
+    regionStatusBar.command = {
+        command: 'ats.goToRegionStartLine',
+        arguments: [regionStartLine, path],
+        title: `ATS: Go to Region start position`
+    };
+
+    regionStatusBar.show();
+}
+
 //#endregion Status Bar
