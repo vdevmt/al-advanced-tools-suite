@@ -1,10 +1,10 @@
 # Change Log
 
-## [1.3.4]
+## [1.3.5]
 
 - New Features:
-    - If you are using regions in your code, you can now view the region path of the current line in the status bar.
-    - Open launch.json file by command `ATS: Open 'launch.json'`
+    - If you use regions in your code, you can now view the region path of the current line in the status bar (`ATS.ShowRegionsOnStatusBar` setting must be enabled).
+    - Open launch.json file by command `ATS: Open launch.json`
     - Minor fixes related to regions and namespace usages
 
 ## [1.3.2]
