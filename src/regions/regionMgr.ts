@@ -46,80 +46,62 @@ export function regionPathStatusBarEnabled(): boolean {
 }
 
 export async function refreshDocumentRegions(document: vscode.TextDocument) {
+    clearRegionsCache(document.fileName);
+
     if (alFileMgr.isALObjectDocument(document)) {
         const lines = document.getText().split('\n');
-        const regions: string[] = [];
-        const lineToRegionMap: string[] = []; // Mappa riga -> percorso delle regioni
-        const uri = cacheDictionaryKey(document);
+        const openedRegions: string[] = [];
+        const regionsMap: string[] = [];
 
-        const regionRegex = /#(end)?region(\s+(.+))?/i;
-
-        lines.forEach((lineText, index) => {
-            const match = regionRegex.exec(lineText.trim());
-            let removeLast = false;
-
-            if (match) {
-                if (match[1] === 'end') {
-                    // Match for #endregion
-                    removeLast = true;
-                } else {
-                    // Match for #region and capture the region name
-                    const regionName = match[3] ? match[3].trim() : '';
-                    regions.push(regionName);
-                }
-            }
-            // Save the current path in the map
-            lineToRegionMap[index] = regions.join(' > ');
-
-            if (removeLast) {
-                regions.pop();
-            }
+        lines.forEach((lineText, linePos) => {
+            findRegionsOfDocument(lineText, linePos, openedRegions, regionsMap);
         });
 
         // Memorizza la mappa nel cache
-        regionsCache[uri] = lineToRegionMap;
+        regionsCache[cacheDictionaryKey(document)] = regionsMap;
     }
 }
 
-// Aggiornamento cache per le sole righe modificate
 export async function refreshDocumentRegionsForChanges(document: vscode.TextDocument, changes: vscode.TextDocumentContentChangeEvent[]) {
+    // Aggiornamento cache per le sole righe modificate
     if (alFileMgr.isALObjectDocument(document)) {
-        //const uri = document.uri.toString();
-        const uri = cacheDictionaryKey(document);
-
-        const lineToRegionMap = regionsCache[uri] || [];
-        const regions: string[] = [];
-
-        const regionRegex = /#(end)?region(\s+(.+))?/i;
+        const openedRegions: string[] = [];
+        const regionsMap = regionsCache[cacheDictionaryKey(document)] || [];
 
         changes.forEach(change => {
             const startLine = change.range.start.line;
             const endLine = change.range.end.line;
 
-            for (let i = startLine; i <= endLine; i++) {
-                const lineText = document.lineAt(i).text.trim();
-                const match = regionRegex.exec(lineText);
-                let removeLast = false;
-
-                if (match) {
-                    if (match[1] === 'end') {
-                        // Match for #endregion
-                        removeLast = true;
-                    } else {
-                        // Match for #region and capture the region name
-                        const regionName = match[3] ? match[3].trim() : '';
-                        regions.push(regionName);
-                    }
-                }
-
-                lineToRegionMap[i] = regions.join(' > ');
-                if (removeLast) {
-                    regions.pop();
-                }
+            for (let linePos = startLine; linePos <= endLine; linePos++) {
+                const lineText = document.lineAt(linePos).text.trim();
+                findRegionsOfDocument(lineText, linePos, openedRegions, regionsMap);
             }
         });
 
-        regionsCache[uri] = lineToRegionMap;
+        regionsCache[cacheDictionaryKey(document)] = regionsMap;
+    }
+}
+
+function findRegionsOfDocument(currentLineText: string, currentLinePos: number, openedRegions: string[], regionsMap: string[]) {
+    const regionRegex = /#(end)?region(\s+(.+))?/i;
+    const match = regionRegex.exec(currentLineText.trim());
+    let removeLast = false;
+
+    if (match) {
+        if (match[1] === 'end') {
+            // Match for #endregion
+            removeLast = true;
+        } else {
+            // Match for #region and capture the region name
+            const regionName = match[3] ? match[3].trim() : '';
+            openedRegions.push(regionName);
+        }
+    }
+    // Save the current path in the map
+    regionsMap[currentLinePos] = openedRegions.join(' > ');
+
+    if (removeLast) {
+        openedRegions.pop();
     }
 }
 
@@ -150,14 +132,14 @@ function cacheDictionaryKey(document: vscode.TextDocument): string {
     return vscode.Uri.parse(document.fileName).toString();
 }
 
-export function findRegionStartLine(document: vscode.TextDocument, regionPath: string): number {
+export function findRegionStartLine(document: vscode.TextDocument, regionPath: string, currentPosition: number): number {
     let regions = regionPath.split('>');
     if (regions) {
-        let regionName = regions[regions.length - 1];
+        let regionName = regions[regions.length - 1].trimEnd();
         const lines = document.getText().split('\n');
-        for (let i = 0; i < lines.length; i++) {
-            const lineText = lines[i].trim();
-            if (lineText.startsWith('#region') && lineText.includes(regionName)) {
+        const regionRegex = new RegExp(`^#region.*\\b${regionName}\\b`, 'i');
+        for (let i = currentPosition; i >= 0; i--) {
+            if (regionRegex.test(lines[i].trim())) {
                 return i;
             }
         }
@@ -178,11 +160,11 @@ export function truncateRegionPath(regionPath: string, maxLength: number): strin
     return truncatedText;
 }
 
-export function goToRegionStartLine(currentLine: number) {
+export function goToRegionStartLine(regionStartLine: number) {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
-        if (currentLine >= 0) {
-            const position = new vscode.Position(currentLine, 0);
+        if (regionStartLine >= 0) {
+            const position = new vscode.Position(regionStartLine, 0);
             const newSelection = new vscode.Selection(position, position);
             editor.selection = newSelection;
             editor.revealRange(new vscode.Range(position, position));

@@ -78,10 +78,10 @@ export function activate(context: vscode.ExtensionContext) {
             regionStatusBar.tooltip = `Region Path (ATS): ${path}`;
 
             // Registra un comando per ogni regione
-            const regionLine = regionMgr.findRegionStartLine(document, path);
+            const regionStartLine = regionMgr.findRegionStartLine(document, path, currentLine);
             regionStatusBar.command = {
                 command: 'ats.goToRegionStartLine',
-                arguments: [regionLine],
+                arguments: [regionStartLine],
                 title: `ATS: Go to Region start position`
             };
 
