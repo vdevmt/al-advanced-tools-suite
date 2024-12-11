@@ -15,8 +15,8 @@ function normalizeJsonData(jsonData: string): string {
         // Eliminazione righe vuote
         normalizedJsonData = normalizedJsonData.replace(/^\s*[\r\n]/gm, '');
 
-        return normalizedJsonData;    
+        return normalizedJsonData;
     } catch (e) {
         vscode.window.showErrorMessage('Error parsing launch.json');
-    }    
+    }
 }

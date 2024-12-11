@@ -51,6 +51,7 @@ These rules make running the Business Central client more flexible and secure wi
 * Namespace completion providers based on:
     - Current File path if **ats.UseObjectFilePathAsNamespace** setting is enabled
     - Default Root Namespace defined by **al.RootNamespace** setting
+    - Default Root Namespace defined by **ats.RootNamespace** setting
     - Additional custom Namespaces defined in **ats.DefaultNamespaces** setting
 
 <img src="./images/NamespaceSuggestion.gif" alt="Namespace Suggestion" height="400">
@@ -81,16 +82,18 @@ With this structure you can create a complex grid like this:<br />
 
 # Extension settings
 * `ATS.DefaultLaunchArchiveFolder`: Default archive folder for import/export utiltities of launch.json file;  
-* `ATS.UseObjectFilePathAsNamespace`: Allow usage of object file path for namespace declarations (default = false). The number of positions included depends on the value defined in the `ATS.MaxNamespaceSize` setting 
+* `ATS.UseObjectFilePathAsNamespace`: Allow usage of object file path for namespace declarations (default = false). The number of positions included depends on the value defined in the `ATS.MaxNamespaceSize` setting;
+* `ATS.RootNamespace`: Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the al.rootNamespace setting);
 * `ATS.DefaultNamespaces`: List of default namespaces that can be used for AL objects;  
 * `ATS.MaxNamespaceSize`: No. of max elements expected for namespace declaration in AL objects (default = 5);  
-* `ATS.EnableNamespaceDiagnostics`: Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false). 
+* `ATS.EnableNamespaceDiagnostics`: Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false); 
     Allowed values: 
-    - `al.rootNamespace` setting value;  
+    - `ATS.RootNamespace` or `AL.RootNamespace` setting value;  
     - Object file path (if `ATS.UseObjectFilePathAsNamespace` setting is enabled);
     - Custom namespaces defined in `ATS.DefaultNamespaces` setting.
-* `ATS.NamespaceMandatory`: Enable or disable errors for missing namespace declarations in AL objects (default = false). This setting will be used only if the `ATS.EnableNamespaceDiagnostics` setting is enabled.
-* `ATS.URLForwardingRules`: Conversion rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).
+* `ATS.NamespaceMandatory`: Enable or disable errors for missing namespace declarations in AL objects (default = false). This setting will be used only if the `ATS.EnableNamespaceDiagnostics` setting is enabled;
+* `ATS.URLForwardingRules`: Conversion rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion);
+* `ATS.ShowRegionsOnStatusBar`: If you are using Regions on your code you can view the region path of the current line in the status bar.
 
 # Requirements
 * AL Language extension

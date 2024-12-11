@@ -1,16 +1,24 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {ALObject} from './/alObject';
+import { ALObject } from './alObject';
 
 export function isALObjectFile(file: vscode.Uri): Boolean {
-    if (file.fsPath.toLowerCase().endsWith('.al')) {         
+    if (file.fsPath.toLowerCase().endsWith('.al')) {
         return true;
     }
 
     return false;
 }
 export function isALObjectDocument(document: vscode.TextDocument): Boolean {
-    if (document.languageId === 'al'){
+    if (document.languageId === 'al') {
+        return true;
+    }
+
+    return false;
+}
+
+export function IsPreviewALObject(document: vscode.TextDocument): Boolean {
+    if (document.fileName.toLowerCase().endsWith('.dal')) {
         return true;
     }
 
@@ -20,7 +28,6 @@ export function isALObjectDocument(document: vscode.TextDocument): Boolean {
 export function getCurrentObjectNamespace(): string {
     const editor = vscode.window.activeTextEditor;
 
-    // Verifica la presenza di un editor attivo
     if (editor) {
         if (isALObjectDocument(editor.document)) {
             return getObjectNamespace(editor.document);
@@ -32,7 +39,7 @@ export function getCurrentObjectNamespace(): string {
 
 export function getObjectNamespace(document: vscode.TextDocument): string {
     if (isALObjectDocument(document)) {
-        let alObject : ALObject;
+        let alObject: ALObject;
         alObject = new ALObject(document.getText(), document.fileName);
         return alObject.objectNamespace;
     }
@@ -43,7 +50,7 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 export function isFirstObjectLine(document: vscode.TextDocument, position: vscode.Position): boolean {
     let firstNonEmptyLinePosition = getFirstNonEmptyObjectLinePos(document);
 
-    if (firstNonEmptyLinePosition >= 0){
+    if (firstNonEmptyLinePosition >= 0) {
         return (position.line === firstNonEmptyLinePosition);
     }
 
@@ -56,11 +63,11 @@ export function getFirstNonEmptyObjectLinePos(document: vscode.TextDocument): nu
     const multiLineCommentStartRegex = /\/\*/;
     const multiLineCommentEndRegex = /\*\//;
 
-    let inMultiLineComment = false;  
+    let inMultiLineComment = false;
     const lines = document.getText().split('\n');
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim(); 
+        const line = lines[i].trim();
 
         if (inMultiLineComment) {
             // Verifico se si tratta di una riga di fine commento multi-riga
@@ -78,25 +85,25 @@ export function getFirstNonEmptyObjectLinePos(document: vscode.TextDocument): nu
 
         // Verifico se si tratta di una riga di inizio commento multi-riga
         if (multiLineCommentStartRegex.test(line)) {
-            inMultiLineComment = true; 
+            inMultiLineComment = true;
             continue;  // Escludo la riga corrente
         }
 
         // Verifico se la riga contiene dati
         if (line !== '') {
-            return i;  
+            return i;
         }
     }
 
     return -1; // Documento vuoto
 }
 
-export function getRelativePath(file: vscode.Uri): string {
+export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): string {
     let relativePath = file.fsPath;
 
     // Verifico se esiste un workspace aperto
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    
+
     if (workspaceFolders) {
         const workspacePath = workspaceFolders[0].uri.fsPath;
         if (workspacePath) {
@@ -106,28 +113,34 @@ export function getRelativePath(file: vscode.Uri): string {
 
     relativePath = path.dirname(relativePath);  // Escludo il nome del file
 
-    // Rimuovi il prefisso "src/" se presente
-    if (relativePath.startsWith("src" + path.sep)) {
-        relativePath = relativePath.substring(4);
+    if (excludeSrcFolder) {
+        // Rimuovi il prefisso "src/" se presente
+        if (relativePath === "src") {
+            relativePath = '';
+        }
+        else {
+            if (relativePath.startsWith("src" + path.sep)) {
+                relativePath = relativePath.substring(4);
+            }
+        }
     }
 
     return relativePath;
 }
 
-export function cleanObjectFileContent(objectContentText: string): string
-{
+export function cleanObjectFileContent(objectContentText: string): string {
     var newObjectTxt = objectContentText;
 
     // Remove comments between /* and */
     var patternIgnoreRange = new RegExp('/\\*.*?\\*/', 'gs');
     newObjectTxt = newObjectTxt.replace(patternIgnoreRange, "");
-    
+
     // Get all lines excluding commented and empty lines
     var lines = newObjectTxt.split('\n');
     var filteredlines = lines.filter(function (line) {
         return line.trim() !== '' && line.trimStart().indexOf('//') !== 0;
-    });        
-    
+    });
+
     newObjectTxt = filteredlines.toString();
 
     return newObjectTxt;
@@ -159,7 +172,7 @@ export function IsValidALObjectType(objectType: string): boolean {
     }
 }
 
-export function isValidObjectToRun(objectType: string):Boolean {
+export function isValidObjectToRun(objectType: string): Boolean {
     const validObjectTypes: Set<string> = new Set(["table", "page", "report", "xmlport"]);
     return (validObjectTypes.has(objectType.toLowerCase()));
 }

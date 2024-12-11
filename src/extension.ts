@@ -1,30 +1,84 @@
 import * as vscode from 'vscode';
-import * as launchMgr from './launchMgr';
-import * as regionMgr from './regionMgr';
-import * as namespaceMgr from './namespaceMgr';
-import * as diagnosticMgr from './diagnosticMgr';
+import * as launchMgr from './fileMgt/launchMgr';
+import * as regionMgr from './regions/regionMgr';
+import * as namespaceMgr from './namespaces/namespaceMgr';
+import * as diagnosticMgr from './diagnostics/diagnosticMgr';
+
+let debounceTimeout = null;
 
 export function activate(context: vscode.ExtensionContext) {
-    // launch.json tools
-    context.subscriptions.push(vscode.commands.registerCommand('ats.importLaunchFile', launchMgr.importLaunchFile));   
+    //#region launch.json tools
+    context.subscriptions.push(vscode.commands.registerCommand('ats.importLaunchFile', launchMgr.importLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportLaunchFile', launchMgr.exportLaunchFile));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.openLaunchFile', launchMgr.openLaunchFile));
+    //#endregion launch.json tools
+
+    //#region Run Business Central
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
+    //#endregion Run Business Central
 
-    // Region tools
+    //#region Region tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.createRegionBySelection', regionMgr.createRegionBySelection));
+    //#endregion Region tools
 
-    // Namespace tools
+    //#region Namespace tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.setNamespaceByFilePath', namespaceMgr.setNamespaceByFilePath));
-    context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider()," "));
+    context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider(), " "));
+    //#endregion Namespace tools
 
-    // Diagnostic Rules
+    //#region Diagnostic Rules
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('atsDiagnostics');
     context.subscriptions.push(diagnosticCollection);
 
-    diagnosticMgr.subscribeToDocumentChanges(context,diagnosticCollection);
+    diagnosticMgr.subscribeToDocumentChanges(context, diagnosticCollection);
 
     // Scansiona tutti i file AL nel workspace all'avvio
     diagnosticMgr.ValidateAllFiles(diagnosticCollection);
+    //#endregion Diagnostic Rules
+
+    //#region Region Status Bar
+    if (regionMgr.regionPathStatusBarEnabled()) {
+        const regionStatusBar = regionMgr.createRegionsStatusBarItem();
+        context.subscriptions.push(regionStatusBar);
+
+        // Update status bar on editor change
+        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshRegionsStatusBar));
+        context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateRegionsStatusBarText));
+
+        // Update status bar on document change
+        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(refreshRegionsStatusBarOnChange));
+
+        // Update status bar on document save
+        context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(refreshRegionsStatusBar));
+
+        // Clear status bar cache on document close
+        context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
+            regionMgr.clearRegionsCache(event.fileName);
+        }));
+
+        function updateRegionsStatusBarText() {
+            regionMgr.updateRegionsStatusBar(regionStatusBar, false);
+        }
+        function refreshRegionsStatusBar() {
+            regionMgr.updateRegionsStatusBar(regionStatusBar, true);
+        }
+        function refreshRegionsStatusBarOnChange() {
+            // Cancella il timeout precedente, se presente
+            if (debounceTimeout) {
+                clearTimeout(debounceTimeout);
+            }
+
+            // Imposta un nuovo timeout per l'aggiornamento della status bar
+            debounceTimeout = setTimeout(() => {
+                refreshRegionsStatusBar();
+            }, 300); // 300ms di attesa prima di invocare updateRegionsStatusBar               
+        }
+
+        context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number, regionPath: string) => {
+            regionMgr.goToRegionStartLine(line, regionPath);
+        }));
+    }
+    //#endregion Region Status Bar
 }
 
-export function deactivate() {}
+export function deactivate() { }
