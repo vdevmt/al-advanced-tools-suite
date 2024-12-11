@@ -10,28 +10,28 @@ export const DIAGNOSTIC_CODE = {
     }
 };
 
-export function diagnosticRulesEnabled():Boolean {
-    if (namespaceMgr.namespaceDiagnosticEnabled()){
+export function diagnosticRulesEnabled(): Boolean {
+    if (namespaceMgr.namespaceDiagnosticEnabled()) {
         return true;
     }
 
     return false;
 }
 
-export function CreateDiagnostic(range: vscode.Range, code:string, message:string): vscode.Diagnostic {
+export function CreateDiagnostic(range: vscode.Range, code: string, message: string): vscode.Diagnostic {
     let severity: vscode.DiagnosticSeverity = vscode.DiagnosticSeverity.Warning;
 
     switch (code) {
         case DIAGNOSTIC_CODE.NAMESPACE.MISSING:
             severity = vscode.DiagnosticSeverity.Error;
-            break;        
+            break;
     }
 
-	const diagnostic = new vscode.Diagnostic(range, message, severity);
+    const diagnostic = new vscode.Diagnostic(range, message, severity);
     diagnostic.source = "ATS";
-	diagnostic.code = code;
+    diagnostic.code = code;
 
-	return diagnostic;
+    return diagnostic;
 }
 
 
@@ -47,8 +47,8 @@ export function subscribeToDocumentChanges(context: vscode.ExtensionContext, ats
                     refreshDiagnostics(editor.document, atsDiagnostics);
                 }
             })
-        );   
-        
+        );
+
         context.subscriptions.push(
             vscode.workspace.onDidChangeTextDocument(e => refreshDiagnostics(e.document, atsDiagnostics))
         );
@@ -56,23 +56,23 @@ export function subscribeToDocumentChanges(context: vscode.ExtensionContext, ats
         // context.subscriptions.push(
         //     vscode.workspace.onDidCloseTextDocument(doc => atsDiagnostics.delete(doc.uri))
         // );    
-        }
-}    
+    }
+}
 
 function refreshDiagnostics(document: vscode.TextDocument, atsDiagnostics: vscode.DiagnosticCollection) {
-	const diagnostics: vscode.Diagnostic[] = [];
+    const diagnostics: vscode.Diagnostic[] = [];
 
     if (alFileMgr.isALObjectDocument(document)) {
         namespaceMgr.ValidateObjectNamespace(document, atsDiagnostics);
     }
 
-	atsDiagnostics.set(document.uri, diagnostics);    
+    atsDiagnostics.set(document.uri, diagnostics);
 }
 
 export async function ValidateAllFiles(collection: vscode.DiagnosticCollection) {
     if (diagnosticRulesEnabled()) {
         // Trova tutti i file AL nel workspace corrente
-        const files = await vscode.workspace.findFiles('**/*.al'); 
+        const files = await vscode.workspace.findFiles('**/*.al');
         for (const file of files) {
             // Verifica dichiarazione namespace
             const document = await vscode.workspace.openTextDocument(file);

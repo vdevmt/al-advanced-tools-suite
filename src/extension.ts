@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './fileMgt/launchMgr';
 import * as regionMgr from './regions/regionMgr';
-import * as regionCache from './regions/cache';
 import * as namespaceMgr from './namespaces/namespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 
@@ -9,7 +8,7 @@ let updateTimeout: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
     // launch.json tools
-    context.subscriptions.push(vscode.commands.registerCommand('ats.importLaunchFile', launchMgr.importLaunchFile));   
+    context.subscriptions.push(vscode.commands.registerCommand('ats.importLaunchFile', launchMgr.importLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportLaunchFile', launchMgr.exportLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
 
@@ -18,13 +17,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Namespace tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.setNamespaceByFilePath', namespaceMgr.setNamespaceByFilePath));
-    context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider()," "));
+    context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider(), " "));
 
     // Diagnostic Rules
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('atsDiagnostics');
     context.subscriptions.push(diagnosticCollection);
 
-    diagnosticMgr.subscribeToDocumentChanges(context,diagnosticCollection);
+    diagnosticMgr.subscribeToDocumentChanges(context, diagnosticCollection);
 
     // Scansiona tutti i file AL nel workspace all'avvio
     diagnosticMgr.ValidateAllFiles(diagnosticCollection);
@@ -50,12 +49,12 @@ export function activate(context: vscode.ExtensionContext) {
             const document = event.document;
             const changes = event.contentChanges;
 
-            regionCache.updateRegionCacheForChanges(document, [...changes]);
+            regionMgr.refreshDocumentRegionsForChanges(document, [...changes]);
         }));
 
         // Azzera la cache quando il documento viene chiuso
         context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
-            regionCache.clearFileCache(event.fileName);
+            regionMgr.clearRegionsCache(event.fileName);
         }));
 
         function InitRegionStatusBar() {
@@ -69,25 +68,25 @@ export function activate(context: vscode.ExtensionContext) {
                 regionStatusBar.tooltip = 'Region Path (ATS)';
                 return;
             }
-        
+
             const document = editor.document;
             const currentLine = editor.selection.active.line;
 
             // Ottieni il percorso delle regioni per la riga corrente
-            const path = await regionCache.getRegionPathFromCache(document, currentLine, rebuildCache);  
-            regionStatusBar.text = `$(symbol-number) ${regionMgr.truncateRegionPath(path,60)}`;
+            const path = await regionMgr.getRegionPathFromCache(document, currentLine, rebuildCache);
+            regionStatusBar.text = `$(symbol-number) ${regionMgr.truncateRegionPath(path, 60)}`;
             regionStatusBar.tooltip = `Region Path (ATS): ${path}`;
 
             // Registra un comando per ogni regione
-            const regionLine =  regionMgr.findRegionStartLine(document, path);
+            const regionLine = regionMgr.findRegionStartLine(document, path);
             regionStatusBar.command = {
                 command: 'ats.goToRegionStartLine',
                 arguments: [regionLine],
-                title: `ATS: Go to Region start position`            
+                title: `ATS: Go to Region start position`
             };
 
-            regionStatusBar.show();        
-        } 
+            regionStatusBar.show();
+        }
 
         context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number) => {
             regionMgr.goToRegionStartLine(line);
@@ -95,4 +94,4 @@ export function activate(context: vscode.ExtensionContext) {
     }
 }
 
-export function deactivate() {}
+export function deactivate() { }

@@ -20,11 +20,11 @@ export class ALObject {
         this.objectFileName = fileName;
 
         if (this.objectContentText) {
-            this.loadObjectProperties();        
+            this.loadObjectProperties();
         }
     }
 
-    private initObjectProperties(){
+    private initObjectProperties() {
         this.objectType = "";
         this.objectId = "";
         this.objectName = "";
@@ -34,15 +34,15 @@ export class ALObject {
     }
 
     private loadObjectProperties(): any {
-        this.initObjectProperties();      
+        this.initObjectProperties();
 
         // Clean file content            
         var objectTxt = alFileMgr.cleanObjectFileContent(this.objectContentText);
 
         // Detect Object Type
         var patternObjectType = new RegExp('(codeunit |page |pagecustomization |pageextension |reportextension |permissionset |permissionsetextension |profile |query |report |requestpage |table |tableextension |xmlport |enum |enumextension |controladdin |interface |entitlement)', "i");
-        let ObjectTypeArr = objectTxt.match(patternObjectType);      
-        if (!ObjectTypeArr){
+        let ObjectTypeArr = objectTxt.match(patternObjectType);
+        if (!ObjectTypeArr) {
             return null;
         }
 
@@ -152,11 +152,11 @@ export class ALObject {
         this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
         this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
         this.extendedObjectId = this.extendedObjectId.trim().toString();
-        this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, ''); 
+        this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
 
         if (!(alFileMgr.IsValidALObjectType(this.objectType))) {
             this.initObjectProperties();
             return null;
-        }        
+        }
     }
 }

@@ -17,15 +17,15 @@ export class LaunchSettings {
 
     private static loadDefaultSettings(resourceUri: vscode.Uri) {
         this.launchconfig = launchMgr.getWorkspaceConfigurations(resourceUri);
-        this.loadConfinguration(this.launchconfig.configurations[0], true);                    
-    }    
+        this.loadConfinguration(this.launchconfig.configurations[0], true);
+    }
 
     public static LoadDefaultLaunchSettings(ResourceUri: vscode.Uri) {
         this.loadDefaultSettings(ResourceUri);
 
         return this.LaunchSettingsCollection;
-    }    
-    
+    }
+
     private static loadConfinguration(configuration: vscode.WorkspaceConfiguration, useForwardingRules: boolean) {
         this.LaunchSettingsCollection[this.WebServer] = configuration.server;
         this.LaunchSettingsCollection[this.WebServerInstance] = configuration.serverInstance;
@@ -33,11 +33,11 @@ export class LaunchSettings {
         this.LaunchSettingsCollection[this.DefaultRunObjectType] = configuration.startupObjectType;
         this.LaunchSettingsCollection[this.DefaultRunObjectId] = configuration.startupObjectId;
         this.LaunchSettingsCollection[this.SandboxName] = configuration.sandboxName;
-        this.LaunchSettingsCollection[this.URL] = launchMgr.makeBcClientURL(configuration,useForwardingRules,null);
+        this.LaunchSettingsCollection[this.URL] = launchMgr.makeBcClientURL(configuration, useForwardingRules, null);
     }
 
     public static LoadConfinguration(configuration: vscode.WorkspaceConfiguration, useForwardingRules: boolean) {
-        this.loadConfinguration(configuration,useForwardingRules);
+        this.loadConfinguration(configuration, useForwardingRules);
 
         return this.LaunchSettingsCollection;
     }

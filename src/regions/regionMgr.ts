@@ -1,18 +1,21 @@
 import * as vscode from 'vscode';
-import {ATSSettings} from '../settings/atsSettings';
+import * as alFileMgr from '../fileMgt/alFileMgr';
+import { ATSSettings } from '../settings/atsSettings';
+
+const regionsCache: { [uri: string]: string[] } = {};
 
 export async function createRegionBySelection() {
     const editor = vscode.window.activeTextEditor;
 
     // Verifica la presenza di un editor attivo
     if (!editor) {
-        return; 
+        return;
     }
 
     // Richiesta del nome della region da creare
     const regionName = await vscode.window.showInputBox({ prompt: 'Region name:' });
     if (regionName === undefined) {
-        return; 
+        return;
     }
 
     const startRegionTxt = `#region ${regionName}`;
@@ -27,7 +30,7 @@ export async function createRegionBySelection() {
             const startLine = editor.document.lineAt(selection.start.line);
             const indentation = startLine.firstNonWhitespaceCharacterIndex;
             const indentString = " ".repeat(indentation);
-           
+
             // Inserisco il testo selezionato nella nuova region
             editBuilder.replace(selection, `${indentString}${startRegionTxt}\n\n${selectedText}\n\n${indentString}${endRegionTxt}`);
         });
@@ -39,21 +42,109 @@ export function regionPathStatusBarEnabled(): boolean {
     return atsSettings[ATSSettings.ShowRegionsOnStatusBar];
 }
 
-export function getRegionPath(document: vscode.TextDocument, line: number): string {
-    const regions: string[] = [];
+export async function refreshDocumentRegions(document: vscode.TextDocument) {
+    if (alFileMgr.isALObjectDocument(document)) {
+        const lines = document.getText().split('\n');
+        const regions: string[] = [];
+        const lineToRegionMap: string[] = []; // Mappa riga -> percorso delle regioni
+        const uri = cacheDictionaryKey(document);
 
-    for (let i = 0; i <= line; i++) {
-        const lineText = document.lineAt(i).text.trim();
+        const regionRegex = /#(end)?region(\s+(.+))?/i;
 
-        if (lineText.startsWith('#region')) {
-            const regionName = lineText.replace('#region', '').trim();
-            regions.push(regionName);
-        } else if (lineText.startsWith('#endregion')) {
-            regions.pop();
-        }
+        lines.forEach((lineText, index) => {
+            const match = regionRegex.exec(lineText.trim());
+            let removeLast = false;
+
+            if (match) {
+                if (match[1] === 'end') {
+                    // Match for #endregion
+                    removeLast = true;
+                } else {
+                    // Match for #region and capture the region name
+                    const regionName = match[3] ? match[3].trim() : '';
+                    regions.push(regionName);
+                }
+            }
+            // Save the current path in the map
+            lineToRegionMap[index] = regions.join(' > ');
+
+            if (removeLast) {
+                regions.pop();
+            }
+        });
+
+        // Memorizza la mappa nel cache
+        regionsCache[uri] = lineToRegionMap;
     }
+}
 
-    return regions.join(' > ');
+// Aggiornamento cache per le sole righe modificate
+export async function refreshDocumentRegionsForChanges(document: vscode.TextDocument, changes: vscode.TextDocumentContentChangeEvent[]) {
+    if (alFileMgr.isALObjectDocument(document)) {
+        //const uri = document.uri.toString();
+        const uri = cacheDictionaryKey(document);
+
+        const lineToRegionMap = regionsCache[uri] || [];
+        const regions: string[] = [];
+
+        const regionRegex = /#(end)?region(\s+(.+))?/i;
+
+        changes.forEach(change => {
+            const startLine = change.range.start.line;
+            const endLine = change.range.end.line;
+
+            for (let i = startLine; i <= endLine; i++) {
+                const lineText = document.lineAt(i).text.trim();
+                const match = regionRegex.exec(lineText);
+                let removeLast = false;
+
+                if (match) {
+                    if (match[1] === 'end') {
+                        // Match for #endregion
+                        removeLast = true;
+                    } else {
+                        // Match for #region and capture the region name
+                        const regionName = match[3] ? match[3].trim() : '';
+                        regions.push(regionName);
+                    }
+                }
+
+                lineToRegionMap[i] = regions.join(' > ');
+                if (removeLast) {
+                    regions.pop();
+                }
+            }
+        });
+
+        regionsCache[uri] = lineToRegionMap;
+    }
+}
+
+export async function clearRegionsCache(fileName: string) {
+    const uri = vscode.Uri.parse(fileName);
+    if (alFileMgr.isALObjectFile(uri)) {
+        delete regionsCache[uri.toString()];
+    }
+}
+
+export async function getRegionPathFromCache(document: vscode.TextDocument, line: number, rebuildCache: boolean): Promise<string> {
+    if (alFileMgr.isALObjectDocument(document)) {
+
+        if (rebuildCache) {
+            await clearRegionsCache(document.fileName);
+        }
+
+        if (!regionsCache[cacheDictionaryKey(document)]) {
+            refreshDocumentRegions(document);
+        }
+
+        const regions = regionsCache[cacheDictionaryKey(document)];
+        return regions[line] || '';
+    }
+}
+
+function cacheDictionaryKey(document: vscode.TextDocument): string {
+    return vscode.Uri.parse(document.fileName).toString();
 }
 
 export function findRegionStartLine(document: vscode.TextDocument, regionPath: string): number {
@@ -73,7 +164,7 @@ export function findRegionStartLine(document: vscode.TextDocument, regionPath: s
 
 export function truncateRegionPath(regionPath: string, maxLength: number): string {
     if (regionPath.length <= maxLength) {
-        return regionPath; 
+        return regionPath;
     }
 
     const rightLength = Math.floor((maxLength - 3) / 2); // Calcola la lunghezza che può essere mantenuta dalla parte destra
@@ -87,7 +178,7 @@ export function truncateRegionPath(regionPath: string, maxLength: number): strin
 export function goToRegionStartLine(currentLine: number) {
     const editor = vscode.window.activeTextEditor;
     if (editor) {
-        if (currentLine !== -1) {
+        if (currentLine >= 0) {
             const position = new vscode.Position(currentLine, 0);
             const newSelection = new vscode.Selection(position, position);
             editor.selection = newSelection;
@@ -95,7 +186,7 @@ export function goToRegionStartLine(currentLine: number) {
 
             return;
         }
-    } 
-    
-    vscode.window.showInformationMessage('No region found for the current position.');    
+    }
+
+    vscode.window.showInformationMessage('No region found for the current position.');
 }
