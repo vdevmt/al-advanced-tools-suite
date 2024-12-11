@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from '../fileMgt/alFileMgr';
 import { ATSSettings } from '../settings/atsSettings';
 
-const regionsCache: { [uri: string]: string[] } = {};
-
+//#region Regions tools
 export async function createRegionBySelection() {
     const editor = vscode.window.activeTextEditor;
 
@@ -36,6 +35,10 @@ export async function createRegionBySelection() {
         });
     });
 }
+//#endregion Regions tools
+
+//#region Status Bar
+const regionsCache: { [uri: string]: string[] } = {};
 
 export function regionPathStatusBarEnabled(): boolean {
     const atsSettings = ATSSettings.GetConfigSettings(null);
@@ -190,3 +193,5 @@ export function goToRegionStartLine(currentLine: number) {
 
     vscode.window.showInformationMessage('No region found for the current position.');
 }
+
+//#endregion Status Bar

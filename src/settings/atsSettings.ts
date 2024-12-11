@@ -11,10 +11,10 @@ export class ATSSettings {
     static readonly MaxNamespaceSize = 'MaxNamespaceSize';
     static readonly URLForwardingRules = 'URLForwardingRules';
     static readonly ShowRegionsOnStatusBar = 'ShowRegionsOnStatusBar';
-    
+
     private static config: vscode.WorkspaceConfiguration;
     private static SettingCollection = {};
-    
+
     private static getSetting(key: string) {
         if (!this.config.has(key)) {
             return null;

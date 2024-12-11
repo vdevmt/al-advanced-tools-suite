@@ -28,7 +28,6 @@ export function IsPreviewALObject(document: vscode.TextDocument): Boolean {
 export function getCurrentObjectNamespace(): string {
     const editor = vscode.window.activeTextEditor;
 
-    // Verifica la presenza di un editor attivo
     if (editor) {
         if (isALObjectDocument(editor.document)) {
             return getObjectNamespace(editor.document);

@@ -4,6 +4,7 @@ import { CreateDiagnostic, DIAGNOSTIC_CODE } from '../diagnostics/diagnosticMgr'
 import { ATSSettings } from '../settings/atsSettings';
 import { ALSettings } from '../settings/alSettings';
 
+//#region Namespace completion providers
 export async function setNamespaceByFilePath() {
     const editor = vscode.window.activeTextEditor;
 
@@ -198,7 +199,10 @@ function collectExpectedNamespacesForDoc(currDocument: vscode.TextDocument): str
 
     return expectedNamespaces;
 }
+//#endregion Namespace completion providers
 
+
+//#region Diagnostic
 export function namespaceDiagnosticEnabled(): Boolean {
     const atsSettings = ATSSettings.GetConfigSettings(null);
 
@@ -260,9 +264,13 @@ export async function ValidateObjectNamespace(document: vscode.TextDocument, col
         }
     }
 }
+//#endregion Diagnostic
 
+//#region Interfaces
 interface atsNameSpace {
     value?: string;
     description?: string;
     priority?: number;
 }
+
+//#endregion Interfaces

@@ -22,4 +22,4 @@ Initial release of "Advanced Tools Suite for AL Language"
 ## [1.3.4]
 
 - New Features:
-    - Status bar with region path info of the current document
+    - If you are using Regions on your code you can now view the region path of the current line in the status bar

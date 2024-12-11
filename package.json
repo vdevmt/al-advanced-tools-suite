@@ -34,7 +34,7 @@
     "onLanguage:al",
     "onStartupFinished",
     "onDidChangeActiveTextEditor",
-    "onDidChangeTextEditorSelection"    
+    "onDidChangeTextEditorSelection"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -94,7 +94,7 @@
             "type": "string",
             "description": "Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the al.rootNamespace setting)",
             "default": "",
-            "order": 3            
+            "order": 3
           },
           "ATS.DefaultNamespaces": {
             "type": "array",
@@ -110,30 +110,30 @@
             "description": "No. of max elements expected for namespace declaration in AL objects (default = 5)",
             "default": 5,
             "order": 5
-          },          
+          },
           "ATS.EnableNamespaceDiagnostics": {
             "type": "boolean",
             "description": "Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false)",
             "default": false,
             "order": 6
-          },          
+          },
           "ATS.NamespaceMandatory": {
             "type": "boolean",
             "description": "Enable or disable errors for missing namespace declarations in AL objects (default = false)",
             "default": false,
             "order": 7
           },
-          "ATS.URLForwardingRules":{
-            "type": "object",            
+          "ATS.URLForwardingRules": {
+            "type": "object",
             "description": "URL forwarding rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).",
-            "additionalProperties": {              
+            "additionalProperties": {
               "type": "string"
             },
             "order": 8
           },
           "ATS.ShowRegionsOnStatusBar": {
             "type": "boolean",
-            "description": "Controls the visibility of the status bar with document regions info",
+            "description": "Enable the visibility of the regions path of the current line in the status bar",
             "default": false,
             "order": 9
           }

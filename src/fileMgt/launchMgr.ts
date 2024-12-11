@@ -5,6 +5,7 @@ import * as alFileMgr from './alFileMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject } from './alObject';
 
+//#region Import/Export utilities
 function getDefaultLaunchArchiveFolder(): string {
     const atsSettings = ATSSettings.GetConfigSettings(null);
     let defaultFolder = atsSettings[ATSSettings.DefaultLaunchArchiveFolder];
@@ -120,6 +121,9 @@ export async function exportLaunchFile() {
     }
 }
 
+//#endregion Import/Export utilities
+
+//#region Run Business Central
 export async function runBusinessCentral() {
     var bcClientURL = "";
     let selectByLaunch = true;
@@ -305,10 +309,13 @@ function handleURLForwardingRules(clientURL: string, forwardingRules: { [key: st
 
     return newClientURL;
 }
+//#endregion Run Business Central
 
+//#region Interfaces
 interface QuickPickItem {
     label: string;
     detail?: string;
     description?: string;
     config?: vscode.WorkspaceConfiguration;
 }
+//#endregion Interfaces
