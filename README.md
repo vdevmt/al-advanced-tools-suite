@@ -15,16 +15,16 @@ With these features you can easily share launchers with your colleagues:
 
 * Import launch.json file on your workspace by command **ATS: Import 'launch.json'**
 * Export launch.json file of your workspace by command **ATS: Export 'launch.json'** 
-
+<br />
 <img src="./images/ImportLaunch.gif" alt="Import launch.json" height="400">
 
 ## Run Business Central
 The command `ATS: Run Business Central without publishing` allows running the Business Central client by selecting the configuration to use among the various configurations defined in the launch.json file.
-
+<br />
 <img src="./images/RunBusinessCentral.png" alt="Run Business Central">
 
 You can define `URL Forwarding Rules` in vscode settings to run Business Central using a different URL than the one defined in the launch.json file for each configuration. This can be useful for custom setups or scenarios where URL conversion is needed.
-
+<br />
 <img src="./images/UrlForwardingRules.png" alt="URL Forwarding Rules">
 
 **Use Cases for Forwarding Rules:**<br />
@@ -45,7 +45,7 @@ These rules make running the Business Central client more flexible and secure wi
 ## Namespace utilities
 
 * Set object namespace based on current file path by command **ATS: Set object namespace based on file path**<br />
-   
+<br />
 <img src="./images/NamespaceByPathCmd.gif" alt="Namespace By Path" height="400">
 
 * Namespace completion providers based on:
@@ -53,18 +53,22 @@ These rules make running the Business Central client more flexible and secure wi
     - Default Root Namespace defined by **al.RootNamespace** setting
     - Default Root Namespace defined by **ats.RootNamespace** setting
     - Additional custom Namespaces defined in **ats.DefaultNamespaces** setting
-
+<br />
 <img src="./images/NamespaceSuggestion.gif" alt="Namespace Suggestion" height="400">
 
 ## Region utilities
 
 * Create regions by snippet **tregion**
-
+<br />
 <img src="./images/RegionSnippet.gif" alt="Create Region Snippet" height="400">
 
 * Create region for the selected code in the current editor by command **ATS: Create region by selection**
-
+<br />
 <img src="./images/RegionBySelection.gif" alt="Create Region By Selection" height="400">
+
+* Region Path info on status bar:
+<br />
+<img src="./images/RegionStatusBar.png" alt="Region info on status bar" height="400">
 
 # Snippets
 
@@ -83,7 +87,7 @@ With this structure you can create a complex grid like this:<br />
 # Extension settings
 * `ATS.DefaultLaunchArchiveFolder`: Default archive folder for import/export utiltities of launch.json file;  
 * `ATS.UseObjectFilePathAsNamespace`: Allow usage of object file path for namespace declarations (default = false). The number of positions included depends on the value defined in the `ATS.MaxNamespaceSize` setting;
-* `ATS.RootNamespace`: Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the al.rootNamespace setting);
+* `ATS.RootNamespace`: Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the `al.rootNamespace` setting);
 * `ATS.DefaultNamespaces`: List of default namespaces that can be used for AL objects;  
 * `ATS.MaxNamespaceSize`: No. of max elements expected for namespace declaration in AL objects (default = 5);  
 * `ATS.EnableNamespaceDiagnostics`: Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false); 
@@ -93,7 +97,7 @@ With this structure you can create a complex grid like this:<br />
     - Custom namespaces defined in `ATS.DefaultNamespaces` setting.
 * `ATS.NamespaceMandatory`: Enable or disable errors for missing namespace declarations in AL objects (default = false). This setting will be used only if the `ATS.EnableNamespaceDiagnostics` setting is enabled;
 * `ATS.URLForwardingRules`: Conversion rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion);
-* `ATS.ShowRegionsOnStatusBar`: If you are using Regions on your code you can view the region path of the current line in the status bar.
+* `ATS.ShowRegionsOnStatusBar`: If you use Regions on your code you can view the region path of the current line in the status bar.
 
 # Requirements
 * AL Language extension

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './fileMgt/launchMgr';
 import * as regionMgr from './regions/regionMgr';
+import * as regionStatusBar from './regions/regionStatusBar';
 import * as namespaceMgr from './namespaces/namespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 
@@ -37,9 +38,9 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion Diagnostic Rules
 
     //#region Region Status Bar
-    if (regionMgr.regionPathStatusBarEnabled()) {
-        const regionStatusBar = regionMgr.createRegionsStatusBarItem();
-        context.subscriptions.push(regionStatusBar);
+    if (regionStatusBar.regionPathStatusBarEnabled()) {
+        const regionStatusBarItem = regionStatusBar.createRegionsStatusBarItem();
+        context.subscriptions.push(regionStatusBarItem);
 
         // Update status bar on editor change
         context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshRegionsStatusBar));
@@ -53,14 +54,14 @@ export function activate(context: vscode.ExtensionContext) {
 
         // Clear status bar cache on document close
         context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
-            regionMgr.clearRegionsCache(event.fileName);
+            regionStatusBar.clearRegionsCache(event.fileName);
         }));
 
         function updateRegionsStatusBarText() {
-            regionMgr.updateRegionsStatusBar(regionStatusBar, false);
+            regionStatusBar.updateRegionsStatusBar(regionStatusBarItem, false);
         }
         function refreshRegionsStatusBar() {
-            regionMgr.updateRegionsStatusBar(regionStatusBar, true);
+            regionStatusBar.updateRegionsStatusBar(regionStatusBarItem, true);
         }
         function refreshRegionsStatusBarOnChange() {
             // Cancella il timeout precedente, se presente
@@ -75,7 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number, regionPath: string) => {
-            regionMgr.goToRegionStartLine(line, regionPath);
+            regionStatusBar.goToRegionStartLine(line, regionPath);
         }));
     }
     //#endregion Region Status Bar
