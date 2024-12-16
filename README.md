@@ -15,16 +15,16 @@ With these features you can easily share launchers with your colleagues:
 
 * Import launch.json file on your workspace by command **ATS: Import 'launch.json'**
 * Export launch.json file of your workspace by command **ATS: Export 'launch.json'** 
-
+<br />
 <img src="./images/ImportLaunch.gif" alt="Import launch.json" height="400">
 
 ## Run Business Central
 The command `ATS: Run Business Central without publishing` allows running the Business Central client by selecting the configuration to use among the various configurations defined in the launch.json file.
-
+<br />
 <img src="./images/RunBusinessCentral.png" alt="Run Business Central">
 
 You can define `URL Forwarding Rules` in vscode settings to run Business Central using a different URL than the one defined in the launch.json file for each configuration. This can be useful for custom setups or scenarios where URL conversion is needed.
-
+<br />
 <img src="./images/UrlForwardingRules.png" alt="URL Forwarding Rules">
 
 **Use Cases for Forwarding Rules:**<br />
@@ -45,7 +45,7 @@ These rules make running the Business Central client more flexible and secure wi
 ## Namespace utilities
 
 * Set object namespace based on current file path by command **ATS: Set object namespace based on file path**<br />
-   
+<br />
 <img src="./images/NamespaceByPathCmd.gif" alt="Namespace By Path" height="400">
 
 * Namespace completion providers based on:
@@ -53,18 +53,22 @@ These rules make running the Business Central client more flexible and secure wi
     - Default Root Namespace defined by **al.RootNamespace** setting
     - Default Root Namespace defined by **ats.RootNamespace** setting
     - Additional custom Namespaces defined in **ats.DefaultNamespaces** setting
-
+<br />
 <img src="./images/NamespaceSuggestion.gif" alt="Namespace Suggestion" height="400">
 
 ## Region utilities
 
 * Create regions by snippet **tregion**
-
+<br />
 <img src="./images/RegionSnippet.gif" alt="Create Region Snippet" height="400">
 
 * Create region for the selected code in the current editor by command **ATS: Create region by selection**
-
+<br />
 <img src="./images/RegionBySelection.gif" alt="Create Region By Selection" height="400">
+
+* Region Path info on status bar:
+<br />
+<img src="./images/RegionStatusBar.png" alt="Region info on status bar" height="400">
 
 # Snippets
 
