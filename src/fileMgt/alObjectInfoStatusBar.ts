@@ -32,8 +32,8 @@ export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarIte
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject: ALObject;
             alObject = new ALObject(document.getText(), document.fileName);
+            let objectInfoText = `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
 
-            let objectInfoText = `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} "${alObject.objectName}"`;
             objectInfoStatusBarItem.tooltip = makeTooltip(objectInfoText, alObject.extendedObjectName);
             objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;
             objectInfoStatusBarItem.show();
@@ -62,6 +62,13 @@ function makeTooltip(objectInfoText: string, extendedObjectInfo: string): vscode
     }
 
     return markdownTooltip;
+}
+function addQuotesIfNeeded(text: string): string {
+    if (text.includes(" ")) {
+        return `"${text}"`;
+    }
+
+    return text;
 }
 
 function capitalizeObjectType(objectType: string): string {
