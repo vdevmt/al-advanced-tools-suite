@@ -18,19 +18,24 @@ interface LineRegionInfo {
     lastRegionStartPos: number
 }
 
-export function regionPathStatusBarEnabled(): boolean {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
-    return atsSettings[ATSSettings.ShowRegionsOnStatusBar];
-}
-
 export function createRegionsStatusBarItem(): vscode.StatusBarItem {
-    const regionStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    regionStatusBarItem.text = `$(symbol-number)`;
-    regionStatusBarItem.tooltip = 'Regions Path (ATS)';
-    regionStatusBarItem.command = undefined;
-    regionStatusBarItem.show();
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+    if ((atsSettings[ATSSettings.RegionInfoOnStatusBar] !== 'Hide')) {
+        var alignment = vscode.StatusBarAlignment.Left;
+        if (atsSettings[ATSSettings.RegionInfoOnStatusBar] === 'Show on Right') {
+            alignment = vscode.StatusBarAlignment.Right;
+        }
 
-    return regionStatusBarItem;
+        const regionStatusBarItem = vscode.window.createStatusBarItem(alignment);
+        regionStatusBarItem.text = `$(symbol-number)`;
+        regionStatusBarItem.tooltip = 'Regions Path (ATS)';
+        regionStatusBarItem.command = undefined;
+        regionStatusBarItem.show();
+
+        return regionStatusBarItem;
+    }
+
+    return null;
 }
 
 export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusBarItem, rebuildCache: boolean) {

@@ -140,11 +140,28 @@
             "order": 8,
             "scope": "resource"
           },
-          "ATS.ShowRegionsOnStatusBar": {
-            "type": "boolean",
-            "description": "Enable the visibility of the regions path of the current line in the status bar",
-            "default": false,
+          "ATS.ObjectInfoOnStatusBar": {
+            "type": "string",
+            "default": "Hide",
+            "enum": [
+              "Hide",
+              "Show on Left",
+              "Show on Right"
+            ],
+            "description": "Enable visibility of status bar with AL object info",
             "order": 9,
+            "scope": "resource"
+          },
+          "ATS.RegionInfoOnStatusBar": {
+            "type": "string",
+            "default": "Hide",
+            "enum": [
+              "Hide",
+              "Show on Left",
+              "Show on Right"
+            ],
+            "description": "Enable visibility of status bar with region details for current line in active editor",
+            "order": 10,
             "scope": "resource"
           }
         }
