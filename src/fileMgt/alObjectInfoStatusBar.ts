@@ -49,7 +49,7 @@ export async function updateObjectInfoStatusBar(objectInfoStatusBarItem: vscode.
 
 function capitalizeObjectType(objectType: string): string {
     if (objectType) {
-        if (objectType === 'taleextension') {
+        if (objectType === 'tableextension') {
             return 'TableExtension';
         }
         if (objectType === 'pageextension') {
