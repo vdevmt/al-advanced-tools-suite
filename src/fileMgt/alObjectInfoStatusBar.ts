@@ -50,14 +50,14 @@ export async function updateObjectInfoStatusBar(objectInfoStatusBarItem: vscode.
     }
 }
 
-function makeTooltip(objectInfoText: string, extendedObjectInfo: string): vscode.MarkdownString {
+function makeTooltip(objectInfoText: string, extendedObjectName: string): vscode.MarkdownString {
     const markdownTooltip = new vscode.MarkdownString();
     markdownTooltip.appendMarkdown("### **AL Object Info (ATS)**\n\n");
     if (objectInfoText) {
         markdownTooltip.appendMarkdown(`${objectInfoText}\n\n`);
 
-        if (extendedObjectInfo) {
-            markdownTooltip.appendMarkdown(`extends "${extendedObjectInfo}"\n\n`);
+        if (extendedObjectName) {
+            markdownTooltip.appendMarkdown(`extends "${addQuotesIfNeeded(extendedObjectName)}"\n\n`);
         }
     }
 
