@@ -13,7 +13,7 @@ export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
 
         const objectInfoStatusBarItem = vscode.window.createStatusBarItem(alignment);
         objectInfoStatusBarItem.text = `$(info)`;
-        objectInfoStatusBarItem.tooltip = 'AL Object Info (ATS)';
+        objectInfoStatusBarItem.tooltip = makeTooltip('', '');
         objectInfoStatusBarItem.command = undefined;
         objectInfoStatusBarItem.show();
 
@@ -26,13 +26,16 @@ export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
 
 export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarItem: vscode.StatusBarItem, document: vscode.TextDocument) {
     objectInfoStatusBarItem.text = '';
+    objectInfoStatusBarItem.tooltip = makeTooltip('', '');
 
     if (document) {
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject: ALObject;
             alObject = new ALObject(document.getText(), document.fileName);
 
-            objectInfoStatusBarItem.text = `$(info) ${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${alObject.objectName}`;
+            let objectInfoText = `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} "${alObject.objectName}"`;
+            objectInfoStatusBarItem.tooltip = makeTooltip(objectInfoText, alObject.extendedObjectName);
+            objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;
             objectInfoStatusBarItem.show();
         }
     }
@@ -45,6 +48,20 @@ export async function updateObjectInfoStatusBar(objectInfoStatusBarItem: vscode.
         const document = editor.document;
         updateObjectInfoStatusBarByDocument(objectInfoStatusBarItem, document);
     }
+}
+
+function makeTooltip(objectInfoText: string, extendedObjectInfo: string): vscode.MarkdownString {
+    const markdownTooltip = new vscode.MarkdownString();
+    markdownTooltip.appendMarkdown("### **AL Object Info (ATS)**\n\n");
+    if (objectInfoText) {
+        markdownTooltip.appendMarkdown(`${objectInfoText}\n\n`);
+
+        if (extendedObjectInfo) {
+            markdownTooltip.appendMarkdown(`extends "${extendedObjectInfo}"\n\n`);
+        }
+    }
+
+    return markdownTooltip;
 }
 
 function capitalizeObjectType(objectType: string): string {
