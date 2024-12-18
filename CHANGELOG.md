@@ -1,7 +1,9 @@
 # Change Log
 
 ## [1.3.7]
-- New Command: `ATS: Change default startup object and run Business Central`
+- New Features:
+    - Command `ATS: Change default startup object and run Business Central`
+    - AL Object info on status bar
 
 ## [1.3.5]
 
