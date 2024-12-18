@@ -32,11 +32,10 @@ export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarIte
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject: ALObject;
             alObject = new ALObject(document.getText(), document.fileName);
-            let objectInfoText = `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+            let objectInfoText = `${alFileMgr.capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
 
             objectInfoStatusBarItem.tooltip = makeTooltip(objectInfoText, alObject.extendedObjectName);
             objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;
-            objectInfoStatusBarItem.show();
         }
     }
 }
@@ -57,7 +56,7 @@ function makeTooltip(objectInfoText: string, extendedObjectName: string): vscode
         markdownTooltip.appendMarkdown(`${objectInfoText}\n\n`);
 
         if (extendedObjectName) {
-            markdownTooltip.appendMarkdown(`extends "${addQuotesIfNeeded(extendedObjectName)}"\n\n`);
+            markdownTooltip.appendMarkdown(`extends ${addQuotesIfNeeded(extendedObjectName)}\n\n`);
         }
     }
 
@@ -71,20 +70,3 @@ function addQuotesIfNeeded(text: string): string {
     return text;
 }
 
-function capitalizeObjectType(objectType: string): string {
-    if (objectType) {
-        if (objectType === 'tableextension') {
-            return 'TableExtension';
-        }
-        if (objectType === 'pageextension') {
-            return 'PageExtension';
-        }
-        if (objectType === 'reportextension') {
-            return 'ReportExtension';
-        }
-
-        return objectType.charAt(0).toUpperCase() + objectType.slice(1).toLowerCase();
-    }
-
-    return '';
-}

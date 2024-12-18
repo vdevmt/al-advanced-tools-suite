@@ -16,6 +16,7 @@ interface RegionInfo {
 interface LineRegionInfo {
     regionPath: string,
     lastRegionStartPos: number
+    lastRegionEndPos: number
 }
 
 export function createRegionsStatusBarItem(): vscode.StatusBarItem {
@@ -51,7 +52,6 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     const currentLine = editor.selection.active.line;
 
     regionStatusBarItem.text = '$(loading~spin) Searching regions';
-    regionStatusBarItem.show();
 
     let regionInfo = getRegionsInfoByDocumentLine(document, currentLine, rebuildCache);
     if (regionInfo) {
@@ -68,8 +68,6 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     else {
         regionStatusBarItem.text = '';
     }
-
-    regionStatusBarItem.show();
 }
 
 export async function findDocumentRegions(document: vscode.TextDocument) {
@@ -210,17 +208,20 @@ function getRegionsInfoByDocumentLine(document: vscode.TextDocument, line: numbe
 
         let openRegions = findOpenRegionsByDocLine(documentKey, line);
         if (openRegions) {
-            let lastRegionLine = 0;
+            let lastRegionStartLine = 0;
+            let lastRegionEndLine = 0;
             if (openRegions.length > 0) {
                 let regions: string[] = [];
                 for (const region of openRegions) {
                     regions.push(region.name);
-                    lastRegionLine = region.startLine;
+                    lastRegionStartLine = region.startLine;
+                    lastRegionEndLine = region.endLine;
                 }
 
                 let regionInfo: LineRegionInfo = {
                     regionPath: regions.join(' > '),
-                    lastRegionStartPos: lastRegionLine
+                    lastRegionStartPos: lastRegionStartLine,
+                    lastRegionEndPos: lastRegionEndLine
                 };
 
                 return regionInfo;

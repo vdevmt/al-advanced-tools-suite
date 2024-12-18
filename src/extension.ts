@@ -15,8 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.openLaunchFile', launchMgr.openLaunchFile));
     //#endregion launch.json tools
 
-    //#region Run Business Central
+    //#region Run Business Central       
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.changerStartupObjectAndRunBusinessCentral', launchMgr.changerStartupObjectAndRunBusinessCentral));
     //#endregion Run Business Central
 
     //#region Region tools

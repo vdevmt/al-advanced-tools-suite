@@ -50,7 +50,11 @@
       },
       {
         "command": "ats.runBusinessCentral",
-        "title": "ATS: Run Business Central without publishing"
+        "title": "ATS: Run Business Central"
+      },
+      {
+        "command": "ats.changerStartupObjectAndRunBusinessCentral",
+        "title": "ATS: Change default startup object and run Business Central"
       },
       {
         "command": "ats.createRegionBySelection",
@@ -133,7 +137,7 @@
           },
           "ATS.URLForwardingRules": {
             "type": "object",
-            "description": "URL forwarding rules used by command `ATS: Run Business Central without publishing` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).",
+            "description": "URL forwarding rules used by command `ATS: Run Business Central` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).",
             "additionalProperties": {
               "type": "string"
             },
@@ -171,6 +175,10 @@
       {
         "command": "ats.runBusinessCentral",
         "key": "ctrl+f6"
+      },
+      {
+        "command": "ats.changerStartupObjectAndRunBusinessCentral",
+        "key": "ctrl+shift+f6"
       }
     ]
   },
@@ -194,6 +202,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "jsonc-parser": "^3.3.1",
     "strip-json-comments": "3.1"
   }
 }
