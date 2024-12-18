@@ -16,28 +16,34 @@ interface RegionInfo {
 interface LineRegionInfo {
     regionPath: string,
     lastRegionStartPos: number
-}
-
-export function regionPathStatusBarEnabled(): boolean {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
-    return atsSettings[ATSSettings.ShowRegionsOnStatusBar];
+    lastRegionEndPos: number
 }
 
 export function createRegionsStatusBarItem(): vscode.StatusBarItem {
-    const regionStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    regionStatusBarItem.text = `$(symbol-number)`;
-    regionStatusBarItem.tooltip = 'Regions Path (ATS)';
-    regionStatusBarItem.command = undefined;
-    regionStatusBarItem.show();
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+    if ((atsSettings[ATSSettings.RegionInfoOnStatusBar] !== 'Hide')) {
+        var alignment = vscode.StatusBarAlignment.Left;
+        if (atsSettings[ATSSettings.RegionInfoOnStatusBar] === 'Show on Right') {
+            alignment = vscode.StatusBarAlignment.Right;
+        }
 
-    return regionStatusBarItem;
+        const regionStatusBarItem = vscode.window.createStatusBarItem(alignment);
+        regionStatusBarItem.text = `$(symbol-number)`;
+        regionStatusBarItem.tooltip = makeTooltip('');
+        regionStatusBarItem.command = undefined;
+        regionStatusBarItem.show();
+
+        return regionStatusBarItem;
+    }
+
+    return null;
 }
 
 export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusBarItem, rebuildCache: boolean) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         regionStatusBarItem.text = '';
-        regionStatusBarItem.tooltip = 'Regions Path (ATS)';
+        regionStatusBarItem.tooltip = makeTooltip('');
         regionStatusBarItem.command = undefined;
         return;
     }
@@ -46,12 +52,11 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     const currentLine = editor.selection.active.line;
 
     regionStatusBarItem.text = '$(loading~spin) Searching regions';
-    regionStatusBarItem.show();
 
     let regionInfo = getRegionsInfoByDocumentLine(document, currentLine, rebuildCache);
     if (regionInfo) {
+        regionStatusBarItem.tooltip = makeTooltip(regionInfo.regionPath);
         regionStatusBarItem.text = `$(symbol-number) ${truncateRegionPath(regionInfo.regionPath, -1)}`;
-        regionStatusBarItem.tooltip = `Regions Path (ATS): ${regionInfo.regionPath}`;
 
         // Registra un comando per ogni regione
         regionStatusBarItem.command = {
@@ -63,8 +68,6 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     else {
         regionStatusBarItem.text = '';
     }
-
-    regionStatusBarItem.show();
 }
 
 export async function findDocumentRegions(document: vscode.TextDocument) {
@@ -205,17 +208,20 @@ function getRegionsInfoByDocumentLine(document: vscode.TextDocument, line: numbe
 
         let openRegions = findOpenRegionsByDocLine(documentKey, line);
         if (openRegions) {
-            let lastRegionLine = 0;
+            let lastRegionStartLine = 0;
+            let lastRegionEndLine = 0;
             if (openRegions.length > 0) {
                 let regions: string[] = [];
                 for (const region of openRegions) {
                     regions.push(region.name);
-                    lastRegionLine = region.startLine;
+                    lastRegionStartLine = region.startLine;
+                    lastRegionEndLine = region.endLine;
                 }
 
                 let regionInfo: LineRegionInfo = {
                     regionPath: regions.join(' > '),
-                    lastRegionStartPos: lastRegionLine
+                    lastRegionStartPos: lastRegionStartLine,
+                    lastRegionEndPos: lastRegionEndLine
                 };
 
                 return regionInfo;
@@ -242,5 +248,16 @@ export function goToRegionStartLine(regionStartLine: number, regionPath: string)
 
         vscode.window.showInformationMessage(`Unable to find the start position of Region: ${regionPath}`);
     }
+}
+
+
+function makeTooltip(regionInfoText: string): vscode.MarkdownString {
+    const markdownTooltip = new vscode.MarkdownString();
+    markdownTooltip.appendMarkdown("### **Region Info (ATS)**\n\n");
+    if (regionInfoText) {
+        markdownTooltip.appendMarkdown(`${regionInfoText}\n\n`);
+    }
+
+    return markdownTooltip;
 }
 

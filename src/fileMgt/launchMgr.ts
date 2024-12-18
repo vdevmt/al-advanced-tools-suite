@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as jsonc from 'jsonc-parser';
 import * as alFileMgr from './alFileMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject } from './alObject';
@@ -141,8 +142,32 @@ export async function openLaunchFile() {
 
 //#region Run Business Central
 export async function runBusinessCentral() {
+    selectAndRunBusinessCentral(false);
+}
+
+export function changerStartupObjectAndRunBusinessCentral() {
+    const editor = vscode.window.activeTextEditor;
+
+    if (alFileMgr.isALObjectDocument(editor.document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(editor.document.getText(), editor.document.fileName);
+        if (alObject) {
+            if (!alFileMgr.isValidObjectToRun(alObject)) {
+                vscode.window.showErrorMessage(`The object ${alObject.objectType} ${alObject.objectId} is not a valid object to run`);
+                return;
+            }
+
+            selectAndRunBusinessCentral(true);
+            return;
+        }
+    }
+
+    vscode.window.showErrorMessage(`The current file is not a valid object to run`);
+}
+
+export async function selectAndRunBusinessCentral(changeStartupObject: boolean) {
     var bcClientURL = "";
-    let selectByLaunch = true;
+    let useDefaultSettings = true;
 
     const editor = vscode.window.activeTextEditor;
     if (editor) {
@@ -150,15 +175,15 @@ export async function runBusinessCentral() {
             let alObject: ALObject;
             alObject = new ALObject(editor.document.getText(), editor.document.fileName);
 
-            if (alFileMgr.isValidObjectToRun(alObject.objectType)) {
-                bcClientURL = await selectBusinessCentralURL(null, alObject);
-                selectByLaunch = false;
+            if (alFileMgr.isValidObjectToRun(alObject)) {
+                bcClientURL = await selectBusinessCentralURL(null, alObject, changeStartupObject);
+                useDefaultSettings = false;
             }
         }
     }
 
-    if (selectByLaunch) {
-        bcClientURL = await selectBusinessCentralURL(null, null);
+    if (useDefaultSettings) {
+        bcClientURL = await selectBusinessCentralURL(null, null, false);
     }
 
     if (bcClientURL) {
@@ -167,6 +192,7 @@ export async function runBusinessCentral() {
         vscode.window.showErrorMessage('URL not defined for this configuration');
     }
 }
+
 
 export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.WorkspaceConfiguration {
     const configKey = 'launch';
@@ -180,7 +206,7 @@ export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.Work
     return workspaceConfigurations.configurations;
 }
 
-export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject: ALObject): Promise<string> {
+export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject: ALObject, changeStartupObject: boolean): Promise<string> {
     const workspaceConfigurations = getWorkspaceConfigurations(resourceUri);
 
     if (workspaceConfigurations) {
@@ -190,13 +216,16 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
             const items: QuickPickItem[] = [];
 
             workspaceConfigurations.forEach((config: vscode.WorkspaceConfiguration) => {
-                // Configurazione originale
-                items.push({
-                    label: config.name,
-                    description: 'Default configuration',
-                    detail: makeBcClientURL(config, true, null),
-                    config
-                });
+
+                if (!changeStartupObject) {
+                    // Configurazione originale
+                    items.push({
+                        label: config.name,
+                        description: 'Default configuration',
+                        detail: makeBcClientURL(config, true, null),
+                        config
+                    });
+                }
 
                 if (alObject) {
                     // Configurazione con oggetto corrente                    
@@ -218,6 +247,10 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
             if (!selectedItem) {
                 vscode.window.showErrorMessage('No configuration selected');
                 return undefined;
+            }
+
+            if (changeStartupObject) {
+                setNewStartupObject(selectedItem.config.name, alObject);
             }
 
             return selectedItem.detail;
@@ -288,7 +321,7 @@ export function makeBcClientURL(config: vscode.WorkspaceConfiguration, useForwar
     }
 
     if (alObjectToRun) {
-        if (alFileMgr.isValidObjectToRun(alObjectToRun.objectType)) {
+        if (alFileMgr.isValidObjectToRun(alObjectToRun)) {
             clientUrl = `${clientUrl}&${alObjectToRun.objectType}=${alObjectToRun.objectId}`;
         }
     }
@@ -325,6 +358,109 @@ function handleURLForwardingRules(clientURL: string, forwardingRules: { [key: st
 
     return newClientURL;
 }
+
+function setNewStartupObject(configName: string, alObject: ALObject) {
+    if (alObject && configName) {
+        if (!alFileMgr.isValidObjectToRun(alObject)) {
+            vscode.window.showErrorMessage(`The object ${alObject.objectType} ${alObject.objectId} is not a valid object to run`);
+        }
+        else {
+            // Search launch.json in current workspace
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                vscode.window.showErrorMessage("No workspace is open.");
+                return;
+            }
+
+            const launchPath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'launch.json');
+
+            if (!fs.existsSync(launchPath)) {
+                vscode.window.showErrorMessage("launch.json not found in the .vscode directory.");
+                return;
+            }
+
+            // Read launch.json file
+            let fileContent: string;
+            try {
+                fileContent = fs.readFileSync(launchPath, 'utf8');
+            } catch (error) {
+                vscode.window.showErrorMessage("Failed to read launch.json.");
+                return;
+            }
+
+            let jsonErrors: any[] = [];
+            const launchData = jsonc.parse(fileContent, jsonErrors, { allowTrailingComma: true });
+
+            if (jsonErrors.length > 0) {
+                vscode.window.showErrorMessage("Failed to parse launch.json due to syntax errors.");
+                return;
+            }
+
+            // Search the configuration
+            const configurations = launchData?.configurations;
+
+            if (!Array.isArray(configurations)) {
+                vscode.window.showErrorMessage("No configurations found in launch.json.");
+                return;
+            }
+
+            const targetConfigIndex = configurations.findIndex((config: any) => config.name === configName);
+            if (isNaN(targetConfigIndex) || targetConfigIndex < 0) {
+                vscode.window.showErrorMessage(`Configuration "${configName}" not found.`);
+                return;
+            }
+
+            // Store new values in variables
+            const startupObjectTypeValue = alFileMgr.capitalizeObjectType(alObject.objectType);
+            const startupObjectIdValue = Number(alObject.objectId);
+
+            // Edit configuration
+            const targetConfig = configurations[targetConfigIndex];
+
+            // startupObjectType
+            if (!targetConfig.hasOwnProperty('startupObjectType')) {
+                vscode.window.showErrorMessage(`Configuration "${configName}" does not contain "startupObjectType" key. Please, add it.`);
+                return;
+            }
+            targetConfig.startupObjectType = startupObjectTypeValue;
+
+            // startupObjectId
+            if (!targetConfig.hasOwnProperty('startupObjectId')) {
+                vscode.window.showErrorMessage(`Configuration "${configName}" does not contain "startupObjectId" key. Please, add it.`);
+                return;
+            }
+            targetConfig.startupObjectId = startupObjectIdValue;
+
+            let edits = [];
+
+            // Apply changes
+            edits = edits.concat(
+                jsonc.modify(
+                    fileContent,
+                    ['configurations', targetConfigIndex, 'startupObjectType'],
+                    targetConfig['startupObjectType'],
+                    { formattingOptions: { tabSize: 2, insertSpaces: true } }
+                ),
+                jsonc.modify(
+                    fileContent,
+                    ['configurations', targetConfigIndex, 'startupObjectId'],
+                    targetConfig['startupObjectId'],
+                    { formattingOptions: { tabSize: 2, insertSpaces: true } }
+                )
+            );
+
+            // Save new file content
+            try {
+                const updatedContent = jsonc.applyEdits(fileContent, edits);
+                fs.writeFileSync(launchPath, updatedContent, 'utf8');
+                vscode.window.showInformationMessage(`Configuration "${configName}" updated successfully.`);
+            } catch (error) {
+                vscode.window.showErrorMessage("Failed to save changes to launch.json.");
+            }
+        }
+    }
+}
+
 //#endregion Run Business Central
 
 //#region Interfaces

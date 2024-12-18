@@ -172,7 +172,31 @@ export function IsValidALObjectType(objectType: string): boolean {
     }
 }
 
-export function isValidObjectToRun(objectType: string): Boolean {
-    const validObjectTypes: Set<string> = new Set(["table", "page", "report", "xmlport"]);
-    return (validObjectTypes.has(objectType.toLowerCase()));
+export function isValidObjectToRun(alObject: ALObject): Boolean {
+    if (alObject) {
+        if (Number(alObject.objectId) > 0) {
+            const validObjectTypes: Set<string> = new Set(["table", "page", "report", "xmlport", "query"]);
+            return (validObjectTypes.has(alObject.objectType.toLowerCase()));
+        }
+    }
+
+    return false;
+}
+
+export function capitalizeObjectType(objectType: string): string {
+    if (objectType) {
+        if (objectType === 'tableextension') {
+            return 'TableExtension';
+        }
+        if (objectType === 'pageextension') {
+            return 'PageExtension';
+        }
+        if (objectType === 'reportextension') {
+            return 'ReportExtension';
+        }
+
+        return objectType.charAt(0).toUpperCase() + objectType.slice(1).toLowerCase();
+    }
+
+    return '';
 }

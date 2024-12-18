@@ -3,7 +3,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alFileMgr';
 
-
 export class ALObject {
     public objectType: string;
     public objectId: string;

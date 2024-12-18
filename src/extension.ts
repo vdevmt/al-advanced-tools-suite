@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as launchMgr from './fileMgt/launchMgr';
 import * as regionMgr from './regions/regionMgr';
 import * as regionStatusBar from './regions/regionStatusBar';
+import * as objectInfoStatusBar from './fileMgt/alObjectInfoStatusBar';
 import * as namespaceMgr from './namespaces/namespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 
@@ -14,8 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.openLaunchFile', launchMgr.openLaunchFile));
     //#endregion launch.json tools
 
-    //#region Run Business Central
+    //#region Run Business Central       
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.changerStartupObjectAndRunBusinessCentral', launchMgr.changerStartupObjectAndRunBusinessCentral));
     //#endregion Run Business Central
 
     //#region Region tools
@@ -37,9 +39,24 @@ export function activate(context: vscode.ExtensionContext) {
     diagnosticMgr.ValidateAllFiles(diagnosticCollection);
     //#endregion Diagnostic Rules
 
+    //#region AL Object Info Status Bar
+    const objectInfoStatusBarItem = objectInfoStatusBar.createObjectInfoStatusBarItem();
+    if (objectInfoStatusBarItem) {
+        context.subscriptions.push(objectInfoStatusBarItem);
+
+        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((e) => {
+            objectInfoStatusBar.updateObjectInfoStatusBarByDocument(objectInfoStatusBarItem, e.document);
+        }));
+
+        context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
+            objectInfoStatusBar.updateObjectInfoStatusBar(objectInfoStatusBarItem);
+        }));
+    }
+    //#endregion AL Object Info Status Bar
+
     //#region Region Status Bar
-    if (regionStatusBar.regionPathStatusBarEnabled()) {
-        const regionStatusBarItem = regionStatusBar.createRegionsStatusBarItem();
+    const regionStatusBarItem = regionStatusBar.createRegionsStatusBarItem();
+    if (regionStatusBarItem) {
         context.subscriptions.push(regionStatusBarItem);
 
         // Update status bar on editor change
