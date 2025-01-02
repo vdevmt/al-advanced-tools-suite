@@ -237,7 +237,7 @@ function getRegionsInfoByDocumentLine(document: vscode.TextDocument, line: numbe
     return null;
 }
 
-export function goToRegionStartLine(regionStartLine: number, regionPath: string) {
+function goToRegionStartLine(regionStartLine: number, regionPath: string) {
     if (regionPath) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {

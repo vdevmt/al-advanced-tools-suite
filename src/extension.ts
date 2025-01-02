@@ -97,10 +97,6 @@ export function activate(context: vscode.ExtensionContext) {
                 refreshRegionsStatusBar();
             }, 300); // 300ms di attesa prima di invocare updateRegionsStatusBar               
         }
-
-        context.subscriptions.push(vscode.commands.registerCommand('ats.goToRegionStartLine', (line: number, regionPath: string) => {
-            regionStatusBar.goToRegionStartLine(line, regionPath);
-        }));
     }
     //#endregion Region Status Bar
 }
