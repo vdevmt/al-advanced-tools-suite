@@ -183,6 +183,10 @@
       {
         "command": "ats.changerStartupObjectAndRunBusinessCentral",
         "key": "ctrl+shift+f6"
+      },
+      {
+        "command": "ats.showAllRegions",
+        "key": "ctrl+shift+g"
       }
     ]
   },
