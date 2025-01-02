@@ -231,19 +231,7 @@ export async function showOpenALObjects() {
     const activeUri = activeEditor?.document.uri.toString();
 
     // Recupera i tab aperti
-    const openEditors = vscode.window.tabGroups.all
-        .flatMap(group => group.tabs);
-
-    //     openEditors2[1].
-
-    // const openEditors = vscode.window.tabGroups.all
-    //     .flatMap(group => group.tabs)
-    //     .filter(tab => tab.input && (tab.input as any).uri)
-    //     .map(tab => vscode.Uri.parse((tab.input as any).uri).fsPath)
-    //     .filter(filePath => {
-    //         const ext = path.extname(filePath);
-    //         return ext === '.al' || ext === '.dal'; // Filtra i file con estensione .al o .dal
-    //     });
+    const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
 
     const items: QuickPickItem[] = [];
 
