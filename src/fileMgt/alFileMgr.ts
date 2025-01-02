@@ -9,6 +9,14 @@ export function isALObjectFile(file: vscode.Uri): Boolean {
 
     return false;
 }
+export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
+    if (file.fsPath.toLowerCase().endsWith('.dal')) {
+        return true;
+    }
+
+    return false;
+}
+
 export function isALObjectDocument(document: vscode.TextDocument): Boolean {
     if (document.languageId === 'al') {
         return true;
@@ -224,29 +232,39 @@ export async function showOpenALObjects() {
 
     // Recupera i tab aperti
     const openEditors = vscode.window.tabGroups.all
-        .flatMap(group => group.tabs)
-        .filter(tab => tab.input && (tab.input as any).uri)
-        .map(tab => vscode.Uri.parse((tab.input as any).uri).fsPath)
-        .filter(filePath => {
-            const ext = path.extname(filePath);
-            return ext === '.al' || ext === '.dal'; // Filtra i file con estensione .al o .dal
-        });
+        .flatMap(group => group.tabs);
+
+    //     openEditors2[1].
+
+    // const openEditors = vscode.window.tabGroups.all
+    //     .flatMap(group => group.tabs)
+    //     .filter(tab => tab.input && (tab.input as any).uri)
+    //     .map(tab => vscode.Uri.parse((tab.input as any).uri).fsPath)
+    //     .filter(filePath => {
+    //         const ext = path.extname(filePath);
+    //         return ext === '.al' || ext === '.dal'; // Filtra i file con estensione .al o .dal
+    //     });
 
     const items: QuickPickItem[] = [];
 
     for (const editor of openEditors) {
         try {
-            const doc = await vscode.workspace.openTextDocument(editor);
+            const documentUri = (editor.input as any).uri;
 
-            if (isALObjectFile(doc.uri)) {
+            if ((isALObjectFile(documentUri)) || (isPreviewALObjectFile(documentUri))) {
+                const doc = await vscode.workspace.openTextDocument(documentUri);
+
                 let alObject: ALObject;
                 alObject = new ALObject(doc.getText(), doc.fileName);
                 let objectInfoText = makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
+                let iconName = isCurrentEditor ? 'eye' :
+                    isPreviewALObjectFile(documentUri) ? 'lock' :
+                        'bracket';
 
                 items.push({
-                    label: isCurrentEditor ? `$(eye) ${objectInfoText}` : objectInfoText,
+                    label: `$(${iconName}) ${objectInfoText}`,
                     description: isCurrentEditor ? 'current editor' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     sortKey: objectSortKey(alObject, isCurrentEditor),
