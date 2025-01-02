@@ -281,9 +281,9 @@ export async function browseDocumentRegions(currRegionStartLine: number) {
             if (docRegions.length > 0) {
                 const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
                     label:
-                        ((item.startLine === currRegionStartLine) && (item.level === 0)) ? `$(notebook-execute) ${item.name}` :
-                            ((item.startLine === currRegionStartLine) && (item.level > 0)) ? `$(notebook-execute) └─${'─'.repeat(item.level)} ${item.name}` :
-                                ((item.startLine !== currRegionStartLine) && (item.level === 0)) ? `${item.name}` :
+                        ((item.startLine === currRegionStartLine) && (item.level === 0)) ? `$(symbol-number) $(eye) ${item.name}` :
+                            ((item.startLine === currRegionStartLine) && (item.level > 0)) ? `└─${'─'.repeat(item.level)} $(eye) ${item.name}` :
+                                ((item.startLine !== currRegionStartLine) && (item.level === 0)) ? `$(symbol-number) ${item.name}` :
                                     ((item.startLine !== currRegionStartLine) && (item.level > 0)) ? `└─${'─'.repeat(item.level)} ${item.name}` :
                                         item.name,
                     description: '',
