@@ -2,13 +2,20 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { ALObject } from './alObject';
 
-export function isALObjectFile(file: vscode.Uri): Boolean {
+export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
         return true;
     }
 
+    if (previewObjectAllowed) {
+        if (file.fsPath.toLowerCase().endsWith('.dal')) {
+            return true;
+        }
+    }
+
     return false;
 }
+
 export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.dal')) {
         return true;
@@ -239,7 +246,7 @@ export async function showOpenALObjects() {
         try {
             const documentUri = (editor.input as any).uri;
 
-            if ((isALObjectFile(documentUri)) || (isPreviewALObjectFile(documentUri))) {
+            if (isALObjectFile(documentUri, true)) {
                 const doc = await vscode.workspace.openTextDocument(documentUri);
 
                 let alObject: ALObject;
@@ -247,13 +254,11 @@ export async function showOpenALObjects() {
                 let objectInfoText = makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
-                let iconName = isCurrentEditor ? 'eye' :
-                    isPreviewALObjectFile(documentUri) ? 'lock' :
-                        'bracket';
+                let iconName = isPreviewALObjectFile(documentUri) ? 'lock' : 'bracket';
 
                 items.push({
                     label: `$(${iconName}) ${objectInfoText}`,
-                    description: isCurrentEditor ? 'current editor' : '',
+                    description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     sortKey: objectSortKey(alObject, isCurrentEditor),
                     uri: doc.uri

@@ -57,6 +57,10 @@
         "title": "ATS: Change default startup object and run Business Central"
       },
       {
+        "command": "ats.showAllRegions",
+        "title": "ATS: Show All Regions"
+      },
+      {
         "command": "ats.createRegionBySelection",
         "title": "ATS: Create region by selection"
       },

@@ -60,7 +60,7 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
 
         // Registra un comando per ogni regione
         regionStatusBarItem.command = {
-            command: 'ats.browseDocumentRegions',
+            command: 'ats.showAllRegions',
             arguments: [regionInfo.lastRegionStartPos],
             title: `ATS: Go to Region start position`
         };
@@ -149,7 +149,7 @@ function makeDocumentKey(document: vscode.TextDocument): string {
 
 export async function clearRegionsCache(fileName: string) {
     const uri = vscode.Uri.parse(fileName);
-    if (alFileMgr.isALObjectFile(uri)) {
+    if (alFileMgr.isALObjectFile(uri, true)) {
         removeDocumentRegionsFromCache(uri.toString());
     }
 }
@@ -266,7 +266,7 @@ function makeTooltip(regionInfoText: string): vscode.MarkdownString {
     return markdownTooltip;
 }
 
-export async function browseDocumentRegions(currRegionStartLine: number) {
+export async function showAllRegions(currRegionStartLine: number) {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
@@ -277,22 +277,28 @@ export async function browseDocumentRegions(currRegionStartLine: number) {
             clearRegionsCache(document.fileName);
             findDocumentRegions(document);
 
+            if (!currRegionStartLine) {
+                try {
+                    const currentLine = editor.selection.active.line;
+                    const lineRegionInfo = getRegionsInfoByDocumentLine(document, currentLine, false);
+                    currRegionStartLine = lineRegionInfo.lastRegionStartPos;
+                }
+                catch {
+                    currRegionStartLine = 0;
+                }
+            }
+
             let docRegions = findDocumentRegionsFromCache(documentKey);
             if (docRegions.length > 0) {
                 const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
-                    label:
-                        ((item.startLine === currRegionStartLine) && (item.level === 0)) ? `$(symbol-number) $(eye) ${item.name}` :
-                            ((item.startLine === currRegionStartLine) && (item.level > 0)) ? `└─${'─'.repeat(item.level)} $(eye) ${item.name}` :
-                                ((item.startLine !== currRegionStartLine) && (item.level === 0)) ? `$(symbol-number) ${item.name}` :
-                                    ((item.startLine !== currRegionStartLine) && (item.level > 0)) ? `└─${'─'.repeat(item.level)} ${item.name}` :
-                                        item.name,
-                    description: '',
+                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└─${'─'.repeat(item.level)} ${item.name}`,
+                    description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
                     detail: '',
                     regionStartLine: item.startLine
                 })), {
                     placeHolder: 'Regions',
-                    matchOnDescription: true,
-                    matchOnDetail: true,
+                    matchOnDescription: false,
+                    matchOnDetail: false,
                 });
 
                 if (picked) {
