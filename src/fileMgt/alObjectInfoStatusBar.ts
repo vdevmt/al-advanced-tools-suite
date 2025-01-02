@@ -14,7 +14,11 @@ export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
         const objectInfoStatusBarItem = vscode.window.createStatusBarItem(alignment);
         objectInfoStatusBarItem.text = `$(info)`;
         objectInfoStatusBarItem.tooltip = makeTooltip('', '');
-        objectInfoStatusBarItem.command = undefined;
+        objectInfoStatusBarItem.command = {
+            command: 'ats.showOpenALObjects',
+            title: `ATS: Show open AL Objects`
+        };
+
         objectInfoStatusBarItem.show();
 
         updateObjectInfoStatusBar(objectInfoStatusBarItem);
@@ -32,8 +36,7 @@ export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarIte
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject: ALObject;
             alObject = new ALObject(document.getText(), document.fileName);
-            let objectInfoText = `${alFileMgr.capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
-
+            let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
             objectInfoStatusBarItem.tooltip = makeTooltip(objectInfoText, alObject.extendedObjectName);
             objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;
         }
@@ -56,17 +59,12 @@ function makeTooltip(objectInfoText: string, extendedObjectName: string): vscode
         markdownTooltip.appendMarkdown(`${objectInfoText}\n\n`);
 
         if (extendedObjectName) {
-            markdownTooltip.appendMarkdown(`extends ${addQuotesIfNeeded(extendedObjectName)}\n\n`);
+            markdownTooltip.appendMarkdown(`extends ${alFileMgr.addQuotesIfNeeded(extendedObjectName)}\n\n`);
         }
     }
 
     return markdownTooltip;
 }
-function addQuotesIfNeeded(text: string): string {
-    if (text.includes(" ")) {
-        return `"${text}"`;
-    }
 
-    return text;
-}
+
 

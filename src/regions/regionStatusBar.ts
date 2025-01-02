@@ -28,7 +28,7 @@ export function createRegionsStatusBarItem(): vscode.StatusBarItem {
         }
 
         const regionStatusBarItem = vscode.window.createStatusBarItem(alignment);
-        regionStatusBarItem.text = `$(symbol-number)`;
+        regionStatusBarItem.text = '';
         regionStatusBarItem.tooltip = makeTooltip('');
         regionStatusBarItem.command = undefined;
         regionStatusBarItem.show();

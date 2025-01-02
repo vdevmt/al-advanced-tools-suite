@@ -200,3 +200,88 @@ export function capitalizeObjectType(objectType: string): string {
 
     return '';
 }
+
+export function addQuotesIfNeeded(text: string): string {
+    if (text.includes(" ")) {
+        return `"${text}"`;
+    }
+
+    return text;
+}
+
+export function makeALObjectDescriptionText(alObject: ALObject) {
+    if (alObject) {
+        return `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+    }
+
+    return '';
+}
+
+export async function showOpenALObjects() {
+    const textDocuments = vscode.workspace.textDocuments;
+    const activeEditor = vscode.window.activeTextEditor;
+    const activeUri = activeEditor?.document.uri.toString();
+
+    // Recupera i tab aperti
+    const openEditors = vscode.window.tabGroups.all
+        .flatMap(group => group.tabs)
+        .filter(tab => tab.input && (tab.input as any).uri)
+        .map(tab => vscode.Uri.parse((tab.input as any).uri).fsPath)
+        .filter(filePath => {
+            const ext = path.extname(filePath);
+            return ext === '.al' || ext === '.dal'; // Filtra i file con estensione .al o .dal
+        });
+
+    const items: QuickPickItem[] = [];
+
+    for (const currEditor of openEditors) {
+        try {
+            const doc = await vscode.workspace.openTextDocument(currEditor);
+
+            if (isALObjectFile(doc.uri)) {
+                let alObject: ALObject;
+                alObject = new ALObject(doc.getText(), doc.fileName);
+                let objectInfoText = makeALObjectDescriptionText(alObject);
+
+                items.push({
+                    label: doc.uri.toString() === activeUri ? `🌟 ${objectInfoText}` : objectInfoText,
+                    description: doc.uri.toString() === activeUri ? 'current editor' : '',
+                    detail: vscode.workspace.asRelativePath(doc.uri),
+                    uri: doc.uri
+                });
+            }
+        } catch (err) {
+            console.log(`Unable to read file: ${currEditor}`, err);
+        }
+    }
+
+    items.sort((a, b) => a.label.localeCompare(b.label));
+
+    // Show object list
+    const picked = await vscode.window.showQuickPick(items.map(item => ({
+        label: item.label,
+        description: item.description,
+        detail: item.detail,
+        uri: item.uri,
+    })), {
+        placeHolder: 'Select a file to open',
+        matchOnDescription: true,
+        matchOnDetail: true,
+    });
+
+    if (picked) {
+        // Open selected
+        vscode.window.showTextDocument(picked.uri);
+    }
+}
+
+//#region Interfaces
+interface QuickPickItem {
+    label: string;
+    description?: string;
+    detail?: string;
+    uri?: vscode.Uri;
+    alObject?: ALObject;
+}
+
+//#endregion Interfaces

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './fileMgt/launchMgr';
+import * as alFileMgr from './fileMgt/alFileMgr';
 import * as regionMgr from './regions/regionMgr';
 import * as regionStatusBar from './regions/regionStatusBar';
 import * as objectInfoStatusBar from './fileMgt/alObjectInfoStatusBar';
@@ -14,6 +15,10 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportLaunchFile', launchMgr.exportLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.openLaunchFile', launchMgr.openLaunchFile));
     //#endregion launch.json tools
+
+    //#region AL Objects Mgt
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alFileMgr.showOpenALObjects));
+    //#endregion AL Objects Mgt
 
     //#region Run Business Central       
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
