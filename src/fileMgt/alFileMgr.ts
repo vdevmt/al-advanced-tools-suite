@@ -234,28 +234,31 @@ export async function showOpenALObjects() {
 
     const items: QuickPickItem[] = [];
 
-    for (const currEditor of openEditors) {
+    for (const editor of openEditors) {
         try {
-            const doc = await vscode.workspace.openTextDocument(currEditor);
+            const doc = await vscode.workspace.openTextDocument(editor);
 
             if (isALObjectFile(doc.uri)) {
                 let alObject: ALObject;
                 alObject = new ALObject(doc.getText(), doc.fileName);
                 let objectInfoText = makeALObjectDescriptionText(alObject);
 
+                const isCurrentEditor = (doc.uri.toString() === activeUri);
+
                 items.push({
-                    label: doc.uri.toString() === activeUri ? `🌟 ${objectInfoText}` : objectInfoText,
-                    description: doc.uri.toString() === activeUri ? 'current editor' : '',
+                    label: isCurrentEditor ? `🌟 ${objectInfoText}` : objectInfoText,
+                    description: isCurrentEditor ? 'current editor' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
+                    sortKey: objectSortKey(alObject, isCurrentEditor),
                     uri: doc.uri
                 });
             }
         } catch (err) {
-            console.log(`Unable to read file: ${currEditor}`, err);
+            console.log(`Unable to read file: ${editor}`, err);
         }
     }
 
-    items.sort((a, b) => a.label.localeCompare(b.label));
+    items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     // Show object list
     const picked = await vscode.window.showQuickPick(items.map(item => ({
@@ -275,11 +278,57 @@ export async function showOpenALObjects() {
     }
 }
 
+function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
+    let objPriority: number = 9999;
+
+    if (alObject) {
+        if (isCurrentEditor) {
+            objPriority = 10;
+        }
+        else {
+            switch (alObject.objectType) {
+                case 'table':
+                    objPriority = 20;
+                    break;
+
+                case 'tableextension':
+                    objPriority = 21;
+                    break;
+
+                case 'codeunit':
+                    objPriority = 30;
+                    break;
+
+                case 'page':
+                    objPriority = 40;
+                    break;
+
+                case 'pageextension':
+                    objPriority = 41;
+                    break;
+
+                case 'report':
+                    objPriority = 50;
+                    break;
+
+                case 'reportextension':
+                    objPriority = 51;
+                    break;
+            }
+        }
+
+        return `${objPriority.toString().padStart(4, '0')}_${alObject.objectType}_${alObject.objectName}`;
+    }
+
+    return `${objPriority.toString().padStart(4, '0')}`;
+}
+
 //#region Interfaces
 interface QuickPickItem {
     label: string;
     description?: string;
     detail?: string;
+    sortKey?: string;
     uri?: vscode.Uri;
     alObject?: ALObject;
 }
