@@ -60,13 +60,18 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
 
         // Registra un comando per ogni regione
         regionStatusBarItem.command = {
-            command: 'ats.goToRegionStartLine',
-            arguments: [regionInfo.lastRegionStartPos, regionInfo.regionPath],
+            command: 'ats.browseDocumentRegions',
+            arguments: [regionInfo.lastRegionStartPos],
             title: `ATS: Go to Region start position`
         };
     }
     else {
-        regionStatusBarItem.text = '';
+        if (regionMgr.documentHasRegion(document)) {
+            regionStatusBarItem.text = `$(symbol-number) Out of Region`;
+        }
+        else {
+            regionStatusBarItem.text = '';
+        }
     }
 }
 
@@ -261,3 +266,42 @@ function makeTooltip(regionInfoText: string): vscode.MarkdownString {
     return markdownTooltip;
 }
 
+export async function browseDocumentRegions(currRegionStartLine: number) {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        if (regionMgr.documentHasRegion(document)) {
+            let documentKey = makeDocumentKey(document);
+
+            clearRegionsCache(document.fileName);
+            findDocumentRegions(document);
+
+            let docRegions = findDocumentRegionsFromCache(documentKey);
+            if (docRegions.length > 0) {
+                const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
+                    label:
+                        ((item.startLine === currRegionStartLine) && (item.level === 0)) ? `$(notebook-execute) ${item.name}` :
+                            ((item.startLine === currRegionStartLine) && (item.level > 0)) ? `$(notebook-execute) └─${'─'.repeat(item.level)} ${item.name}` :
+                                ((item.startLine !== currRegionStartLine) && (item.level === 0)) ? `${item.name}` :
+                                    ((item.startLine !== currRegionStartLine) && (item.level > 0)) ? `└─${'─'.repeat(item.level)} ${item.name}` :
+                                        item.name,
+                    description: '',
+                    detail: '',
+                    regionStartLine: item.startLine
+                })), {
+                    placeHolder: 'Regions',
+                    matchOnDescription: true,
+                    matchOnDetail: true,
+                });
+
+                if (picked) {
+                    const position = new vscode.Position(picked.regionStartLine, 0);
+                    const newSelection = new vscode.Selection(position, position);
+                    editor.selection = newSelection;
+                    editor.revealRange(new vscode.Range(position, position));
+                }
+            }
+        }
+    }
+}

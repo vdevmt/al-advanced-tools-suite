@@ -246,7 +246,7 @@ export async function showOpenALObjects() {
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
 
                 items.push({
-                    label: isCurrentEditor ? `🌟 ${objectInfoText}` : objectInfoText,
+                    label: isCurrentEditor ? `$(eye) ${objectInfoText}` : objectInfoText,
                     description: isCurrentEditor ? 'current editor' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     sortKey: objectSortKey(alObject, isCurrentEditor),

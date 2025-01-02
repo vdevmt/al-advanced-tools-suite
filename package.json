@@ -49,10 +49,6 @@
         "title": "ATS: Open 'launch.json'"
       },
       {
-        "command": "ats.showOpenALObjects",
-        "title": "ATS: Show open AL Objects"
-      },
-      {
         "command": "ats.runBusinessCentral",
         "title": "ATS: Run Business Central"
       },

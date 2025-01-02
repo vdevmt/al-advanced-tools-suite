@@ -27,6 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     //#region Region tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.createRegionBySelection', regionMgr.createRegionBySelection));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.browseDocumentRegions', regionStatusBar.browseDocumentRegions));
     //#endregion Region tools
 
     //#region Namespace tools
