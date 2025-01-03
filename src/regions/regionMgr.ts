@@ -1,5 +1,12 @@
 import * as vscode from 'vscode';
 
+interface RegionInfo {
+    name: string;
+    startLine: number;
+    endLine?: number;
+    level?: number;
+}
+
 //#region Regions tools
 export async function createRegionBySelection() {
     const editor = vscode.window.activeTextEditor;
@@ -42,17 +49,17 @@ export function documentHasRegion(document: vscode.TextDocument): boolean {
     return lines.some(line => line.includes('#region'));
 }
 
-export function isRegionStartLine(lineText: string): boolean {
+function isRegionStartLine(lineText: string): boolean {
     const regionStartRegex = /^\s*#region\b.*$/i;
 
     return regionStartRegex.test(lineText.trim());
 }
-export function isRegionEndLine(lineText: string): boolean {
+function isRegionEndLine(lineText: string): boolean {
     const regionEndRegex = /^\s*#endregion\b.*$/i;
 
     return regionEndRegex.test(lineText.trim());
 }
-export function getRegionName(lineText: string): string {
+function getRegionName(lineText: string): string {
     if (isRegionStartLine(lineText)) {
 
         const regionRegex = /#region(\s+(.+))?/i;
@@ -67,6 +74,47 @@ export function getRegionName(lineText: string): string {
     }
 
     return '';
+}
 
+export function findObjectRegions(objectContentText: string): RegionInfo[] {
+    var docRegions: RegionInfo[] = [];
+
+    const lines = objectContentText.split('\n');
+    const stack: { name: string; startLine: number }[] = [];
+
+    lines.forEach((lineText, linePos) => {
+        const lineNumber = linePos;
+        if (isRegionStartLine(lineText)) {
+            let name = getRegionName(lineText);
+            console.log(`Found region start: ${name} at line ${lineNumber}`);
+            stack.push({ name, startLine: lineNumber });
+            return;
+        }
+
+        if (isRegionEndLine(lineText)) {
+            if (stack.length > 0) {
+
+                const lastRegion = stack.pop();
+                if (lastRegion) {
+                    const level = stack.length;
+
+                    docRegions.push({
+                        name: lastRegion.name,
+                        startLine: lastRegion.startLine,
+                        endLine: lineNumber,
+                        level: level
+                    });
+                }
+            }
+        }
+    });
+
+    if (docRegions.length > 0) {
+        // Order by StartLine
+        docRegions.sort((a, b) => a.startLine - b.startLine);
+        return docRegions;
+    }
+
+    return null;
 }
 //#endregion Regions tools

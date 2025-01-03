@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from '../fileMgt/alFileMgr';
 import * as regionMgr from './regionMgr';
 import { ATSSettings } from '../settings/atsSettings';
+import { ALObject } from '../fileMgt/alObject';
 
 var docRegionsCache: RegionInfo[] = [];
 
@@ -82,46 +83,17 @@ export async function findDocumentRegions(document: vscode.TextDocument) {
     var docRegions: RegionInfo[] = [];
 
     if (alFileMgr.isALObjectDocument(document)) {
-        const lines = document.getText().split('\n');
-        const stack: { name: string; startLine: number }[] = [];
+        let alObject: ALObject;
+        alObject = new ALObject(document.getText(), document.fileName);
+        docRegions = alObject.regions;
 
-        lines.forEach((lineText, linePos) => {
-            const lineNumber = linePos;
-            if (regionMgr.isRegionStartLine(lineText)) {
-                let name = regionMgr.getRegionName(lineText);
-                console.log(`Found region start: ${name} at line ${lineNumber}`);
-                stack.push({ name, startLine: lineNumber });
-                return;
-            }
+        const newRegions = docRegions.map(region => ({
+            ...region,
+            documentKey: documentKey
+        }));
 
-            if (regionMgr.isRegionEndLine(lineText)) {
-                if (stack.length > 0) {
-
-                    const lastRegion = stack.pop();
-                    if (lastRegion) {
-                        const level = stack.length;
-
-                        docRegions.push({
-                            documentKey: documentKey,
-                            name: lastRegion.name,
-                            startLine: lastRegion.startLine,
-                            endLine: lineNumber,
-                            level: level
-                        });
-
-                        console.log(`Region added: ${lastRegion.name}, from ${lastRegion.startLine} to ${lineNumber}, level: ${level}`);
-                    }
-                }
-            }
-        });
-
-        if (docRegions.length > 0) {
-            // Order by StartLine
-            docRegions.sort((a, b) => a.startLine - b.startLine);
-
-            // Cache new regions
-            docRegionsCache.push(...docRegions);
-        }
+        // Cache new regions
+        docRegionsCache.push(...newRegions);
     }
 }
 

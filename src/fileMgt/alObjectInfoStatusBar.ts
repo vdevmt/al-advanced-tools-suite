@@ -60,17 +60,29 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
     }
 
     if (alObject) {
-        if (alObject.objectNamespace) {
-            markdownTooltip.appendMarkdown(`${alObject.objectNamespace}\n\n`);
-        }
-
         if (alObject.extendedObjectName) {
             markdownTooltip.appendMarkdown(`extends ${alFileMgr.addQuotesIfNeeded(alObject.extendedObjectName)}\n\n`);
         }
 
+        if (alObject.objectNamespace) {
+            markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}\n\n`);
+        }
+
+        const counters = [
+            alObject.fieldsCount > 0 ? `Fields: ${alObject.fieldsCount}` : '',
+            alObject.regionCount > 0 ? `Regions: ${alObject.regionCount}` : '',
+            alObject.procedureCount > 0 ? `Procedures: ${alObject.procedureCount}` : ''
+        ]
+            .filter(Boolean)
+            .join(' | ');
+
+        if (counters.length > 0) {
+            markdownTooltip.appendMarkdown(`${counters}\n\n`);
+        }
+
         if (alObject.objectFileName) {
             let filePath = vscode.workspace.asRelativePath(alObject.objectFileName);
-            markdownTooltip.appendMarkdown(`${filePath}`);
+            markdownTooltip.appendMarkdown(`Path: ${filePath}\n\n`);
         }
     }
 

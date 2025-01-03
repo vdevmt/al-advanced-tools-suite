@@ -2,6 +2,7 @@
 
 import * as vscode from 'vscode';
 import * as alFileMgr from './alFileMgr';
+import * as alRegionMgr from '../regions/regionMgr';
 
 export class ALObject {
     public objectType: string;
@@ -12,6 +13,20 @@ export class ALObject {
     public objectNamespace: string;
     public objectContentText: string;
     public objectFileName: string;
+
+    public fieldsCount: number;
+    public fields: { id: number, name: string, type: string, startLine: number }[];
+
+    public procedureCount: number;
+    public procedures: { name: string, startLine: number }[];
+
+    public regionCount: number;
+    public regions: {
+        name: string;
+        startLine: number;
+        endLine?: number;
+        level?: number;
+    }[];
 
     constructor(content: string, fileName: string) {
         this.initObjectProperties();
@@ -30,6 +45,12 @@ export class ALObject {
         this.extendedObjectId = "";
         this.extendedObjectName = "";
         this.objectNamespace = "";
+        this.fieldsCount = 0;
+        this.fields = null;
+        this.procedureCount = 0;
+        this.procedures = null;
+        this.regionCount = 0;
+        this.regions = null;
     }
 
     private loadObjectProperties(): any {
@@ -157,5 +178,8 @@ export class ALObject {
             this.initObjectProperties();
             return null;
         }
+
+        this.regions = alRegionMgr.findObjectRegions(this.objectContentText);
+        this.regionCount = this.regions.length;
     }
 }
