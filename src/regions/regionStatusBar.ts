@@ -28,7 +28,7 @@ export function createRegionsStatusBarItem(): vscode.StatusBarItem {
         }
 
         const regionStatusBarItem = vscode.window.createStatusBarItem(alignment);
-        regionStatusBarItem.text = `$(symbol-number)`;
+        regionStatusBarItem.text = '';
         regionStatusBarItem.tooltip = makeTooltip('');
         regionStatusBarItem.command = undefined;
         regionStatusBarItem.show();
@@ -60,13 +60,18 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
 
         // Registra un comando per ogni regione
         regionStatusBarItem.command = {
-            command: 'ats.goToRegionStartLine',
-            arguments: [regionInfo.lastRegionStartPos, regionInfo.regionPath],
+            command: 'ats.showAllRegions',
+            arguments: [regionInfo.lastRegionStartPos],
             title: `ATS: Go to Region start position`
         };
     }
     else {
-        regionStatusBarItem.text = '';
+        if (regionMgr.documentHasRegion(document)) {
+            regionStatusBarItem.text = `$(symbol-number) Out of Region`;
+        }
+        else {
+            regionStatusBarItem.text = '';
+        }
     }
 }
 
@@ -144,7 +149,7 @@ function makeDocumentKey(document: vscode.TextDocument): string {
 
 export async function clearRegionsCache(fileName: string) {
     const uri = vscode.Uri.parse(fileName);
-    if (alFileMgr.isALObjectFile(uri)) {
+    if (alFileMgr.isALObjectFile(uri, true)) {
         removeDocumentRegionsFromCache(uri.toString());
     }
 }
@@ -232,7 +237,7 @@ function getRegionsInfoByDocumentLine(document: vscode.TextDocument, line: numbe
     return null;
 }
 
-export function goToRegionStartLine(regionStartLine: number, regionPath: string) {
+function goToRegionStartLine(regionStartLine: number, regionPath: string) {
     if (regionPath) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
@@ -261,3 +266,48 @@ function makeTooltip(regionInfoText: string): vscode.MarkdownString {
     return markdownTooltip;
 }
 
+export async function showAllRegions(currRegionStartLine: number) {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        if (regionMgr.documentHasRegion(document)) {
+            let documentKey = makeDocumentKey(document);
+
+            clearRegionsCache(document.fileName);
+            findDocumentRegions(document);
+
+            if (!currRegionStartLine) {
+                try {
+                    const currentLine = editor.selection.active.line;
+                    const lineRegionInfo = getRegionsInfoByDocumentLine(document, currentLine, false);
+                    currRegionStartLine = lineRegionInfo.lastRegionStartPos;
+                }
+                catch {
+                    currRegionStartLine = 0;
+                }
+            }
+
+            let docRegions = findDocumentRegionsFromCache(documentKey);
+            if (docRegions.length > 0) {
+                const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
+                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└─${'─'.repeat(item.level)} ${item.name}`,
+                    description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
+                    detail: '',
+                    regionStartLine: item.startLine
+                })), {
+                    placeHolder: 'Regions',
+                    matchOnDescription: false,
+                    matchOnDetail: false,
+                });
+
+                if (picked) {
+                    const position = new vscode.Position(picked.regionStartLine, 0);
+                    const newSelection = new vscode.Selection(position, position);
+                    editor.selection = newSelection;
+                    editor.revealRange(new vscode.Range(position, position));
+                }
+            }
+        }
+    }
+}

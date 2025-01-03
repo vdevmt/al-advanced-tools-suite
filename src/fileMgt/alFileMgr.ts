@@ -2,13 +2,28 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { ALObject } from './alObject';
 
-export function isALObjectFile(file: vscode.Uri): Boolean {
+export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
+        return true;
+    }
+
+    if (previewObjectAllowed) {
+        if (file.fsPath.toLowerCase().endsWith('.dal')) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
+    if (file.fsPath.toLowerCase().endsWith('.dal')) {
         return true;
     }
 
     return false;
 }
+
 export function isALObjectDocument(document: vscode.TextDocument): Boolean {
     if (document.languageId === 'al') {
         return true;
@@ -200,3 +215,133 @@ export function capitalizeObjectType(objectType: string): string {
 
     return '';
 }
+
+export function addQuotesIfNeeded(text: string): string {
+    if (text.includes(" ")) {
+        return `"${text}"`;
+    }
+
+    return text;
+}
+
+export function makeALObjectDescriptionText(alObject: ALObject) {
+    if (alObject) {
+        return `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+    }
+
+    return '';
+}
+
+export async function showOpenALObjects() {
+    const textDocuments = vscode.workspace.textDocuments;
+    const activeEditor = vscode.window.activeTextEditor;
+    const activeUri = activeEditor?.document.uri.toString();
+
+    // Recupera i tab aperti
+    const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
+
+    const items: QuickPickItem[] = [];
+
+    for (const editor of openEditors) {
+        try {
+            const documentUri = (editor.input as any).uri;
+
+            if (isALObjectFile(documentUri, true)) {
+                const doc = await vscode.workspace.openTextDocument(documentUri);
+
+                let alObject: ALObject;
+                alObject = new ALObject(doc.getText(), doc.fileName);
+                let objectInfoText = makeALObjectDescriptionText(alObject);
+
+                const isCurrentEditor = (doc.uri.toString() === activeUri);
+                let iconName = isPreviewALObjectFile(documentUri) ? 'lock' : 'bracket';
+
+                items.push({
+                    label: `$(${iconName}) ${objectInfoText}`,
+                    description: isCurrentEditor ? '$(eye)' : '',
+                    detail: vscode.workspace.asRelativePath(doc.uri),
+                    sortKey: objectSortKey(alObject, isCurrentEditor),
+                    uri: doc.uri
+                });
+            }
+        } catch (err) {
+            console.log(`Unable to read file: ${editor}`, err);
+        }
+    }
+
+    items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    // Show object list
+    const picked = await vscode.window.showQuickPick(items.map(item => ({
+        label: item.label,
+        description: item.description,
+        detail: item.detail,
+        uri: item.uri,
+    })), {
+        placeHolder: 'Select a file to open',
+        matchOnDescription: true,
+        matchOnDetail: true,
+    });
+
+    if (picked) {
+        // Open selected
+        vscode.window.showTextDocument(picked.uri);
+    }
+}
+
+function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
+    let objPriority: number = 9999;
+
+    if (alObject) {
+        if (isCurrentEditor) {
+            objPriority = 10;
+        }
+        else {
+            switch (alObject.objectType) {
+                case 'table':
+                    objPriority = 20;
+                    break;
+
+                case 'tableextension':
+                    objPriority = 21;
+                    break;
+
+                case 'codeunit':
+                    objPriority = 30;
+                    break;
+
+                case 'page':
+                    objPriority = 40;
+                    break;
+
+                case 'pageextension':
+                    objPriority = 41;
+                    break;
+
+                case 'report':
+                    objPriority = 50;
+                    break;
+
+                case 'reportextension':
+                    objPriority = 51;
+                    break;
+            }
+        }
+
+        return `${objPriority.toString().padStart(4, '0')}_${alObject.objectType}_${alObject.objectName}`;
+    }
+
+    return `${objPriority.toString().padStart(4, '0')}`;
+}
+
+//#region Interfaces
+interface QuickPickItem {
+    label: string;
+    description?: string;
+    detail?: string;
+    sortKey?: string;
+    uri?: vscode.Uri;
+    alObject?: ALObject;
+}
+
+//#endregion Interfaces
