@@ -58,7 +58,7 @@
       },
       {
         "command": "ats.showAllRegions",
-        "title": "ATS: Show All Regions"
+        "title": "ATS: Show all regions"
       },
       {
         "command": "ats.createRegionBySelection",

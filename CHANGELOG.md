@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.3.9]
+- New Features:
+    - Command `ATS: Show all regions` to display the complete structure of regions in the current document.    
+
 ## [1.3.7]
 - New Features:
     - Command `ATS: Change default startup object and run Business Central`
