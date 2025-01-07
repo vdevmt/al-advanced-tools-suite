@@ -1,24 +1,11 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../fileMgt/alFileMgr';
 import * as regionMgr from './regionMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject, ALObjectRegions } from '../fileMgt/alObject';
 
-var docRegionsCache: RegionInfo[] = [];
-
-interface RegionInfo {
-    documentKey?: string;
-    name?: string;
-    startLine?: number;
-    endLine?: number;
-    level?: number;
-}
-
-interface LineRegionInfo {
-    regionPath: string,
-    lastRegionStartPos: number
-    lastRegionEndPos: number
-}
+var alObject: ALObject;
+var alObjectRegions: ALObjectRegions;
+var currDocumentKey: string;
 
 export function createRegionsStatusBarItem(): vscode.StatusBarItem {
     const atsSettings = ATSSettings.GetConfigSettings(null);
@@ -31,7 +18,12 @@ export function createRegionsStatusBarItem(): vscode.StatusBarItem {
         const regionStatusBarItem = vscode.window.createStatusBarItem(alignment);
         regionStatusBarItem.text = '';
         regionStatusBarItem.tooltip = makeTooltip('');
-        regionStatusBarItem.command = undefined;
+
+        regionStatusBarItem.command = {
+            command: 'ats.showAllRegions',
+            title: `ATS: Show all regions`
+        };
+
         regionStatusBarItem.show();
 
         return regionStatusBarItem;
@@ -40,12 +32,27 @@ export function createRegionsStatusBarItem(): vscode.StatusBarItem {
     return null;
 }
 
+function makeTooltip(regionInfoText: string): vscode.MarkdownString {
+    const markdownTooltip = new vscode.MarkdownString();
+    markdownTooltip.appendMarkdown("### **Region Info (ATS)**\n\n");
+    if (regionInfoText) {
+        markdownTooltip.appendMarkdown(`${regionInfoText}\n\n`);
+    }
+
+    return markdownTooltip;
+}
+
+export async function clearRegionsCache(fileName: string) {
+    alObject = new ALObject(null);
+    alObjectRegions = new ALObjectRegions(alObject);
+}
+
 export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusBarItem, rebuildCache: boolean) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         regionStatusBarItem.text = '';
         regionStatusBarItem.tooltip = makeTooltip('');
-        regionStatusBarItem.command = undefined;
+
         return;
     }
 
@@ -54,47 +61,22 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
 
     regionStatusBarItem.text = '$(loading~spin) Searching regions';
 
-    let regionInfo = getRegionsInfoByDocumentLine(document, currentLine, rebuildCache);
-    if (regionInfo) {
-        regionStatusBarItem.tooltip = makeTooltip(regionInfo.regionPath);
-        regionStatusBarItem.text = `$(symbol-number) ${truncateRegionPath(regionInfo.regionPath, -1)}`;
+    if (!rebuildCache) {
+        rebuildCache = ((!alObjectRegions) || (alObjectRegions.objectName === '')) || (currDocumentKey !== makeDocumentKey(document));
+    }
 
-        // Registra un comando per ogni regione
-        regionStatusBarItem.command = {
-            command: 'ats.showAllRegions',
-            arguments: [regionInfo.lastRegionStartPos],
-            title: `ATS: Go to Region start position`
-        };
+    if (rebuildCache) {
+        alObject = new ALObject(document);
+        alObjectRegions = new ALObjectRegions(alObject);
     }
-    else {
-        if (regionMgr.documentHasRegion(document)) {
-            regionStatusBarItem.text = `$(symbol-number) Out of Region`;
-        }
-        else {
-            regionStatusBarItem.text = '';
-        }
-    }
+
+    let regionPath = regionMgr.findOpenRegionsPathByDocLine(alObjectRegions, currentLine);
+    regionStatusBarItem.tooltip = makeTooltip(regionPath);
+    regionStatusBarItem.text = regionPath ? `$(symbol-number) ${truncateRegionPath(regionPath, -1)}` : '';
 }
 
-export async function findDocumentRegions(document: vscode.TextDocument) {
-    const documentKey = makeDocumentKey(document);
-    removeDocumentRegionsFromCache(documentKey);
-
-    if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document.getText(), document.fileName);
-
-        let alObjectRegions: ALObjectRegions;
-        alObjectRegions = new ALObjectRegions(alObject);
-
-        const newRegions = alObjectRegions.regions.map(region => ({
-            ...region,
-            documentKey: documentKey
-        }));
-
-        // Cache new regions
-        docRegionsCache.push(...newRegions);
-    }
+function makeDocumentKey(document: vscode.TextDocument): string {
+    return vscode.Uri.parse(document.fileName).toString();
 }
 
 function truncateRegionPath(regionPath: string, maxLength: number): string {
@@ -114,153 +96,3 @@ function truncateRegionPath(regionPath: string, maxLength: number): string {
     return truncatedText;
 }
 
-
-function makeDocumentKey(document: vscode.TextDocument): string {
-    return vscode.Uri.parse(document.fileName).toString();
-}
-
-export async function clearRegionsCache(fileName: string) {
-    const uri = vscode.Uri.parse(fileName);
-    if (alFileMgr.isALObjectFile(uri, true)) {
-        removeDocumentRegionsFromCache(uri.toString());
-    }
-}
-
-function findDocumentRegionsFromCache(documentKey: string): RegionInfo[] {
-    if (documentKey) {
-        return docRegionsCache.filter(region => region.documentKey === documentKey);
-    }
-
-    return null;
-}
-
-function existsDocumentRegionsInCache(documentKey: string): boolean {
-    let docRegions = findDocumentRegionsFromCache(documentKey);
-    return (docRegions.length > 0);
-}
-
-function findOpenRegionsByDocLine(documentKey: string, documentLine: number): RegionInfo[] {
-    if (documentKey && (documentLine > 0)) {
-        let docRegions = findDocumentRegionsFromCache(documentKey);
-
-        if (docRegions.length > 0) {
-            docRegions = docRegions.filter(region => region.startLine <= documentLine);
-            let openRegions: RegionInfo[] = [];
-
-            for (const region of docRegions) {
-                if (documentLine >= region.startLine && documentLine <= region.endLine) {
-                    openRegions.push(region);
-                }
-            }
-
-            return openRegions;
-        }
-    }
-
-    return null;
-}
-
-function removeDocumentRegionsFromCache(documentKey: string) {
-    if (docRegionsCache.length > 0) {
-        docRegionsCache = docRegionsCache.filter(region => region.documentKey !== documentKey);
-    }
-}
-
-function getRegionsInfoByDocumentLine(document: vscode.TextDocument, line: number, rebuildCache: boolean): LineRegionInfo {
-    if (alFileMgr.isALObjectDocument(document)) {
-        let documentKey = makeDocumentKey(document);
-
-        if (!regionMgr.documentHasRegion(document)) {
-            clearRegionsCache(document.fileName);
-            return null;
-        }
-
-        if (rebuildCache) {
-            clearRegionsCache(document.fileName);
-        }
-
-        if (!existsDocumentRegionsInCache(documentKey)) {
-            findDocumentRegions(document);
-        }
-
-        let openRegions = findOpenRegionsByDocLine(documentKey, line);
-        if (openRegions) {
-            let lastRegionStartLine = 0;
-            let lastRegionEndLine = 0;
-            if (openRegions.length > 0) {
-                let regions: string[] = [];
-                for (const region of openRegions) {
-                    regions.push(region.name);
-                    lastRegionStartLine = region.startLine;
-                    lastRegionEndLine = region.endLine;
-                }
-
-                let regionInfo: LineRegionInfo = {
-                    regionPath: regions.join(' > '),
-                    lastRegionStartPos: lastRegionStartLine,
-                    lastRegionEndPos: lastRegionEndLine
-                };
-
-                return regionInfo;
-            }
-        }
-    }
-
-    return null;
-}
-
-function makeTooltip(regionInfoText: string): vscode.MarkdownString {
-    const markdownTooltip = new vscode.MarkdownString();
-    markdownTooltip.appendMarkdown("### **Region Info (ATS)**\n\n");
-    if (regionInfoText) {
-        markdownTooltip.appendMarkdown(`${regionInfoText}\n\n`);
-    }
-
-    return markdownTooltip;
-}
-
-export async function showAllRegions(currRegionStartLine: number) {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (alFileMgr.isALObjectDocument(document)) {
-        if (regionMgr.documentHasRegion(document)) {
-            let documentKey = makeDocumentKey(document);
-
-            clearRegionsCache(document.fileName);
-            findDocumentRegions(document);
-
-            if (!currRegionStartLine) {
-                try {
-                    const currentLine = editor.selection.active.line;
-                    const lineRegionInfo = getRegionsInfoByDocumentLine(document, currentLine, false);
-                    currRegionStartLine = lineRegionInfo.lastRegionStartPos;
-                }
-                catch {
-                    currRegionStartLine = 0;
-                }
-            }
-
-            let docRegions = findDocumentRegionsFromCache(documentKey);
-            if (docRegions.length > 0) {
-                const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
-                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└──${'───'.repeat(item.level - 1)} $(symbol-number) ${item.name}`,
-                    description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
-                    detail: '',
-                    regionStartLine: item.startLine
-                })), {
-                    placeHolder: 'Regions',
-                    matchOnDescription: false,
-                    matchOnDetail: false,
-                });
-
-                if (picked) {
-                    const position = new vscode.Position(picked.regionStartLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-        }
-    }
-}

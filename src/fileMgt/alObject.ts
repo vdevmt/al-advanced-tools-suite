@@ -6,19 +6,26 @@ export class ALObject {
     public objectType: string;
     public objectId: string;
     public objectName: string;
-    public extendedObjectName: string;
-    public extendedObjectId: string;
-    public objectNamespace: string;
-    public objectContentText: string;
-    public objectFileName: string;
+    public extendedObjectName?: string;
+    public extendedObjectId?: string;
+    public objectNamespace?: string;
+    public objectContentText?: string;
+    public objectFileName?: string;
 
-    constructor(content: string, fileName: string) {
+    constructor(document: vscode.TextDocument) {
         this.initObjectProperties();
-        this.objectContentText = content;
-        this.objectFileName = fileName;
+        this.objectContentText = '';
+        this.objectFileName = '';
 
-        if (this.objectContentText) {
-            this.loadObjectProperties();
+        if (document) {
+            if (alFileMgr.isALObjectDocument(document)) {
+                this.objectContentText = document.getText();
+                this.objectFileName = document.fileName;
+
+                if (this.objectContentText) {
+                    this.loadObjectProperties();
+                }
+            }
         }
     }
 
@@ -309,7 +316,7 @@ export class ALObjectProcedures {
                     if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
                         let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
                             procedureInfo.scope === 'global' ? 'symbol-function' :
-                                procedureInfo.scope === 'local' ? 'lock-small' :
+                                procedureInfo.scope === 'local' ? 'shield' :
                                     procedureInfo.scope === 'internal' ? 'symbol-variable' :
                                         'symbol-function';
 

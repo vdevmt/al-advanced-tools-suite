@@ -55,7 +55,7 @@ export function getCurrentObjectNamespace(): string {
 export function getObjectNamespace(document: vscode.TextDocument): string {
     if (isALObjectDocument(document)) {
         let alObject: ALObject;
-        alObject = new ALObject(document.getText(), document.fileName);
+        alObject = new ALObject(document);
         return alObject.objectNamespace;
     }
 
@@ -250,7 +250,7 @@ export async function showOpenALObjects() {
                 const doc = await vscode.workspace.openTextDocument(documentUri);
 
                 let alObject: ALObject;
-                alObject = new ALObject(doc.getText(), doc.fileName);
+                alObject = new ALObject(doc);
                 let objectInfoText = makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
@@ -442,7 +442,7 @@ export async function showAllFields() {
 
     if (isALObjectDocument(document)) {
         let alObject: ALObject;
-        alObject = new ALObject(document.getText(), document.fileName);
+        alObject = new ALObject(document);
 
         let alObjectFields: ALObjectFields;
         alObjectFields = new ALObjectFields(alObject);
@@ -491,7 +491,7 @@ export async function showAllProcedures() {
 
     if (isALObjectDocument(document)) {
         let alObject: ALObject;
-        alObject = new ALObject(document.getText(), document.fileName);
+        alObject = new ALObject(document);
 
         let alObjectProcedures: ALObjectProcedures;
         alObjectProcedures = new ALObjectProcedures(alObject);
@@ -514,7 +514,7 @@ export async function showAllProcedures() {
                 const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
                     label: `$(${item.iconName}) ${item.name}`,
                     description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
-                    detail: item.regionPath,
+                    detail: item.regionPath ? `Region: ${item.regionPath}` : '',
                     startLine: item.startLine ? item.startLine : 0
                 })), {
                     placeHolder: 'Procedure',
