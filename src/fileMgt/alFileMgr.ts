@@ -335,14 +335,18 @@ function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
 }
 
 //#region Object Properties
-export function isProcedureDefinition(lineText: string): null | string {
-    const regexExpr = /(?:local|internal)?\s*procedure\s+([a-zA-Z_][a-zA-Z0-9_]*)\(/;
+export function isProcedureDefinition(lineText: string, procedureInfo: { scope: string, name: string }): boolean {
+    const regexExpr = /(local|internal)?\s*procedure\s+([a-zA-Z_][a-zA-Z0-9_]*)\(/i;
+
     const match = lineText.trim().match(regexExpr);
     if (match) {
-        return match[1];
+        procedureInfo.scope = match[1] || 'global';
+        procedureInfo.name = match[2];
+
+        return true;
     }
 
-    return null;
+    return false;
 }
 
 export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
@@ -417,6 +421,21 @@ export function isMultiLineCommentEnd(lineText: string): boolean {
     return false;
 }
 
+export function isIntegrationEventDeclaration(lineText: string): boolean {
+    const regexExpr = /^\s*\[IntegrationEvent\(/i;
+    if (regexExpr.test(lineText.trim())) {
+        return true;
+    }
+    return false;
+}
+export function isBusinessEventDeclaration(lineText: string): boolean {
+    const regexExpr = /^\s*\[BusinessEvent\(/i;
+    if (regexExpr.test(lineText.trim())) {
+        return true;
+    }
+    return false;
+}
+
 export async function showAllFields() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -442,7 +461,7 @@ export async function showAllFields() {
             }
 
             const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
-                label: item.id > 0 ? item.id + ' ' + item.name.replace('"', '') : item.name.replace('"', ''),
+                label: item.id > 0 ? `${item.id} $(${item.iconName}) ${item.name.replace('"', '')}` : `$(${item.iconName}) ${item.name.replace('"', '')}`,
                 description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
                 detail: '',
                 startLine: item.startLine
@@ -487,7 +506,7 @@ export async function showAllProcedures() {
             }
 
             const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
-                label: item.name,
+                label: `$(${item.iconName}) ${item.name}`,
                 description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
                 detail: '',
                 startLine: item.startLine ? item.startLine : 0

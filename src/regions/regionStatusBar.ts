@@ -244,7 +244,7 @@ export async function showAllRegions(currRegionStartLine: number) {
             let docRegions = findDocumentRegionsFromCache(documentKey);
             if (docRegions.length > 0) {
                 const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
-                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└─${'─'.repeat(item.level)} $(symbol-number) ${item.name}`,
+                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└──${'───'.repeat(item.level - 1)} $(symbol-number) ${item.name}`,
                     description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
                     detail: '',
                     regionStartLine: item.startLine

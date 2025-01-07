@@ -165,7 +165,7 @@ export class ALObjectFields {
     public objectName: string;
 
     public elementsCount: number;
-    public fields: { id?: number, name: string, type?: string, sourceExpr?: string, startLine: number }[];
+    public fields: { id?: number, name: string, type?: string, sourceExpr?: string, iconName?: string, startLine: number }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -217,6 +217,7 @@ export class ALObjectFields {
                                 id: tableField.id,
                                 name: tableField.name,
                                 type: tableField.type,
+                                iconName: 'symbol-field',
                                 startLine: lineNumber
                             });
 
@@ -254,7 +255,7 @@ export class ALObjectProcedures {
     public objectName: string;
 
     public elementsCount: number;
-    public procedures: { name: string, startLine: number }[];
+    public procedures: { scope?: string, name: string, iconName?: string, startLine: number }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -278,6 +279,7 @@ export class ALObjectProcedures {
         if (alObject.objectContentText) {
             const lines = alObject.objectContentText.split('\n');
             let insideMultiLineComment: boolean;
+            let insideIntOrBusEventDecl: boolean;
 
             lines.forEach((lineText, linePos) => {
                 const lineNumber = linePos;
@@ -294,10 +296,31 @@ export class ALObjectProcedures {
                 if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
                     return; // Ignora questa riga
                 }
-                const procedureName = alFileMgr.isProcedureDefinition(lineText);
-                if (procedureName) {
-                    this.procedures.push({ name: procedureName, startLine: lineNumber });
-                    return;
+
+                if (alFileMgr.isIntegrationEventDeclaration(lineText) || alFileMgr.isBusinessEventDeclaration(lineText)) {
+                    insideIntOrBusEventDecl = true;
+                }
+                else {
+                    let procedureInfo: { scope: string, name: string };
+                    procedureInfo = { scope: '', name: '' };
+                    if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
+                        let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
+                            procedureInfo.scope === 'global' ? 'globe' :
+                                procedureInfo.scope === 'local' ? 'lock-small' :
+                                    procedureInfo.scope === 'internal' ? 'symbol-function' :
+                                        'symbol-function';
+
+                        if (procedureInfo.name) {
+                            this.procedures.push({ scope: procedureInfo.scope, name: procedureInfo.name, iconName: symbol, startLine: lineNumber });
+                            insideIntOrBusEventDecl = false;
+                        }
+                    }
+                    else {
+                        if ((insideIntOrBusEventDecl) && (!lineText.trim().startsWith('['))) {
+                            insideIntOrBusEventDecl = false;
+                        }
+                    }
+
                 }
             });
 
@@ -320,6 +343,7 @@ export class ALObjectRegions {
         name: string;
         startLine: number;
         endLine?: number;
+        iconName?: string;
         level?: number;
     }[];
 
@@ -365,6 +389,7 @@ export class ALObjectRegions {
                                 name: lastRegion.name,
                                 startLine: lastRegion.startLine,
                                 endLine: lineNumber,
+                                iconName: 'symbol-number',
                                 level: level
                             });
                         }
