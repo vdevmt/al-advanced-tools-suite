@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from '../fileMgt/alFileMgr';
-import { ALObject } from './alObject';
+import { ALObject, ALObjectFields, ALObjectProcedures, ALObjectRegions } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
 export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
@@ -68,10 +68,19 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}\n\n`);
         }
 
+        let alObjectFields: ALObjectFields;
+        alObjectFields = new ALObjectFields(alObject);
+
+        let alObjectProcedures: ALObjectProcedures;
+        alObjectProcedures = new ALObjectProcedures(alObject);
+
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+
         const counters = [
-            alObject.fieldsCount > 0 ? `Fields: ${alObject.fieldsCount}` : '',
-            alObject.regionCount > 0 ? `Regions: ${alObject.regionCount}` : '',
-            alObject.procedureCount > 0 ? `Procedures: ${alObject.procedureCount}` : ''
+            alObjectFields.elementsCount > 0 ? `Fields: ${alObjectFields.elementsCount}` : '',
+            alObjectProcedures.elementsCount > 0 ? `Procedures: ${alObjectProcedures.elementsCount}` : '',
+            alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : ''
         ]
             .filter(Boolean)
             .join(' | ');

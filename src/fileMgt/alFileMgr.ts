@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ALObject } from './alObject';
+import { ALObject, ALObjectFields, ALObjectProcedures } from './alObject';
 
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
@@ -333,6 +333,180 @@ function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
 
     return `${objPriority.toString().padStart(4, '0')}`;
 }
+
+//#region Object Properties
+export function isProcedureDefinition(lineText: string): null | string {
+    const regexExpr = /(?:local|internal)?\s*procedure\s+([a-zA-Z_][a-zA-Z0-9_]*)\(/;
+    const match = lineText.trim().match(regexExpr);
+    if (match) {
+        return match[1];
+    }
+
+    return null;
+}
+
+export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
+    let regexExpr = /.*(field\((\d+); *"?([ a-zA-Z0-9._/&%\/()-]+)"?;(.*)\))/g;
+    const match = lineText.trim().match(regexExpr);
+
+    if (match) {
+        try {
+            regexExpr = /^field\((.*)\)$/i;
+
+            let fieldDef = match[0].replace(regexExpr, '$1');  // Rimuove "field(" e ")"
+            const fieldElements = fieldDef.split(';');
+
+            fieldInfo.id = Number(fieldElements[0].trim()); // Primo gruppo: numero
+            fieldInfo.name = fieldElements[1].trim(); // Secondo gruppo: Nome con o senza virgolette
+            fieldInfo.type = fieldElements[2].trim(); // Terzo gruppo: Tipo
+
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    let regexExpr = /.*(field\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+(\[([1-9]\d*)\])?) *\))/g;
+    const match = lineText.trim().match(regexExpr);
+
+    if (match) {
+        try {
+            regexExpr = /^field\((.*)\)$/i;
+
+            let fieldDef = match[0].replace(regexExpr, '$1');  // Rimuove "field(" e ")"
+            const fieldElements = fieldDef.split(';');
+
+            fieldInfo.name = fieldElements[0].trim();
+            fieldInfo.sourceExpr = fieldElements[1].trim();
+
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+export function isCommentedLine(lineText: string): boolean {
+    const regexExpr = /\/\/.*$/; // Commenti su singola riga (//)
+    if (regexExpr.test(lineText.trim())) {
+        return true;
+    }
+    return false;
+}
+
+export function isMultiLineCommentStart(lineText: string): boolean {
+    const regexExpr = /\/\*/; // Inizio commento multi-linea (/*)
+    if (regexExpr.test(lineText.trim())) {
+        return true;
+    }
+    return false;
+}
+export function isMultiLineCommentEnd(lineText: string): boolean {
+    const regexExpr = /\*\//;   // Fine commento multi-linea (*/)
+    if (regexExpr.test(lineText.trim())) {
+        return true;
+    }
+    return false;
+}
+
+export async function showAllFields() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document.getText(), document.fileName);
+
+        let alObjectFields: ALObjectFields;
+        alObjectFields = new ALObjectFields(alObject);
+        if (alObjectFields.fields) {
+            const currentLine = editor.selection.active.line;
+
+            let currentFieldStartLine: number;
+            try {
+                const currentField = [...alObjectFields.fields]
+                    .reverse()             // Inverte l'array
+                    .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
+                currentFieldStartLine = currentField.startLine;
+            }
+            catch {
+                currentFieldStartLine = 0;
+            }
+
+            const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
+                label: item.id > 0 ? item.id + ' ' + item.name.replace('"', '') : item.name.replace('"', ''),
+                description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
+                detail: '',
+                startLine: item.startLine
+            })), {
+                placeHolder: 'Fields',
+                matchOnDescription: false,
+                matchOnDetail: false,
+            });
+
+            if (picked) {
+                const position = new vscode.Position(picked.startLine, 0);
+                const newSelection = new vscode.Selection(position, position);
+                editor.selection = newSelection;
+                editor.revealRange(new vscode.Range(position, position));
+            }
+        }
+    }
+}
+export async function showAllProcedures() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document.getText(), document.fileName);
+
+        let alObjectProcedures: ALObjectProcedures;
+        alObjectProcedures = new ALObjectProcedures(alObject);
+        if (alObjectProcedures.procedures) {
+            const currentLine = editor.selection.active.line;
+
+            let currentProcStartLine: number;
+            try {
+                const currentProcedure = [...alObjectProcedures.procedures]
+                    .reverse()             // Inverte l'array
+                    .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
+
+                currentProcStartLine = currentProcedure.startLine;
+            }
+            catch {
+                currentProcStartLine = 0;
+            }
+
+            const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
+                label: item.name,
+                description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
+                detail: '',
+                startLine: item.startLine ? item.startLine : 0
+            })), {
+                placeHolder: 'Procedure',
+                matchOnDescription: false,
+                matchOnDetail: false,
+            });
+
+            if (picked) {
+                const position = new vscode.Position(picked.startLine, 0);
+                const newSelection = new vscode.Selection(position, position);
+                editor.selection = newSelection;
+                editor.revealRange(new vscode.Range(position, position));
+            }
+        }
+    }
+}
+//#endregion Object Properties
 
 //#region Interfaces
 interface QuickPickItem {

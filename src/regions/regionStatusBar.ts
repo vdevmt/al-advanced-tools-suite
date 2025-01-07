@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from '../fileMgt/alFileMgr';
 import * as regionMgr from './regionMgr';
 import { ATSSettings } from '../settings/atsSettings';
-import { ALObject } from '../fileMgt/alObject';
+import { ALObject, ALObjectRegions } from '../fileMgt/alObject';
 
 var docRegionsCache: RegionInfo[] = [];
 
@@ -80,14 +80,14 @@ export async function findDocumentRegions(document: vscode.TextDocument) {
     const documentKey = makeDocumentKey(document);
     removeDocumentRegionsFromCache(documentKey);
 
-    var docRegions: RegionInfo[] = [];
-
     if (alFileMgr.isALObjectDocument(document)) {
         let alObject: ALObject;
         alObject = new ALObject(document.getText(), document.fileName);
-        docRegions = alObject.regions;
 
-        const newRegions = docRegions.map(region => ({
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+
+        const newRegions = alObjectRegions.regions.map(region => ({
             ...region,
             documentKey: documentKey
         }));
@@ -209,25 +209,6 @@ function getRegionsInfoByDocumentLine(document: vscode.TextDocument, line: numbe
     return null;
 }
 
-function goToRegionStartLine(regionStartLine: number, regionPath: string) {
-    if (regionPath) {
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
-            if (regionStartLine >= 0) {
-                const position = new vscode.Position(regionStartLine, 0);
-                const newSelection = new vscode.Selection(position, position);
-                editor.selection = newSelection;
-                editor.revealRange(new vscode.Range(position, position));
-
-                return;
-            }
-        }
-
-        vscode.window.showInformationMessage(`Unable to find the start position of Region: ${regionPath}`);
-    }
-}
-
-
 function makeTooltip(regionInfoText: string): vscode.MarkdownString {
     const markdownTooltip = new vscode.MarkdownString();
     markdownTooltip.appendMarkdown("### **Region Info (ATS)**\n\n");
@@ -263,7 +244,7 @@ export async function showAllRegions(currRegionStartLine: number) {
             let docRegions = findDocumentRegionsFromCache(documentKey);
             if (docRegions.length > 0) {
                 const picked = await vscode.window.showQuickPick(docRegions.map(item => ({
-                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└─${'─'.repeat(item.level)} ${item.name}`,
+                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└─${'─'.repeat(item.level)} $(symbol-number) ${item.name}`,
                     description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
                     detail: '',
                     regionStartLine: item.startLine

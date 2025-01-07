@@ -18,6 +18,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     //#region AL Objects Mgt
     context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alFileMgr.showOpenALObjects));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alFileMgr.showAllFields));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllProcedures', alFileMgr.showAllProcedures));
     //#endregion AL Objects Mgt
 
     //#region Run Business Central       
@@ -50,13 +52,18 @@ export function activate(context: vscode.ExtensionContext) {
     if (objectInfoStatusBarItem) {
         context.subscriptions.push(objectInfoStatusBarItem);
 
-        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((e) => {
-            objectInfoStatusBar.updateObjectInfoStatusBarByDocument(objectInfoStatusBarItem, e.document);
-        }));
+        // Update status bar on editor change
+        context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshObjectInfoStatusBar));
 
-        context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
-            objectInfoStatusBar.updateObjectInfoStatusBar(objectInfoStatusBarItem);
-        }));
+        // Update status bar on document save
+        context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(refreshObjectInfoStatusBar));
+
+        // Update status bar on document close
+        context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(refreshObjectInfoStatusBar));
+    }
+
+    function refreshObjectInfoStatusBar() {
+        objectInfoStatusBar.updateObjectInfoStatusBar(objectInfoStatusBarItem);
     }
     //#endregion AL Object Info Status Bar
 
@@ -69,9 +76,6 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(refreshRegionsStatusBar));
         context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateRegionsStatusBarText));
 
-        // Update status bar on document change
-        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(refreshRegionsStatusBarOnChange));
-
         // Update status bar on document save
         context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(refreshRegionsStatusBar));
 
@@ -79,26 +83,36 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((event) => {
             regionStatusBar.clearRegionsCache(event.fileName);
         }));
+    }
 
-        function updateRegionsStatusBarText() {
-            regionStatusBar.updateRegionsStatusBar(regionStatusBarItem, false);
-        }
-        function refreshRegionsStatusBar() {
-            regionStatusBar.updateRegionsStatusBar(regionStatusBarItem, true);
-        }
-        function refreshRegionsStatusBarOnChange() {
-            // Cancella il timeout precedente, se presente
-            if (debounceTimeout) {
-                clearTimeout(debounceTimeout);
-            }
-
-            // Imposta un nuovo timeout per l'aggiornamento della status bar
-            debounceTimeout = setTimeout(() => {
-                refreshRegionsStatusBar();
-            }, 300); // 300ms di attesa prima di invocare updateRegionsStatusBar               
-        }
+    function updateRegionsStatusBarText() {
+        regionStatusBar.updateRegionsStatusBar(regionStatusBarItem, false);
+    }
+    function refreshRegionsStatusBar() {
+        regionStatusBar.updateRegionsStatusBar(regionStatusBarItem, true);
     }
     //#endregion Region Status Bar
+
+    // Update ATS status bar items on document change
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(refreshStatusBarItemsOnChange));
+
+    function refreshStatusBarItemsOnChange() {
+        // Cancella il timeout precedente, se presente
+        if (debounceTimeout) {
+            clearTimeout(debounceTimeout);
+        }
+
+        // Imposta un nuovo timeout per l'aggiornamento della status bar
+        debounceTimeout = setTimeout(() => {
+            if (objectInfoStatusBarItem) {
+                refreshObjectInfoStatusBar();
+            }
+
+            if (regionStatusBarItem) {
+                refreshRegionsStatusBar();
+            }
+        }, 300); // 300ms di attesa prima di invocare updateRegionsStatusBar               
+    }
 }
 
 export function deactivate() { }
