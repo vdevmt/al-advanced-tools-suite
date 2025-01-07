@@ -254,7 +254,7 @@ export async function showOpenALObjects() {
                 let objectInfoText = makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
-                let iconName = isPreviewALObjectFile(documentUri) ? 'lock' : 'bracket';
+                let iconName = isPreviewALObjectFile(documentUri) ? 'shield' : 'symbol-class';
 
                 items.push({
                     label: `$(${iconName}) ${objectInfoText}`,
