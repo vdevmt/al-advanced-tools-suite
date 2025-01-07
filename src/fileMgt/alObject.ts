@@ -308,9 +308,9 @@ export class ALObjectProcedures {
                     procedureInfo = { scope: '', name: '' };
                     if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
                         let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
-                            procedureInfo.scope === 'global' ? 'globe' :
+                            procedureInfo.scope === 'global' ? 'symbol-function' :
                                 procedureInfo.scope === 'local' ? 'lock-small' :
-                                    procedureInfo.scope === 'internal' ? 'symbol-function' :
+                                    procedureInfo.scope === 'internal' ? 'symbol-variable' :
                                         'symbol-function';
 
                         if (procedureInfo.name) {

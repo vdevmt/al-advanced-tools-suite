@@ -447,35 +447,40 @@ export async function showAllFields() {
         let alObjectFields: ALObjectFields;
         alObjectFields = new ALObjectFields(alObject);
         if (alObjectFields.fields) {
-            const currentLine = editor.selection.active.line;
+            if (alObjectFields.elementsCount > 0) {
+                const currentLine = editor.selection.active.line;
 
-            let currentFieldStartLine: number;
-            try {
-                const currentField = [...alObjectFields.fields]
-                    .reverse()             // Inverte l'array
-                    .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-                currentFieldStartLine = currentField.startLine;
+                let currentFieldStartLine: number;
+                try {
+                    const currentField = [...alObjectFields.fields]
+                        .reverse()             // Inverte l'array
+                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
+                    currentFieldStartLine = currentField.startLine;
+                }
+                catch {
+                    currentFieldStartLine = 0;
+                }
+
+                const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
+                    label: item.id > 0 ? `${item.id} $(${item.iconName}) ${item.name.replace('"', '')}` : `$(${item.iconName}) ${item.name.replace('"', '')}`,
+                    description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
+                    detail: '',
+                    startLine: item.startLine
+                })), {
+                    placeHolder: 'Fields',
+                    matchOnDescription: false,
+                    matchOnDetail: false,
+                });
+
+                if (picked) {
+                    const position = new vscode.Position(picked.startLine, 0);
+                    const newSelection = new vscode.Selection(position, position);
+                    editor.selection = newSelection;
+                    editor.revealRange(new vscode.Range(position, position));
+                }
             }
-            catch {
-                currentFieldStartLine = 0;
-            }
-
-            const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
-                label: item.id > 0 ? `${item.id} $(${item.iconName}) ${item.name.replace('"', '')}` : `$(${item.iconName}) ${item.name.replace('"', '')}`,
-                description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
-                detail: '',
-                startLine: item.startLine
-            })), {
-                placeHolder: 'Fields',
-                matchOnDescription: false,
-                matchOnDetail: false,
-            });
-
-            if (picked) {
-                const position = new vscode.Position(picked.startLine, 0);
-                const newSelection = new vscode.Selection(position, position);
-                editor.selection = newSelection;
-                editor.revealRange(new vscode.Range(position, position));
+            else {
+                vscode.window.showErrorMessage(`No fields found in ${alObject.objectType} ${alObject.objectName}`);
             }
         }
     }
@@ -491,36 +496,41 @@ export async function showAllProcedures() {
         let alObjectProcedures: ALObjectProcedures;
         alObjectProcedures = new ALObjectProcedures(alObject);
         if (alObjectProcedures.procedures) {
-            const currentLine = editor.selection.active.line;
+            if (alObjectProcedures.elementsCount > 0) {
+                const currentLine = editor.selection.active.line;
 
-            let currentProcStartLine: number;
-            try {
-                const currentProcedure = [...alObjectProcedures.procedures]
-                    .reverse()             // Inverte l'array
-                    .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
+                let currentProcStartLine: number;
+                try {
+                    const currentProcedure = [...alObjectProcedures.procedures]
+                        .reverse()             // Inverte l'array
+                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
 
-                currentProcStartLine = currentProcedure.startLine;
+                    currentProcStartLine = currentProcedure.startLine;
+                }
+                catch {
+                    currentProcStartLine = 0;
+                }
+
+                const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
+                    label: `$(${item.iconName}) ${item.name}`,
+                    description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
+                    detail: item.regionPath,
+                    startLine: item.startLine ? item.startLine : 0
+                })), {
+                    placeHolder: 'Procedure',
+                    matchOnDescription: false,
+                    matchOnDetail: false,
+                });
+
+                if (picked) {
+                    const position = new vscode.Position(picked.startLine, 0);
+                    const newSelection = new vscode.Selection(position, position);
+                    editor.selection = newSelection;
+                    editor.revealRange(new vscode.Range(position, position));
+                }
             }
-            catch {
-                currentProcStartLine = 0;
-            }
-
-            const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
-                label: `$(${item.iconName}) ${item.name}`,
-                description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
-                detail: item.regionPath ? `$(symbol-number) ${item.regionPath}` : '',
-                startLine: item.startLine ? item.startLine : 0
-            })), {
-                placeHolder: 'Procedure',
-                matchOnDescription: false,
-                matchOnDetail: false,
-            });
-
-            if (picked) {
-                const position = new vscode.Position(picked.startLine, 0);
-                const newSelection = new vscode.Selection(position, position);
-                editor.selection = newSelection;
-                editor.revealRange(new vscode.Range(position, position));
+            else {
+                vscode.window.showErrorMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
             }
         }
     }
