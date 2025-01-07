@@ -508,7 +508,7 @@ export async function showAllProcedures() {
             const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
                 label: `$(${item.iconName}) ${item.name}`,
                 description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
-                detail: '',
+                detail: item.regionPath ? `$(symbol-number) ${item.regionPath}` : '',
                 startLine: item.startLine ? item.startLine : 0
             })), {
                 placeHolder: 'Procedure',

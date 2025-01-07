@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ALObjectRegions } from '../fileMgt/alObject';
 
 interface RegionInfo {
     name: string;
@@ -71,6 +72,21 @@ export function getRegionName(lineText: string): string {
         }
 
         return regionName;
+    }
+
+    return '';
+}
+
+export function findOpenRegionsPathByDocLine(alObjectRegions: ALObjectRegions, documentLine: number): string {
+    if (alObjectRegions && (documentLine > 0)) {
+        if (alObjectRegions.regions.length > 0) {
+            let openRegions = alObjectRegions.regions.filter(region => (region.startLine <= documentLine && region.endLine >= documentLine));
+            if (openRegions) {
+                if (openRegions.length > 0) {
+                    return openRegions.map(region => region.name).join(' > ');
+                }
+            }
+        }
     }
 
     return '';

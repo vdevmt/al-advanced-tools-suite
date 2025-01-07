@@ -255,7 +255,7 @@ export class ALObjectProcedures {
     public objectName: string;
 
     public elementsCount: number;
-    public procedures: { scope?: string, name: string, iconName?: string, startLine: number }[];
+    public procedures: { scope?: string, name: string, iconName?: string, regionPath?: string, startLine: number }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -280,6 +280,9 @@ export class ALObjectProcedures {
             const lines = alObject.objectContentText.split('\n');
             let insideMultiLineComment: boolean;
             let insideIntOrBusEventDecl: boolean;
+
+            let alObjectRegions: ALObjectRegions;
+            alObjectRegions = new ALObjectRegions(alObject);
 
             lines.forEach((lineText, linePos) => {
                 const lineNumber = linePos;
@@ -311,7 +314,8 @@ export class ALObjectProcedures {
                                         'symbol-function';
 
                         if (procedureInfo.name) {
-                            this.procedures.push({ scope: procedureInfo.scope, name: procedureInfo.name, iconName: symbol, startLine: lineNumber });
+                            const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
+                            this.procedures.push({ scope: procedureInfo.scope, name: procedureInfo.name, iconName: symbol, regionPath: lineRegionPath, startLine: lineNumber });
                             insideIntOrBusEventDecl = false;
                         }
                     }
