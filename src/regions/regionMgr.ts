@@ -117,17 +117,16 @@ export async function showAllRegions() {
             let alObjectRegions: ALObjectRegions;
             alObjectRegions = new ALObjectRegions(alObject);
 
-            let currRegionStartLine = 0;
-            try {
-                const currentLine = editor.selection.active.line;
-                currRegionStartLine = findCurrentRegionStartLine(alObjectRegions, currentLine);
-            }
-            catch {
-                currRegionStartLine = 0;
-            }
-
-
             if (alObjectRegions.regions.length > 0) {
+                let currRegionStartLine = 0;
+                try {
+                    const currentLine = editor.selection.active.line;
+                    currRegionStartLine = findCurrentRegionStartLine(alObjectRegions, currentLine);
+                }
+                catch {
+                    currRegionStartLine = 0;
+                }
+
                 const picked = await vscode.window.showQuickPick(alObjectRegions.regions.map(item => ({
                     label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└──${'───'.repeat(item.level - 1)} $(symbol-number) ${item.name}`,
                     description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
@@ -146,6 +145,12 @@ export async function showAllRegions() {
                     editor.revealRange(new vscode.Range(position, position));
                 }
             }
+            else {
+                vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
+            }
+        }
+        else {
+            vscode.window.showInformationMessage('No regions found in the current document');
         }
     }
 }

@@ -1,8 +1,14 @@
 # Change Log
 
+## [1.3.10]
+- New Features:
+    - Command `ATS: Show all fields`: show and search fields of the current AL Object.    
+    - Command `ATS: Show all procedures`: show and search procedures of the current AL Object.    
+    - Command `ATS: Show all actions`: show and search page actions of the current AL Object.    
+
 ## [1.3.9]
 - New Features:
-    - Command `ATS: Show all regions` to display the complete structure of regions in the current document.    
+    - Command `ATS: Show all regions`: show the complete structure of regions in the current document.    
 
 ## [1.3.7]
 - New Features:

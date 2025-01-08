@@ -559,7 +559,7 @@ export async function showAllFields() {
                 }
             }
             else {
-                vscode.window.showErrorMessage(`No fields found in ${alObject.objectType} ${alObject.objectName}`);
+                vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
             }
         }
     }
@@ -611,7 +611,7 @@ export async function showAllProcedures() {
                 }
             }
             else {
-                vscode.window.showErrorMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
+                vscode.window.showInformationMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
             }
         }
     }
@@ -663,7 +663,7 @@ export async function showAllActions() {
                 }
             }
             else {
-                vscode.window.showErrorMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
+                vscode.window.showInformationMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
             }
         }
     }
