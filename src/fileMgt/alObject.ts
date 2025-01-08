@@ -164,6 +164,70 @@ export class ALObject {
             return null;
         }
     }
+
+    public isTable(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'table');
+        }
+
+        return false;
+    }
+    public isTableExt(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'tableextension');
+        }
+
+        return false;
+    }
+    public isPage(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'page');
+        }
+
+        return false;
+    }
+    public isPageExt(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'pageextension');
+        }
+
+        return false;
+    }
+    public isReport(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'report');
+        }
+
+        return false;
+    }
+    public isReportExt(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'reportextension');
+        }
+
+        return false;
+    }
+    public isCodeunit(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'codeunit');
+        }
+
+        return false;
+    }
+    public isQuery(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'query');
+        }
+
+        return false;
+    }
+    public isXmlPort(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'xmlport');
+        }
+
+        return false;
+    }
 }
 
 export class ALObjectFields {
@@ -194,9 +258,15 @@ export class ALObjectFields {
 
     private findObjectFields(alObject: ALObject) {
         if (alObject) {
-            let validObjectType = ['table', 'tableextension', 'page', 'pageextension', 'report', 'reportextension', 'query'];
+            let validObjectType = alObject.isTable() ||
+                alObject.isTableExt() ||
+                alObject.isPage() ||
+                alObject.isPageExt() ||
+                alObject.isReport() ||
+                alObject.isReportExt() ||
+                alObject.isQuery();
 
-            if (validObjectType.includes(alObject.objectType)) {
+            if (validObjectType) {
                 if (alObject.objectContentText) {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
@@ -217,48 +287,54 @@ export class ALObjectFields {
                             return; // Ignora questa riga
                         }
 
-                        let tableField: { id: number, name: string, type: string };
-                        tableField = { id: 0, name: '', type: '' };
-                        if (alFileMgr.isTableFieldDefinition(lineText, tableField)) {
-                            this.fields.push({
-                                id: tableField.id,
-                                name: tableField.name,
-                                type: tableField.type,
-                                iconName: 'symbol-field',
-                                startLine: lineNumber
-                            });
+                        if (alObject.isTable() || alObject.isTableExt()) {
+                            let tableField: { id: number, name: string, type: string };
+                            tableField = { id: 0, name: '', type: '' };
+                            if (alFileMgr.isTableFieldDefinition(lineText, tableField)) {
+                                this.fields.push({
+                                    id: tableField.id,
+                                    name: tableField.name,
+                                    type: tableField.type,
+                                    iconName: 'symbol-field',
+                                    startLine: lineNumber
+                                });
 
-                            return;
+                                return;
+                            }
                         }
 
-                        let pageField: { name: string, sourceExpr: string };
-                        pageField = { name: '', sourceExpr: '' };
-                        if (alFileMgr.isPageFieldDefinition(lineText, pageField)) {
-                            this.fields.push({
-                                id: 0,
-                                name: pageField.name,
-                                type: pageField.sourceExpr,
-                                sourceExpr: pageField.sourceExpr,
-                                iconName: 'symbol-field',
-                                startLine: lineNumber
-                            });
+                        if (alObject.isPage() || alObject.isPageExt()) {
+                            let pageField: { name: string, sourceExpr: string };
+                            pageField = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isPageFieldDefinition(lineText, pageField)) {
+                                this.fields.push({
+                                    id: 0,
+                                    name: pageField.name,
+                                    type: pageField.sourceExpr,
+                                    sourceExpr: pageField.sourceExpr,
+                                    iconName: 'symbol-field',
+                                    startLine: lineNumber
+                                });
 
-                            return;
+                                return;
+                            }
                         }
 
-                        let reportField: { name: string, sourceExpr: string };
-                        reportField = { name: '', sourceExpr: '' };
-                        if (alFileMgr.isReportOrQueryFieldDefinition(lineText, reportField)) {
-                            this.fields.push({
-                                id: 0,
-                                name: reportField.name,
-                                type: reportField.sourceExpr,
-                                sourceExpr: reportField.sourceExpr,
-                                iconName: 'symbol-field',
-                                startLine: lineNumber
-                            });
+                        if (alObject.isReport() || alObject.isReportExt() || alObject.isQuery) {
+                            let reportField: { name: string, sourceExpr: string };
+                            reportField = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isReportOrQueryFieldDefinition(lineText, reportField)) {
+                                this.fields.push({
+                                    id: 0,
+                                    name: reportField.name,
+                                    type: reportField.sourceExpr,
+                                    sourceExpr: reportField.sourceExpr,
+                                    iconName: 'symbol-field',
+                                    startLine: lineNumber
+                                });
 
-                            return;
+                                return;
+                            }
                         }
                     });
 
@@ -279,7 +355,7 @@ export class ALObjectProcedures {
     public objectName: string;
 
     public elementsCount: number;
-    public procedures: { scope?: string, name: string, iconName?: string, regionPath?: string, startLine: number }[];
+    public procedures: { scope?: string, name: string, sourceEvent?: string, iconName?: string, regionPath?: string, startLine: number }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -305,6 +381,8 @@ export class ALObjectProcedures {
                 const lines = alObject.objectContentText.split('\n');
                 let insideMultiLineComment: boolean;
                 let insideIntOrBusEventDecl: boolean;
+                let insideEventSubscription: boolean;
+                let eventSubscrName: string = '';
 
                 let alObjectRegions: ALObjectRegions;
                 alObjectRegions = new ALObjectRegions(alObject);
@@ -329,27 +407,44 @@ export class ALObjectProcedures {
                         insideIntOrBusEventDecl = true;
                     }
                     else {
-                        let procedureInfo: { scope: string, name: string };
-                        procedureInfo = { scope: '', name: '' };
-                        if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
-                            let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
-                                procedureInfo.scope === 'global' ? 'symbol-function' :
-                                    procedureInfo.scope === 'local' ? 'shield' :
-                                        procedureInfo.scope === 'internal' ? 'symbol-variable' :
-                                            'symbol-function';
-
-                            if (procedureInfo.name) {
-                                const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
-                                this.procedures.push({ scope: procedureInfo.scope, name: procedureInfo.name, iconName: symbol, regionPath: lineRegionPath, startLine: lineNumber });
-                                insideIntOrBusEventDecl = false;
-                            }
+                        let eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string } = {};
+                        if (alFileMgr.isEventSubscriber(lineText, eventSubscrInfo)) {
+                            insideEventSubscription = true;
+                            eventSubscrName = eventSubscrInfo.elementName ? `${eventSubscrInfo.objectType} ${eventSubscrInfo.objectName}: ${eventSubscrInfo.eventName}_${eventSubscrInfo.elementName}` :
+                                `${eventSubscrInfo.objectType} ${eventSubscrInfo.objectName}: ${eventSubscrInfo.eventName} `;
                         }
                         else {
-                            if ((insideIntOrBusEventDecl) && (!lineText.trim().startsWith('['))) {
-                                insideIntOrBusEventDecl = false;
+                            let procedureInfo: { scope: string, name: string };
+                            procedureInfo = { scope: '', name: '' };
+                            if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
+                                let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
+                                    insideEventSubscription ? 'plug' :
+                                        procedureInfo.scope === 'global' ? 'symbol-function' :
+                                            procedureInfo.scope === 'local' ? 'shield' :
+                                                procedureInfo.scope === 'internal' ? 'symbol-variable' :
+                                                    'symbol-function';
+
+                                if (procedureInfo.name) {
+                                    const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
+                                    this.procedures.push({
+                                        scope: procedureInfo.scope,
+                                        name: procedureInfo.name,
+                                        sourceEvent: insideEventSubscription ? eventSubscrName : '',
+                                        iconName: symbol,
+                                        regionPath: lineRegionPath,
+                                        startLine: lineNumber
+                                    });
+                                    insideIntOrBusEventDecl = false;
+                                    insideEventSubscription = false;
+                                }
+                            }
+                            else {
+                                if ((insideIntOrBusEventDecl || insideEventSubscription) && (!lineText.trim().startsWith('['))) {
+                                    insideIntOrBusEventDecl = false;
+                                    insideEventSubscription = false;
+                                }
                             }
                         }
-
                     }
                 });
 
@@ -466,9 +561,9 @@ export class ALObjectActions {
     private findObjectActions(alObject: ALObject) {
         if (alObject) {
             if (alObject.objectContentText) {
-                let validObjectType = ['page', 'pageextension', 'report', 'reportextension'];
+                let validObjectType = alObject.isPage() || alObject.isPageExt || alObject.isReport() || alObject.isReportExt();
 
-                if (validObjectType.includes(alObject.objectType)) {
+                if (validObjectType) {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
                     let actionAreaInfo: { name: string } = { name: '' };

@@ -493,6 +493,27 @@ export function isBusinessEventDeclaration(lineText: string): boolean {
     }
     return false;
 }
+export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string }): boolean {
+    const regexExpr = /\[EventSubscriber\(\s*ObjectType::([^,]+),\s*([^:]+::"?[^,]+"?|[0-9]+),\s*'([^']+)',\s*'(.*?)',\s*(true|false),\s*(true|false)\s*\)\]/i;
+    const match = lineText.trim().match(regexExpr);
+
+    if (match) {
+        eventSubscrInfo.objectType = match[1];
+        if (eventSubscrInfo.objectType.toLowerCase() === 'table') {
+            eventSubscrInfo.objectName = match[2].replace('Database::', '');
+        }
+        else {
+            eventSubscrInfo.objectName = match[2].replace(`${eventSubscrInfo.objectType}::`, '');
+        }
+
+        eventSubscrInfo.eventName = match[3];
+        eventSubscrInfo.elementName = match[4] || '';
+
+        return true;
+    }
+
+    return false;
+}
 
 export async function showAllFields() {
     const editor = vscode.window.activeTextEditor;
@@ -526,7 +547,7 @@ export async function showAllFields() {
                     startLine: item.startLine
                 })), {
                     placeHolder: 'Fields',
-                    matchOnDescription: false,
+                    matchOnDescription: true,
                     matchOnDetail: false,
                 });
 
@@ -572,12 +593,14 @@ export async function showAllProcedures() {
                 const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
                     label: `$(${item.iconName}) ${item.name}`,
                     description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
-                    detail: item.regionPath ? `Region: ${item.regionPath}` : '',
+                    detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
+                        (item.regionPath) ? `Region: ${item.regionPath}` :
+                            (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
                     startLine: item.startLine ? item.startLine : 0
                 })), {
                     placeHolder: 'Procedure',
                     matchOnDescription: false,
-                    matchOnDetail: false,
+                    matchOnDetail: true,
                 });
 
                 if (picked) {
@@ -628,8 +651,8 @@ export async function showAllActions() {
                     startLine: item.startLine ? item.startLine : 0
                 })), {
                     placeHolder: 'Actions',
-                    matchOnDescription: false,
-                    matchOnDetail: false,
+                    matchOnDescription: true,
+                    matchOnDetail: true,
                 });
 
                 if (picked) {
