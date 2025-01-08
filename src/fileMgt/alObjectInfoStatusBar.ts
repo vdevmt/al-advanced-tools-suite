@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from '../fileMgt/alFileMgr';
-import { ALObject } from './alObject';
+import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures, ALObjectRegions } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
 export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
@@ -35,7 +35,7 @@ export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarIte
     if (document) {
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject: ALObject;
-            alObject = new ALObject(document.getText(), document.fileName);
+            alObject = new ALObject(document);
             let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
             objectInfoStatusBarItem.tooltip = makeTooltip(alObject, objectInfoText);
             objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;
@@ -60,17 +60,42 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
     }
 
     if (alObject) {
-        if (alObject.objectNamespace) {
-            markdownTooltip.appendMarkdown(`${alObject.objectNamespace}\n\n`);
-        }
-
         if (alObject.extendedObjectName) {
             markdownTooltip.appendMarkdown(`extends ${alFileMgr.addQuotesIfNeeded(alObject.extendedObjectName)}\n\n`);
         }
 
+        if (alObject.objectNamespace) {
+            markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}\n\n`);
+        }
+
+        let alObjectFields: ALObjectFields;
+        alObjectFields = new ALObjectFields(alObject);
+
+        let alObjectProcedures: ALObjectProcedures;
+        alObjectProcedures = new ALObjectProcedures(alObject);
+
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+
+        let alObjectActions: ALObjectActions;
+        alObjectActions = new ALObjectActions(alObject);
+
+        const counters = [
+            alObjectFields.elementsCount > 0 ? `Fields: ${alObjectFields.elementsCount}` : '',
+            alObjectProcedures.elementsCount > 0 ? `Procedures: ${alObjectProcedures.elementsCount}` : '',
+            alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : '',
+            alObjectActions.elementsCount > 0 ? `Actions: ${alObjectActions.elementsCount}` : ''
+        ]
+            .filter(Boolean)
+            .join(' | ');
+
+        if (counters.length > 0) {
+            markdownTooltip.appendMarkdown(`${counters}\n\n`);
+        }
+
         if (alObject.objectFileName) {
             let filePath = vscode.workspace.asRelativePath(alObject.objectFileName);
-            markdownTooltip.appendMarkdown(`${filePath}`);
+            markdownTooltip.appendMarkdown(`Path: ${filePath}\n\n`);
         }
     }
 

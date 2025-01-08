@@ -57,8 +57,20 @@
         "title": "ATS: Change default startup object and run Business Central"
       },
       {
+        "command": "ats.showAllFields",
+        "title": "ATS: Show all fields"
+      },
+      {
+        "command": "ats.showAllProcedures",
+        "title": "ATS: Show all procedures"
+      },
+      {
         "command": "ats.showAllRegions",
         "title": "ATS: Show all regions"
+      },
+      {
+        "command": "ats.showAllActions",
+        "title": "ATS: Show all actions"
       },
       {
         "command": "ats.createRegionBySelection",
