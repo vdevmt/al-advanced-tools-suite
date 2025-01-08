@@ -98,7 +98,7 @@ These rules make running the Business Central client more flexible and secure wi
 
 * Show the complete structure of regions in the current document by command **ATS: Show all regions**
 <br />
-<img src="./images/RegionsStructure.png" alt="Show all regions" height="400">
+<img src="./images/RegionsStructure.png" alt="Show all regions">
 
 # Snippets
 
