@@ -194,7 +194,7 @@ export class ALObjectFields {
 
     private findObjectFields(alObject: ALObject) {
         if (alObject) {
-            let validObjectType = ['table', 'tableextension', 'page', 'pageextension'];
+            let validObjectType = ['table', 'tableextension', 'page', 'pageextension', 'report', 'reportextension', 'query'];
 
             if (validObjectType.includes(alObject.objectType)) {
                 if (alObject.objectContentText) {
@@ -237,7 +237,24 @@ export class ALObjectFields {
                             this.fields.push({
                                 id: 0,
                                 name: pageField.name,
+                                type: pageField.sourceExpr,
                                 sourceExpr: pageField.sourceExpr,
+                                iconName: 'symbol-field',
+                                startLine: lineNumber
+                            });
+
+                            return;
+                        }
+
+                        let reportField: { name: string, sourceExpr: string };
+                        reportField = { name: '', sourceExpr: '' };
+                        if (alFileMgr.isReportOrQueryFieldDefinition(lineText, reportField)) {
+                            this.fields.push({
+                                id: 0,
+                                name: reportField.name,
+                                type: reportField.sourceExpr,
+                                sourceExpr: reportField.sourceExpr,
+                                iconName: 'symbol-field',
                                 startLine: lineNumber
                             });
 
@@ -283,62 +300,64 @@ export class ALObjectProcedures {
     }
 
     private findObjectProcedures(alObject: ALObject) {
-        if (alObject.objectContentText) {
-            const lines = alObject.objectContentText.split('\n');
-            let insideMultiLineComment: boolean;
-            let insideIntOrBusEventDecl: boolean;
+        if (alObject) {
+            if (alObject.objectContentText) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+                let insideIntOrBusEventDecl: boolean;
 
-            let alObjectRegions: ALObjectRegions;
-            alObjectRegions = new ALObjectRegions(alObject);
+                let alObjectRegions: ALObjectRegions;
+                alObjectRegions = new ALObjectRegions(alObject);
 
-            lines.forEach((lineText, linePos) => {
-                const lineNumber = linePos;
+                lines.forEach((lineText, linePos) => {
+                    const lineNumber = linePos;
 
-                // Verifica inizio-fine commento multi-riga
-                if (alFileMgr.isMultiLineCommentStart(lineText)) {
-                    insideMultiLineComment = true;
-                }
-                if (alFileMgr.isMultiLineCommentEnd(lineText)) {
-                    insideMultiLineComment = false;
-                }
+                    // Verifica inizio-fine commento multi-riga
+                    if (alFileMgr.isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (alFileMgr.isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
 
-                // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
-                if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
-                    return; // Ignora questa riga
-                }
+                    // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                    if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                        return; // Ignora questa riga
+                    }
 
-                if (alFileMgr.isIntegrationEventDeclaration(lineText) || alFileMgr.isBusinessEventDeclaration(lineText)) {
-                    insideIntOrBusEventDecl = true;
-                }
-                else {
-                    let procedureInfo: { scope: string, name: string };
-                    procedureInfo = { scope: '', name: '' };
-                    if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
-                        let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
-                            procedureInfo.scope === 'global' ? 'symbol-function' :
-                                procedureInfo.scope === 'local' ? 'shield' :
-                                    procedureInfo.scope === 'internal' ? 'symbol-variable' :
-                                        'symbol-function';
-
-                        if (procedureInfo.name) {
-                            const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
-                            this.procedures.push({ scope: procedureInfo.scope, name: procedureInfo.name, iconName: symbol, regionPath: lineRegionPath, startLine: lineNumber });
-                            insideIntOrBusEventDecl = false;
-                        }
+                    if (alFileMgr.isIntegrationEventDeclaration(lineText) || alFileMgr.isBusinessEventDeclaration(lineText)) {
+                        insideIntOrBusEventDecl = true;
                     }
                     else {
-                        if ((insideIntOrBusEventDecl) && (!lineText.trim().startsWith('['))) {
-                            insideIntOrBusEventDecl = false;
+                        let procedureInfo: { scope: string, name: string };
+                        procedureInfo = { scope: '', name: '' };
+                        if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
+                            let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
+                                procedureInfo.scope === 'global' ? 'symbol-function' :
+                                    procedureInfo.scope === 'local' ? 'shield' :
+                                        procedureInfo.scope === 'internal' ? 'symbol-variable' :
+                                            'symbol-function';
+
+                            if (procedureInfo.name) {
+                                const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
+                                this.procedures.push({ scope: procedureInfo.scope, name: procedureInfo.name, iconName: symbol, regionPath: lineRegionPath, startLine: lineNumber });
+                                insideIntOrBusEventDecl = false;
+                            }
                         }
+                        else {
+                            if ((insideIntOrBusEventDecl) && (!lineText.trim().startsWith('['))) {
+                                insideIntOrBusEventDecl = false;
+                            }
+                        }
+
                     }
+                });
 
-                }
-            });
-
-            if (this.procedures) {
-                if (this.procedures.length > 0) {
-                    // Order by StartLine
-                    this.procedures.sort((a, b) => a.startLine - b.startLine);
+                if (this.procedures) {
+                    if (this.procedures.length > 0) {
+                        // Order by StartLine
+                        this.procedures.sort((a, b) => a.startLine - b.startLine);
+                    }
                 }
             }
         }
@@ -377,40 +396,115 @@ export class ALObjectRegions {
     }
 
     private findObjectRegions(alObject: ALObject) {
-        if (alObject.objectContentText) {
-            const lines = alObject.objectContentText.split('\n');
-            const stack: { name: string; startLine: number }[] = [];
+        if (alObject) {
+            if (alObject.objectContentText) {
+                const lines = alObject.objectContentText.split('\n');
+                const stack: { name: string; startLine: number }[] = [];
 
-            lines.forEach((lineText, linePos) => {
-                const lineNumber = linePos;
-                if (alRegionMgr.isRegionStartLine(lineText)) {
-                    let name = alRegionMgr.getRegionName(lineText);
-                    stack.push({ name, startLine: lineNumber });
-                    return;
+                lines.forEach((lineText, linePos) => {
+                    const lineNumber = linePos;
+                    if (alRegionMgr.isRegionStartLine(lineText)) {
+                        let name = alRegionMgr.getRegionName(lineText);
+                        stack.push({ name, startLine: lineNumber });
+                        return;
+                    }
+
+                    if (alRegionMgr.isRegionEndLine(lineText)) {
+                        if (stack.length > 0) {
+
+                            const lastRegion = stack.pop();
+                            if (lastRegion) {
+                                const level = stack.length;
+
+                                this.regions.push({
+                                    name: lastRegion.name,
+                                    startLine: lastRegion.startLine,
+                                    endLine: lineNumber,
+                                    iconName: 'symbol-number',
+                                    level: level
+                                });
+                            }
+                        }
+                    }
+                });
+
+                if (this.regions.length > 0) {
+                    // Order by StartLine
+                    this.regions.sort((a, b) => a.startLine - b.startLine);
                 }
+            }
+        }
+    }
+}
 
-                if (alRegionMgr.isRegionEndLine(lineText)) {
-                    if (stack.length > 0) {
+export class ALObjectActions {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
 
-                        const lastRegion = stack.pop();
-                        if (lastRegion) {
-                            const level = stack.length;
+    public elementsCount: number;
+    public actions: { name: string, sourceAction?: string, area?: string, iconName?: string, startLine: number }[];
 
-                            this.regions.push({
-                                name: lastRegion.name,
-                                startLine: lastRegion.startLine,
-                                endLine: lineNumber,
-                                iconName: 'symbol-number',
-                                level: level
-                            });
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findObjectActions(alObject);
+        this.elementsCount = this.actions ? this.actions.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.actions = [];
+    }
+
+    private findObjectActions(alObject: ALObject) {
+        if (alObject) {
+            if (alObject.objectContentText) {
+                let validObjectType = ['page', 'pageextension', 'report', 'reportextension'];
+
+                if (validObjectType.includes(alObject.objectType)) {
+                    const lines = alObject.objectContentText.split('\n');
+                    let insideMultiLineComment: boolean;
+                    let actionAreaInfo: { name: string } = { name: '' };
+
+                    lines.forEach((lineText, linePos) => {
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (alFileMgr.isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (alFileMgr.isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                            return; // Ignora questa riga
+                        }
+
+                        if (!alFileMgr.isActionAreaDefinition(lineText, actionAreaInfo)) {
+                            let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+
+                            if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
+                                this.actions.push({ name: actionInfo.name, sourceAction: actionInfo.sourceAction, area: actionAreaInfo.name, iconName: 'symbol-event', startLine: lineNumber });
+                            }
+                        }
+                    });
+
+                    if (this.actions) {
+                        if (this.actions.length > 0) {
+                            // Order by StartLine
+                            this.actions.sort((a, b) => a.startLine - b.startLine);
                         }
                     }
                 }
-            });
-
-            if (this.regions.length > 0) {
-                // Order by StartLine
-                this.regions.sort((a, b) => a.startLine - b.startLine);
             }
         }
     }

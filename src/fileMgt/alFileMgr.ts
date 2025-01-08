@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ALObject, ALObjectFields, ALObjectProcedures } from './alObject';
+import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures } from './alObject';
 
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
@@ -397,6 +397,64 @@ export function isPageFieldDefinition(lineText: string, fieldInfo: { name: strin
 
     return false;
 }
+export function isReportOrQueryFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    let regexExpr = /.*(column\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+(\[([1-9]\d*)\])?) *\))/g;
+    const match = lineText.trim().match(regexExpr);
+
+    if (match) {
+        try {
+            regexExpr = /^column\((.*)\)$/i;
+
+            let fieldDef = match[0].replace(regexExpr, '$1');  // Rimuove "field(" e ")"
+            const fieldElements = fieldDef.split(';');
+
+            fieldInfo.name = fieldElements[0].trim();
+            fieldInfo.sourceExpr = fieldElements[1].trim();
+
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
+    const regexExpr = /area\(\s*"?([^"\s]+)"?\s*\)/i;
+
+    const match = lineText.trim().match(regexExpr);
+    if (match) {
+        actionAreaInfo.name = match[1] || 'actions';
+
+        return true;
+    }
+
+    return false;
+}
+export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
+    let regexExpr = /action\(\s*"?([^"\s]+)"?\s*\)/i;
+
+    const match = lineText.trim().match(regexExpr);
+    if (match) {
+        actionInfo.name = match[1] || 'action';
+
+        return true;
+    }
+    else {
+        regexExpr = /actionref\(\s*"?([^"\s;]+)"?\s*;\s*"?([^"\s;]+)"?\s*\)/i;
+        const match = lineText.trim().match(regexExpr);
+        if (match) {
+            actionInfo.name = match[1] || 'action';
+            actionInfo.sourceAction = match[2] || '';
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 export function isCommentedLine(lineText: string): boolean {
     const regexExpr = /\/\/.*$/; // Commenti su singola riga (//)
@@ -531,6 +589,58 @@ export async function showAllProcedures() {
             }
             else {
                 vscode.window.showErrorMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
+            }
+        }
+    }
+}
+export async function showAllActions() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document);
+
+        let alObjectActions: ALObjectActions;
+        alObjectActions = new ALObjectActions(alObject);
+        if (alObjectActions.actions) {
+            if (alObjectActions.elementsCount > 0) {
+                const currentLine = editor.selection.active.line;
+
+                let currentProcStartLine: number;
+                try {
+                    const currentProcedure = [...alObjectActions.actions]
+                        .reverse()             // Inverte l'array
+                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
+
+                    currentProcStartLine = currentProcedure.startLine;
+                }
+                catch {
+                    currentProcStartLine = 0;
+                }
+
+                const picked = await vscode.window.showQuickPick(alObjectActions.actions.map(item => ({
+                    label: `$(${item.iconName}) ${item.name}`,
+                    description: (item.sourceAction && (item.startLine === currentProcStartLine)) ? `${item.sourceAction} $(eye)` :
+                        item.sourceAction ? `${item.sourceAction}` :
+                            (item.startLine === currentProcStartLine) ? `$(eye)` : '',
+                    detail: item.area ? `Area: ${item.area}` : '',
+                    startLine: item.startLine ? item.startLine : 0
+                })), {
+                    placeHolder: 'Actions',
+                    matchOnDescription: false,
+                    matchOnDetail: false,
+                });
+
+                if (picked) {
+                    const position = new vscode.Position(picked.startLine, 0);
+                    const newSelection = new vscode.Selection(position, position);
+                    editor.selection = newSelection;
+                    editor.revealRange(new vscode.Range(position, position));
+                }
+            }
+            else {
+                vscode.window.showErrorMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
             }
         }
     }

@@ -69,6 +69,10 @@
         "title": "ATS: Show all regions"
       },
       {
+        "command": "ats.showAllActions",
+        "title": "ATS: Show all actions"
+      },
+      {
         "command": "ats.createRegionBySelection",
         "title": "ATS: Create region by selection"
       },
