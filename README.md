@@ -12,25 +12,25 @@ These features are concluded at this moment:
 ## AL Object informations
 * Info and statistics of the current AL Object in status bar
 <br />
-<img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info" height="400">
+<img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info">
 
 * Show and search fields on the current AL Object with command **ATS: Show all fields**
 <br />
-<img src="./images/ShowAllFields.png" alt="ATS: Show all fields" height="400">
+<img src="./images/ShowAllFields.png" alt="ATS: Show all fields">
 
 * Show and search procedures on the current AL Object with command **ATS: Show all procedures**
 <br />
-<img src="./images/ShowAllProcedures.png" alt="ATS: Show all procedures" height="400">
+<img src="./images/ShowAllProcedures.png" alt="ATS: Show all procedures">
 <br />
-<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all procedures with regions" height="400">
+<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all procedures with regions">
 
 * Show and search page actions on the current AL Object with command **ATS: Show all actions**
 <br />
-<img src="./images/ShowAllActions.png" alt="ATS: Show all actions" height="400">
+<img src="./images/ShowAllActions.png" alt="ATS: Show all actions">
 
 * Show and search regions on the current AL Object with command **ATS: Show all regions**
 <br />
-<img src="./images/RegionsStructure.png" alt="ATS: Show all regions" height="400">
+<img src="./images/RegionsStructure.png" alt="ATS: Show all regions">
 
 ## launch.json manager
 Store all launch.json files in a local or shared folder and select which one to use for the current project.<br />
