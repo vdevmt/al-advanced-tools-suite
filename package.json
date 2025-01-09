@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.3.11",
+  "version": "1.3.13",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -31,7 +31,8 @@
   ],
   "license": "MIT",
   "activationEvents": [
-    "onLanguage:al"
+    "onLanguage:al",
+    "workspaceContains:/.objidconfig"
   ],
   "main": "./out/extension.js",
   "contributes": {
