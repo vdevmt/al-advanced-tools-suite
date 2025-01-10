@@ -442,13 +442,14 @@ export class ALObjectProcedures {
                         else {
                             let procedureInfo: { scope: string, name: string };
                             procedureInfo = { scope: '', name: '' };
-                            if (alFileMgr.isProcedureDefinition(lineText, procedureInfo)) {
+                            if (alFileMgr.isProcedureDefinition(alObject, lineText, procedureInfo)) {
                                 let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
                                     insideEventSubscription ? 'plug' :
-                                        procedureInfo.scope === 'global' ? 'symbol-function' :
-                                            procedureInfo.scope === 'local' ? 'shield' :
-                                                procedureInfo.scope === 'internal' ? 'symbol-variable' :
-                                                    'symbol-function';
+                                        procedureInfo.scope === 'trigger' ? 'symbol-class' :
+                                            procedureInfo.scope === 'global' ? 'symbol-function' :
+                                                procedureInfo.scope === 'local' ? 'shield' :
+                                                    procedureInfo.scope === 'internal' ? 'symbol-variable' :
+                                                        'symbol-function';
 
                                 if (procedureInfo.name) {
                                     const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
