@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as launchMgr from '../fileMgt/launchMgr';
+import * as launchMgr from './launchMgr';
 
 export class LaunchSettings {
     static readonly WebServer = 'WebServer';
@@ -12,12 +12,12 @@ export class LaunchSettings {
     static readonly SandboxName = 'sandboxName';
     static readonly URL = 'URL';
 
-    private static launchconfig: vscode.WorkspaceConfiguration;
+    private static launchConfig: vscode.WorkspaceConfiguration;
     private static LaunchSettingsCollection = {};
 
     private static loadDefaultSettings(resourceUri: vscode.Uri) {
-        this.launchconfig = launchMgr.getWorkspaceConfigurations(resourceUri);
-        this.loadConfinguration(this.launchconfig.configurations[0], true);
+        this.launchConfig = launchMgr.getWorkspaceConfigurations(resourceUri);
+        this.loadConfinguration(this.launchConfig.configurations[0], true);
     }
 
     public static LoadDefaultLaunchSettings(ResourceUri: vscode.Uri) {

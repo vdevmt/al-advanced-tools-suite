@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as jsonc from 'jsonc-parser';
-import * as alFileMgr from './alFileMgr';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
 import { ATSSettings } from '../settings/atsSettings';
-import { ALObject } from './alObject';
+import { ALObject } from '../alObject/alObject';
 
 //#region Import/Export utilities
 function getDefaultLaunchArchiveFolder(): string {

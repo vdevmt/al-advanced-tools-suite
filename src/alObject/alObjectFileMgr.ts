@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as regExpr from '../regExpressions';
 import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures } from './alObject';
 
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
@@ -336,9 +337,7 @@ function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
 
 //#region Object Properties
 export function isProcedureDefinition(lineText: string, procedureInfo: { scope: string, name: string }): boolean {
-    const regexExpr = /(local|internal)?\s*procedure\s+([a-zA-Z_][a-zA-Z0-9_]*)\(/i;
-
-    const match = lineText.trim().match(regexExpr);
+    const match = lineText.trim().match(regExpr.procedure);
     if (match) {
         procedureInfo.scope = match[1] || 'global';
         procedureInfo.name = match[2];
@@ -350,81 +349,68 @@ export function isProcedureDefinition(lineText: string, procedureInfo: { scope: 
 }
 
 export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
-    let regexExpr = /.*(field\((\d+); *"?([ a-zA-Z0-9._/&%\/()-]+)"?;(.*)\))/g;
-    const match = lineText.trim().match(regexExpr);
-
+    const match = lineText.trim().match(regExpr.tableField);
     if (match) {
-        try {
-            regexExpr = /^field\((.*)\)$/i;
+        fieldInfo.id = Number(match[1].trim()); // Primo gruppo: numero
+        fieldInfo.name = match[2].trim(); // Secondo gruppo: Nome con o senza virgolette
+        fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
 
-            let fieldDef = match[0].replace(regexExpr, '$1');  // Rimuove "field(" e ")"
-            const fieldElements = fieldDef.split(';');
-
-            fieldInfo.id = Number(fieldElements[0].trim()); // Primo gruppo: numero
-            fieldInfo.name = fieldElements[1].trim(); // Secondo gruppo: Nome con o senza virgolette
-            fieldInfo.type = fieldElements[2].trim(); // Terzo gruppo: Tipo
-
-            return true;
-        }
-        catch {
-            return false;
-        }
+        return true;
     }
 
     return false;
 }
 
 export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    let regexExpr = /.*(field\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+(\[([1-9]\d*)\])?) *\))/g;
-    const match = lineText.trim().match(regexExpr);
-
+    const match = lineText.trim().match(regExpr.pageField);
     if (match) {
-        try {
-            regexExpr = /^field\((.*)\)$/i;
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
 
-            let fieldDef = match[0].replace(regexExpr, '$1');  // Rimuove "field(" e ")"
-            const fieldElements = fieldDef.split(';');
-
-            fieldInfo.name = fieldElements[0].trim();
-            fieldInfo.sourceExpr = fieldElements[1].trim();
-
-            return true;
-        }
-        catch {
-            return false;
-        }
+        return true;
     }
 
     return false;
 }
-export function isReportOrQueryFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    let regexExpr = /.*(column\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+(\[([1-9]\d*)\])?) *\))/g;
-    const match = lineText.trim().match(regexExpr);
 
+export function isReportColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportColumn);
     if (match) {
-        try {
-            regexExpr = /^column\((.*)\)$/i;
+        fieldInfo.name = match[1] || 'Column';
+        fieldInfo.sourceExpr = match[2] || '';
 
-            let fieldDef = match[0].replace(regexExpr, '$1');  // Rimuove "field(" e ")"
-            const fieldElements = fieldDef.split(';');
+        return true;
+    }
 
-            fieldInfo.name = fieldElements[0].trim();
-            fieldInfo.sourceExpr = fieldElements[1].trim();
+    return false;
+}
 
-            return true;
-        }
-        catch {
-            return false;
-        }
+export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportDataItem);
+    if (match) {
+        dataItemInfo.name = match[1] || '';
+        dataItemInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryColumn);
+    if (match) {
+        fieldInfo.name = match[1] || 'Column';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
     }
 
     return false;
 }
 
 export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
-    const regexExpr = /area\(\s*"?([^"\s]+)"?\s*\)/i;
-
-    const match = lineText.trim().match(regexExpr);
+    const match = lineText.trim().match(regExpr.pageActionArea);
     if (match) {
         actionAreaInfo.name = match[1] || 'actions';
 
@@ -434,17 +420,14 @@ export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name:
     return false;
 }
 export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
-    let regexExpr = /action\(\s*"?([^"\s]+)"?\s*\)/i;
-
-    const match = lineText.trim().match(regexExpr);
+    const match = lineText.trim().match(regExpr.pageAction);
     if (match) {
         actionInfo.name = match[1] || 'action';
 
         return true;
     }
     else {
-        regexExpr = /actionref\(\s*"?([^"\s;]+)"?\s*;\s*"?([^"\s;]+)"?\s*\)/i;
-        const match = lineText.trim().match(regexExpr);
+        const match = lineText.trim().match(regExpr.pageActionRef);
         if (match) {
             actionInfo.name = match[1] || 'action';
             actionInfo.sourceAction = match[2] || '';
@@ -457,45 +440,39 @@ export function isActionDefinition(lineText: string, actionInfo: { name: string,
 }
 
 export function isCommentedLine(lineText: string): boolean {
-    const regexExpr = /\/\/.*$/; // Commenti su singola riga (//)
-    if (regexExpr.test(lineText.trim())) {
+    if (regExpr.singleLineComment.test(lineText.trim())) {
         return true;
     }
     return false;
 }
 
 export function isMultiLineCommentStart(lineText: string): boolean {
-    const regexExpr = /\/\*/; // Inizio commento multi-linea (/*)
-    if (regexExpr.test(lineText.trim())) {
+    if (regExpr.multiLineCommentStart.test(lineText.trim())) {
         return true;
     }
     return false;
 }
 export function isMultiLineCommentEnd(lineText: string): boolean {
-    const regexExpr = /\*\//;   // Fine commento multi-linea (*/)
-    if (regexExpr.test(lineText.trim())) {
+    if (regExpr.multiLineCommentEnd.test(lineText.trim())) {
         return true;
     }
     return false;
 }
 
 export function isIntegrationEventDeclaration(lineText: string): boolean {
-    const regexExpr = /^\s*\[IntegrationEvent\(/i;
-    if (regexExpr.test(lineText.trim())) {
+    if (regExpr.integrationEventDef.test(lineText.trim())) {
         return true;
     }
     return false;
 }
 export function isBusinessEventDeclaration(lineText: string): boolean {
-    const regexExpr = /^\s*\[BusinessEvent\(/i;
-    if (regexExpr.test(lineText.trim())) {
+    if (regExpr.businessEventDef.test(lineText.trim())) {
         return true;
     }
     return false;
 }
 export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string }): boolean {
-    const regexExpr = /\[EventSubscriber\(\s*ObjectType::([^,]+),\s*([^:]+::"?[^,]+"?|[0-9]+),\s*'([^']+)',\s*'(.*?)',\s*(true|false),\s*(true|false)\s*\)\]/i;
-    const match = lineText.trim().match(regexExpr);
+    const match = lineText.trim().match(regExpr.eventSubscriber);
 
     if (match) {
         eventSubscrInfo.objectType = match[1];
@@ -543,12 +520,12 @@ export async function showAllFields() {
                 const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
                     label: item.id > 0 ? `${item.id} $(${item.iconName}) ${item.name.replace('"', '')}` : `$(${item.iconName}) ${item.name.replace('"', '')}`,
                     description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
-                    detail: '',
+                    detail: item.dataItem ? item.dataItem : '',
                     startLine: item.startLine
                 })), {
                     placeHolder: 'Fields',
                     matchOnDescription: true,
-                    matchOnDetail: false,
+                    matchOnDetail: true,
                 });
 
                 if (picked) {

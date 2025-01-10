@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as regionMgr from './regionMgr';
 import { ATSSettings } from '../settings/atsSettings';
-import { ALObject, ALObjectRegions } from '../fileMgt/alObject';
+import { ALObject, ALObjectRegions } from '../alObject/alObject';
 
 var alObject: ALObject;
 var alObjectRegions: ALObjectRegions;

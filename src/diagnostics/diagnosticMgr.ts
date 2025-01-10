@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../fileMgt/alFileMgr';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as namespaceMgr from '../namespaces/namespaceMgr';
 
 export const DIAGNOSTIC_CODE = {
