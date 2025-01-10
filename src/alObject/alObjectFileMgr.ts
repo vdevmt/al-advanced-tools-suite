@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures } from './alObject';
+import { applyEdits } from 'jsonc-parser';
 
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
@@ -336,13 +337,61 @@ function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
 }
 
 //#region Object Properties
-export function isProcedureDefinition(lineText: string, procedureInfo: { scope: string, name: string }): boolean {
+export function isProcedureDefinition(alObject: ALObject, lineText: string, procedureInfo: { scope: string, name: string }): boolean {
     const match = lineText.trim().match(regExpr.procedure);
     if (match) {
         procedureInfo.scope = match[1] || 'global';
         procedureInfo.name = match[2];
 
         return true;
+    }
+    else {
+        switch (true) {
+            case (alObject.isTable() || alObject.isTableExt()):
+                {
+                    const match = lineText.trim().match(regExpr.tableTrigger);
+                    if (match) {
+                        procedureInfo.scope = 'trigger';
+                        procedureInfo.name = match[1];
+
+                        return true;
+                    }
+                    break;
+                }
+            case (alObject.isPage() || alObject.isPageExt()):
+                {
+                    const match = lineText.trim().match(regExpr.pageTrigger);
+                    if (match) {
+                        procedureInfo.scope = 'trigger';
+                        procedureInfo.name = match[1];
+
+                        return true;
+                    }
+                    break;
+                }
+            case (alObject.isReport()):
+                {
+                    const match = lineText.trim().match(regExpr.reportTrigger);
+                    if (match) {
+                        procedureInfo.scope = 'trigger';
+                        procedureInfo.name = match[1];
+
+                        return true;
+                    }
+                    break;
+                }
+            case (alObject.isQuery()):
+                {
+                    const match = lineText.trim().match(regExpr.queryTrigger);
+                    if (match) {
+                        procedureInfo.scope = 'trigger';
+                        procedureInfo.name = match[1];
+
+                        return true;
+                    }
+                    break;
+                }
+        }
     }
 
     return false;
