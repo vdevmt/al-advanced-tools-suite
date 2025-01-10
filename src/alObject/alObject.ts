@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from './alFileMgr';
+import * as alFileMgr from './alObjectFileMgr';
 import * as alRegionMgr from '../regions/regionMgr';
 
 export class ALObject {
@@ -236,7 +236,7 @@ export class ALObjectFields {
     public objectName: string;
 
     public elementsCount: number;
-    public fields: { id?: number, name: string, type?: string, sourceExpr?: string, iconName?: string, startLine: number }[];
+    public fields: { id?: number, name: string, type?: string, sourceExpr?: string, dataItem?: string, iconName?: string, startLine: number }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -270,6 +270,7 @@ export class ALObjectFields {
                 if (alObject.objectContentText) {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
+                    let dataitemName: string = '';
 
                     lines.forEach((lineText, linePos) => {
                         const lineNumber = linePos;
@@ -320,10 +321,35 @@ export class ALObjectFields {
                             }
                         }
 
-                        if (alObject.isReport() || alObject.isReportExt() || alObject.isQuery) {
+                        if (alObject.isReport() || alObject.isReportExt()) {
+                            let dataItemInfo: { name: string, sourceExpr: string };
+                            dataItemInfo = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                dataitemName = `DataItem: ${dataItemInfo.name} (${dataItemInfo.sourceExpr})`;
+
+                                return;
+                            }
+
                             let reportField: { name: string, sourceExpr: string };
                             reportField = { name: '', sourceExpr: '' };
-                            if (alFileMgr.isReportOrQueryFieldDefinition(lineText, reportField)) {
+                            if (alFileMgr.isReportColumnDefinition(lineText, reportField)) {
+                                this.fields.push({
+                                    id: 0,
+                                    name: reportField.name,
+                                    type: reportField.sourceExpr,
+                                    sourceExpr: reportField.sourceExpr,
+                                    dataItem: dataitemName,
+                                    iconName: 'symbol-field',
+                                    startLine: lineNumber
+                                });
+
+                                return;
+                            }
+                        }
+                        if (alObject.isQuery) {
+                            let reportField: { name: string, sourceExpr: string };
+                            reportField = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isQueryColumnDefinition(lineText, reportField)) {
                                 this.fields.push({
                                     id: 0,
                                     name: reportField.name,

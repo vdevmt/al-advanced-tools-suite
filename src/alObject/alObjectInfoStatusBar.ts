@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../fileMgt/alFileMgr';
+import * as alFileMgr from './alObjectFileMgr';
 import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures, ALObjectRegions } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 

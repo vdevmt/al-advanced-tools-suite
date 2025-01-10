@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../fileMgt/alFileMgr';
-import { ALObject, ALObjectRegions } from '../fileMgt/alObject';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
+import { ALObject, ALObjectRegions } from '../alObject/alObject';
 
 interface RegionInfo {
     name: string;

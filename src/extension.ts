@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import * as launchMgr from './fileMgt/launchMgr';
-import * as alFileMgr from './fileMgt/alFileMgr';
+import * as launchMgr from './launch/launchMgr';
+import * as alFileMgr from './alObject/alObjectFileMgr';
 import * as regionMgr from './regions/regionMgr';
 import * as regionStatusBar from './regions/regionStatusBar';
-import * as objectInfoStatusBar from './fileMgt/alObjectInfoStatusBar';
+import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
 import * as namespaceMgr from './namespaces/namespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 

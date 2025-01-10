@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../fileMgt/alFileMgr';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
 import { CreateDiagnostic, DIAGNOSTIC_CODE } from '../diagnostics/diagnosticMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALSettings } from '../settings/alSettings';
