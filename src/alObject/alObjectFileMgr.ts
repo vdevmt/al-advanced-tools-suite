@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
-import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures } from './alObject';
+import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures } from './alObject';
 import { applyEdits } from 'jsonc-parser';
+import internal = require('stream');
 
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
@@ -380,6 +381,17 @@ export function isProcedureDefinition(alObject: ALObject, lineText: string, proc
                     }
                     break;
                 }
+            case (alObject.isCodeunit()):
+                {
+                    const match = lineText.trim().match(regExpr.codeunitTrigger);
+                    if (match) {
+                        procedureInfo.scope = 'trigger';
+                        procedureInfo.name = match[1];
+
+                        return true;
+                    }
+                    break;
+                }
             case (alObject.isQuery()):
                 {
                     const match = lineText.trim().match(regExpr.queryTrigger);
@@ -449,8 +461,8 @@ export function isReportDataItemDefinition(lineText: string, dataItemInfo: { nam
 export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
     const match = lineText.trim().match(regExpr.queryColumn);
     if (match) {
-        fieldInfo.name = match[1] || 'Column';
-        fieldInfo.sourceExpr = match[2] || '';
+        fieldInfo.name = match[2] || 'Column';
+        fieldInfo.sourceExpr = match[3] || '';
 
         return true;
     }
@@ -553,43 +565,24 @@ export async function showAllFields() {
         alObjectFields = new ALObjectFields(alObject);
         if (alObjectFields.fields) {
             if (alObjectFields.elementsCount > 0) {
-                const currentLine = editor.selection.active.line;
-
-                let currentFieldStartLine: number;
-                try {
-                    const currentField = [...alObjectFields.fields]
-                        .reverse()             // Inverte l'array
-                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-                    currentFieldStartLine = currentField.startLine;
-                }
-                catch {
-                    currentFieldStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
-                    label: item.id > 0 ? `${item.id} $(${item.iconName}) ${item.name.replace('"', '')}` : `$(${item.iconName}) ${item.name.replace('"', '')}`,
-                    description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
+                let items: QuickPickItem[] = alObjectFields.fields.map(item => ({
+                    label: item.id > 0 ? `[${item.id}]  ${item.name}` : `${item.name}`,
+                    description: item.type,
                     detail: item.dataItem ? item.dataItem : '',
-                    startLine: item.startLine
-                })), {
-                    placeHolder: 'Fields',
-                    matchOnDescription: true,
-                    matchOnDetail: true,
-                });
+                    startLine: item.startLine ? item.startLine : 0,
+                    level: 0,
+                    iconName: item.iconName
+                }));
 
-                if (picked) {
-                    const position = new vscode.Position(picked.startLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
+                showObjectItems(items, 'Fields');
+                return;
             }
         }
+
+        vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+
 export async function showAllProcedures() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -602,46 +595,55 @@ export async function showAllProcedures() {
         alObjectProcedures = new ALObjectProcedures(alObject);
         if (alObjectProcedures.procedures) {
             if (alObjectProcedures.elementsCount > 0) {
-                const currentLine = editor.selection.active.line;
-
-                let currentProcStartLine: number;
-                try {
-                    const currentProcedure = [...alObjectProcedures.procedures]
-                        .reverse()             // Inverte l'array
-                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-
-                    currentProcStartLine = currentProcedure.startLine;
-                }
-                catch {
-                    currentProcStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
-                    label: `$(${item.iconName}) ${item.name}`,
-                    description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
+                let items: QuickPickItem[] = alObjectProcedures.procedures.map(item => ({
+                    label: item.name,
+                    description: '',
                     detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
                         (item.regionPath) ? `Region: ${item.regionPath}` :
                             (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
-                    startLine: item.startLine ? item.startLine : 0
-                })), {
-                    placeHolder: 'Procedure',
-                    matchOnDescription: false,
-                    matchOnDetail: true,
-                });
+                    startLine: item.startLine ? item.startLine : 0,
+                    level: 0,
+                    iconName: item.iconName
+                }));
 
-                if (picked) {
-                    const position = new vscode.Position(picked.startLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
+                showObjectItems(items, 'Procedure');
+                return;
             }
         }
+
+        vscode.window.showInformationMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+
+export async function showAllDataItems() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document);
+
+        let alObjectDataItems: ALObjectDataItems;
+        alObjectDataItems = new ALObjectDataItems(alObject);
+        if (alObjectDataItems.dataItems) {
+            if (alObjectDataItems.elementsCount > 0) {
+                let items: QuickPickItem[] = alObjectDataItems.dataItems.map(item => ({
+                    label: item.name,
+                    description: item.sourceExpression,
+                    startLine: item.startLine ? item.startLine : 0,
+                    level: item.level,
+                    iconName: item.iconName
+                }));
+
+                showObjectItems(items, 'Dataitems');
+                return;
+            }
+        }
+
+        vscode.window.showInformationMessage(`No Dataitem found in ${alObject.objectType} ${alObject.objectName}`);
+    }
+}
+
 export async function showAllActions() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -654,42 +656,62 @@ export async function showAllActions() {
         alObjectActions = new ALObjectActions(alObject);
         if (alObjectActions.actions) {
             if (alObjectActions.elementsCount > 0) {
-                const currentLine = editor.selection.active.line;
-
-                let currentProcStartLine: number;
-                try {
-                    const currentProcedure = [...alObjectActions.actions]
-                        .reverse()             // Inverte l'array
-                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-
-                    currentProcStartLine = currentProcedure.startLine;
-                }
-                catch {
-                    currentProcStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectActions.actions.map(item => ({
-                    label: `$(${item.iconName}) ${item.name}`,
-                    description: (item.sourceAction && (item.startLine === currentProcStartLine)) ? `${item.sourceAction} $(eye)` :
-                        item.sourceAction ? `${item.sourceAction}` :
-                            (item.startLine === currentProcStartLine) ? `$(eye)` : '',
+                let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
+                    label: item.name,
+                    description: item.sourceAction,
                     detail: item.area ? `Area: ${item.area}` : '',
-                    startLine: item.startLine ? item.startLine : 0
-                })), {
-                    placeHolder: 'Actions',
-                    matchOnDescription: true,
-                    matchOnDetail: true,
-                });
+                    startLine: item.startLine ? item.startLine : 0,
+                    level: 0,
+                    iconName: item.iconName
+                }));
 
-                if (picked) {
-                    const position = new vscode.Position(picked.startLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
+                showObjectItems(items, 'Actions');
+                return;
             }
-            else {
-                vscode.window.showInformationMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
+        }
+
+        vscode.window.showInformationMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
+    }
+}
+
+export async function showObjectItems(items: QuickPickItem[], title: string) {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (items) {
+        const currentLine = editor.selection.active.line;
+
+        let currentFieldStartLine: number;
+        try {
+            const currentItem = [...items]
+                .reverse()             // Inverte l'array
+                .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
+            currentFieldStartLine = currentItem.startLine;
+        }
+        catch {
+            currentFieldStartLine = 0;
+        }
+
+        const picked = await vscode.window.showQuickPick(items.map(item => ({
+            label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
+                (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
+                    (item.iconName) ? `$(${item.iconName}) ${item.label}` :
+                        `${item.label}`,
+            description: (item.startLine === currentFieldStartLine) ? `${item.description} $(eye)` : item.description,
+            detail: item.detail,
+            startLine: item.startLine
+        })), {
+            placeHolder: `${title}`,
+            matchOnDescription: true,
+            matchOnDetail: true,
+        });
+
+        if (picked) {
+            if (picked.startLine > 0) {
+                const position = new vscode.Position(picked.startLine, 0);
+                const newSelection = new vscode.Selection(position, position);
+                editor.selection = newSelection;
+                editor.revealRange(new vscode.Range(position, position));
             }
         }
     }
@@ -697,13 +719,15 @@ export async function showAllActions() {
 //#endregion Object Properties
 
 //#region Interfaces
-interface QuickPickItem {
+export interface QuickPickItem {
     label: string;
     description?: string;
     detail?: string;
     sortKey?: string;
     uri?: vscode.Uri;
     alObject?: ALObject;
+    iconName?: string;
+    level?: number;
+    startLine?: number;
 }
-
 //#endregion Interfaces

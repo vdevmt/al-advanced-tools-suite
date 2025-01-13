@@ -21,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alFileMgr.showAllFields));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllProcedures', alFileMgr.showAllProcedures));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alFileMgr.showAllActions));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllDataItems', alFileMgr.showAllDataItems));
     //#endregion AL Objects Mgt
 
     //#region Run Business Central       

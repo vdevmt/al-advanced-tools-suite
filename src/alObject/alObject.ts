@@ -631,3 +631,104 @@ export class ALObjectActions {
         }
     }
 }
+export class ALObjectDataItems {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public dataItems: { name: string, sourceExpression?: string, level?: number, iconName?: string, startLine: number }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findObjectDataItems(alObject);
+        this.elementsCount = this.dataItems ? this.dataItems.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.dataItems = [];
+    }
+
+    private findObjectDataItems(alObject: ALObject) {
+        if (alObject) {
+            if (alObject.objectContentText) {
+                let validObjectType = alObject.isReport() || alObject.isReportExt() || alObject.isQuery();
+                let insideDataset: boolean;
+
+                if (validObjectType) {
+                    const lines = alObject.objectContentText.split('\n');
+                    let insideMultiLineComment: boolean;
+                    let currentLevel = -1;
+
+                    lines.forEach((lineText, linePos) => {
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (alFileMgr.isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (alFileMgr.isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                            return; // Ignora questa riga
+                        }
+
+                        // Verifico di trovarmi nella sezione Dataset
+                        if (alObject.isReport() || alObject.isReportExt()) {
+                            if (lineText.trim().toLowerCase() === 'dataset') {
+                                insideDataset = true;
+                            }
+                        }
+                        if (alObject.isQuery()) {
+                            if (lineText.trim().toLowerCase() === 'elements') {
+                                insideDataset = true;
+                            }
+                        }
+
+                        if (insideDataset) {
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+                                if (currentLevel < 0) {
+                                    insideDataset = false;
+                                    return;
+                                }
+                            }
+
+                            let dataItemInfo: { name: string, sourceExpr: string } = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                this.dataItems.push({
+                                    name: dataItemInfo.name,
+                                    sourceExpression: dataItemInfo.sourceExpr,
+                                    level: currentLevel,
+                                    iconName: 'database',
+                                    startLine: lineNumber
+                                });
+                            }
+                        }
+                    });
+
+                    if (this.dataItems) {
+                        if (this.dataItems.length > 0) {
+                            // Order by StartLine
+                            this.dataItems.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

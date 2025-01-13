@@ -110,48 +110,28 @@ export async function showAllRegions() {
     const document = editor.document;
 
     if (alFileMgr.isALObjectDocument(document)) {
-        if (documentHasRegion(document)) {
-            let alObject: ALObject;
-            alObject = new ALObject(document);
+        let alObject: ALObject;
+        alObject = new ALObject(document);
 
-            let alObjectRegions: ALObjectRegions;
-            alObjectRegions = new ALObjectRegions(alObject);
-
-            if (alObjectRegions.regions.length > 0) {
-                let currRegionStartLine = 0;
-                try {
-                    const currentLine = editor.selection.active.line;
-                    currRegionStartLine = findCurrentRegionStartLine(alObjectRegions, currentLine);
-                }
-                catch {
-                    currRegionStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectRegions.regions.map(item => ({
-                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└──${'───'.repeat(item.level - 1)} $(symbol-number) ${item.name}`,
-                    description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+        if (alObjectRegions.regions) {
+            if (alObjectRegions.elementsCount > 0) {
+                let items: alFileMgr.QuickPickItem[] = alObjectRegions.regions.map(item => ({
+                    label: item.name,
+                    description: '',
                     detail: '',
-                    regionStartLine: item.startLine
-                })), {
-                    placeHolder: 'Regions',
-                    matchOnDescription: false,
-                    matchOnDetail: false,
-                });
+                    startLine: item.startLine ? item.startLine : 0,
+                    level: item.level ? item.level : 0,
+                    iconName: item.iconName
+                }));
 
-                if (picked) {
-                    const position = new vscode.Position(picked.regionStartLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
+                alFileMgr.showObjectItems(items, 'Regions');
+                return;
             }
         }
-        else {
-            vscode.window.showInformationMessage('No regions found in the current document');
-        }
+
+        vscode.window.showInformationMessage(`No region found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion Regions tools
