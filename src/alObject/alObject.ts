@@ -345,6 +345,21 @@ export class ALObjectFields {
 
                                 return;
                             }
+                            else {
+                                if (alFileMgr.isReportReqPageFieldDefinition(lineText, reportField)) {
+                                    this.fields.push({
+                                        id: 0,
+                                        name: reportField.name,
+                                        type: reportField.sourceExpr,
+                                        sourceExpr: reportField.sourceExpr,
+                                        dataItem: 'requestpage',
+                                        iconName: 'symbol-field',
+                                        startLine: lineNumber
+                                    });
+
+                                    return;
+                                }
+                            }
                         }
                         if (alObject.isQuery) {
                             let reportField: { name: string, sourceExpr: string };

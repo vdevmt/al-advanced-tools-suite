@@ -19,6 +19,7 @@ export const pageActionRef = /^actionref\("?([ a-zA-Z0-9._/&%\/()-]+)"?\s*;\s*"?
 export const reportTrigger = /^trigger\s+(OnInitReport|OnPreReport|OnPostReport)\s*\(.*\)/i;
 export const reportColumn = /^column\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+ *)\)/i;
 export const reportDataItem = /^dataitem\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+ *)\)/i;
+export const reportReqPageField = /^field\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+ *)\)/i;
 
 // Query
 export const queryDataItem = /^dataitem\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-]+ *)\)/i;

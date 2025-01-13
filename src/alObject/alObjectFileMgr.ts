@@ -445,6 +445,17 @@ export function isReportColumnDefinition(lineText: string, fieldInfo: { name: st
 
     return false;
 }
+export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportReqPageField);
+    if (match) {
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
 
 export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
     const match = lineText.trim().match(regExpr.reportDataItem);
