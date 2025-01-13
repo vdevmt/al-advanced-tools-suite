@@ -122,6 +122,7 @@ export async function showAllRegions() {
                     description: '',
                     detail: '',
                     startLine: item.startLine ? item.startLine : 0,
+                    endLine: item.endLine ? item.endLine : 0,
                     level: item.level ? item.level : 0,
                     iconName: item.iconName
                 }));

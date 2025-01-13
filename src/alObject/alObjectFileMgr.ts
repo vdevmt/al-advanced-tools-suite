@@ -581,6 +581,7 @@ export async function showAllFields() {
                     description: item.type,
                     detail: item.dataItem ? item.dataItem : '',
                     startLine: item.startLine ? item.startLine : 0,
+                    endLine: 0,
                     level: 0,
                     iconName: item.iconName
                 }));
@@ -613,6 +614,7 @@ export async function showAllProcedures() {
                         (item.regionPath) ? `Region: ${item.regionPath}` :
                             (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
                     startLine: item.startLine ? item.startLine : 0,
+                    endLine: 0,
                     level: 0,
                     iconName: item.iconName
                 }));
@@ -642,6 +644,7 @@ export async function showAllDataItems() {
                     label: item.name,
                     description: item.sourceExpression,
                     startLine: item.startLine ? item.startLine : 0,
+                    endLine: 0,
                     level: item.level,
                     iconName: item.iconName
                 }));
@@ -672,6 +675,7 @@ export async function showAllActions() {
                     description: item.sourceAction,
                     detail: item.area ? `Area: ${item.area}` : '',
                     startLine: item.startLine ? item.startLine : 0,
+                    endLine: 0,
                     level: 0,
                     iconName: item.iconName
                 }));
@@ -692,15 +696,15 @@ export async function showObjectItems(items: QuickPickItem[], title: string) {
     if (items) {
         const currentLine = editor.selection.active.line;
 
-        let currentFieldStartLine: number;
+        let currItemStartLine: number;
         try {
             const currentItem = [...items]
                 .reverse()             // Inverte l'array
-                .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-            currentFieldStartLine = currentItem.startLine;
+                .find(item => ((item.startLine <= currentLine) && (item.endLine === 0 || item.endLine >= currentLine)));  // Trova il primo che soddisfa la condizione
+            currItemStartLine = currentItem.startLine;
         }
         catch {
-            currentFieldStartLine = 0;
+            currItemStartLine = 0;
         }
 
         const picked = await vscode.window.showQuickPick(items.map(item => ({
@@ -708,7 +712,7 @@ export async function showObjectItems(items: QuickPickItem[], title: string) {
                 (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
                     (item.iconName) ? `$(${item.iconName}) ${item.label}` :
                         `${item.label}`,
-            description: (item.startLine === currentFieldStartLine) ? `${item.description} $(eye)` : item.description,
+            description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
             detail: item.detail,
             startLine: item.startLine
         })), {
@@ -740,5 +744,6 @@ export interface QuickPickItem {
     iconName?: string;
     level?: number;
     startLine?: number;
+    endLine?: number;
 }
 //#endregion Interfaces
