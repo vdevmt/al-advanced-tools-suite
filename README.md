@@ -18,23 +18,27 @@ These features are concluded at this moment:
 <br />
 <img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info">
 
-* Show and search fields on the current AL Object with command **ATS: Show all fields**
+* Show and search fields on the current AL Object with command **ATS: Show all Fields**
 <br />
-<img src="./images/ShowAllFields.png" alt="ATS: Show all fields">
+<img src="./images/ShowAllFields.png" alt="ATS: Show all Fields">
 
-* Show and search procedures on the current AL Object with command **ATS: Show all procedures**
+* Show and search procedures on the current AL Object with command **ATS: Show all Procedures**
 <br />
-<img src="./images/ShowAllProcedures.png" alt="ATS: Show all procedures">
+<img src="./images/ShowAllProcedures.png" alt="ATS: Show all Procedures">
 <br />
-<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all procedures with regions">
+<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all Procedures with regions">
 
-* Show and search page actions on the current AL Object with command **ATS: Show all actions**
+* Show and search page actions on the current AL Object with command **ATS: Show all Actions**
 <br />
-<img src="./images/ShowAllActions.png" alt="ATS: Show all actions">
+<img src="./images/ShowAllActions.png" alt="ATS: Show all Actions">
 
-* Show and search regions on the current AL Object with command **ATS: Show all regions**
+* Show and search dataitems on the current AL Object with command **ATS: Show all Dataitems**
 <br />
-<img src="./images/RegionsStructure.png" alt="ATS: Show all regions">
+<img src="./images/ShowAllDataitems.png" alt="ATS: Show all Dataitems">
+
+* Show and search regions on the current AL Object with command **ATS: Show all Regions**
+<br />
+<img src="./images/RegionsStructure.png" alt="ATS: Show all Regions">
 
 ## launch.json manager
 Store all launch.json files in a local or shared folder and select which one to use for the current project.<br />
