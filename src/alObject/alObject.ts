@@ -166,46 +166,6 @@ export class ALObject {
         }
     }
 
-    public getDefaultIconName(): string {
-        switch (true) {
-            case this.isTable(): {
-                return 'database';
-            }
-            case this.isTableExt(): {
-                return 'database';
-            }
-            case this.isCodeunit(): {
-                return 'code';
-            }
-            case this.isPage(): {
-                return 'preview';
-            }
-            case this.isPageExt(): {
-                return 'preview';
-            }
-            case this.isQuery(): {
-                return 'graph';
-            }
-            case this.isReport(): {
-                return 'file-pdf';
-            }
-            case this.isReportExt(): {
-                return 'file-pdf';
-            }
-            case this.isEnum(): {
-                return 'symbol-enum';
-            }
-            case this.isEnumExt(): {
-                return 'symbol-enum';
-            }
-            case this.isXmlPort(): {
-                return 'globe';
-            }
-        }
-
-        return 'symbol-object';
-    }
-
     public isTable(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'table');
@@ -283,6 +243,20 @@ export class ALObject {
 
         return false;
     }
+    public isInterface(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'interface');
+        }
+
+        return false;
+    }
+    public isEntitlement(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'entitlement');
+        }
+
+        return false;
+    }
 
     public objectTypeCamelCase(): string {
         let output: string = this.objectType;
@@ -333,6 +307,52 @@ export class ALObject {
         }
 
         return output;
+    }
+
+    public getDefaultIconName(): string {
+        switch (true) {
+            case this.isTable(): {
+                return 'database';
+            }
+            case this.isTableExt(): {
+                return 'database';
+            }
+            case this.isCodeunit(): {
+                return 'code';
+            }
+            case this.isPage(): {
+                return 'preview';
+            }
+            case this.isPageExt(): {
+                return 'preview';
+            }
+            case this.isQuery(): {
+                return 'graph';
+            }
+            case this.isReport(): {
+                return 'file-pdf';
+            }
+            case this.isReportExt(): {
+                return 'file-pdf';
+            }
+            case this.isEnum(): {
+                return 'symbol-enum';
+            }
+            case this.isEnumExt(): {
+                return 'symbol-enum';
+            }
+            case this.isXmlPort(): {
+                return 'globe';
+            }
+            case this.isInterface(): {
+                return 'symbol-interface';
+            }
+            case this.isEntitlement(): {
+                return 'symbol-interface';
+            }
+        }
+
+        return 'symbol-misc';
     }
 }
 //#endregion AL Object Definition
@@ -571,7 +591,7 @@ export class ALObjectProcedures {
                             if (alFileMgr.isProcedureDefinition(alObject, lineText, procedureInfo)) {
                                 let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
                                     insideEventSubscription ? 'plug' :
-                                        procedureInfo.scope === 'trigger' ? 'symbol-class' :
+                                        procedureInfo.scope === 'trigger' ? 'server-process' :
                                             procedureInfo.scope === 'global' ? 'symbol-function' :
                                                 procedureInfo.scope === 'local' ? 'shield' :
                                                     procedureInfo.scope === 'internal' ? 'symbol-variable' :

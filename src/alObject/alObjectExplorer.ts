@@ -35,7 +35,7 @@ export async function execALObjectExplorer() {
                 if (alObjectDataItems.elementsCount > 0) {
                     items.push({
                         label: `Dataitems: ${alObjectDataItems.elementsCount}`,
-                        iconName: 'database',
+                        iconName: 'symbol-class',
                         command: 'ats.showAllDataItems'
                     });
                 }
@@ -86,7 +86,7 @@ export async function execALObjectExplorer() {
                 if (alObjectProcedures.elementsCount > 0) {
                     items.push({
                         label: `Procedures: ${alObjectProcedures.elementsCount}`,
-                        iconName: 'symbol-class',
+                        iconName: 'code',
                         command: 'ats.showAllProcedures'
                     });
                 }
