@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import { ALObject } from './alObject';
 
-export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
+export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
         return true;
     }
@@ -17,7 +17,7 @@ export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean):
     return false;
 }
 
-export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
+export function isPreviewALObjectFile(file: vscode.Uri): boolean {
     if (file.fsPath.toLowerCase().endsWith('.dal')) {
         return true;
     }
@@ -25,7 +25,7 @@ export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
     return false;
 }
 
-export function isALObjectDocument(document: vscode.TextDocument): Boolean {
+export function isALObjectDocument(document: vscode.TextDocument): boolean {
     if (document.languageId === 'al') {
         return true;
     }
@@ -33,7 +33,7 @@ export function isALObjectDocument(document: vscode.TextDocument): Boolean {
     return false;
 }
 
-export function IsPreviewALObject(document: vscode.TextDocument): Boolean {
+export function IsPreviewALObject(document: vscode.TextDocument): boolean {
     if (document.fileName.toLowerCase().endsWith('.dal')) {
         return true;
     }

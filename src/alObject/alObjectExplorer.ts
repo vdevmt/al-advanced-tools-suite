@@ -404,10 +404,11 @@ export async function showOpenALObjects() {
                 let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
-                let iconName = alFileMgr.isPreviewALObjectFile(documentUri) ? 'lock-small' : alObject.getDefaultIconName();
+                const isLocked = alFileMgr.isPreviewALObjectFile(documentUri);
 
                 stack.push({
-                    label: `$(${iconName}) ${objectInfoText}`,
+                    label: isLocked ? `$(${alObject.getDefaultIconName()}) $(lock-small) ${objectInfoText}` :
+                        `$(${alObject.getDefaultIconName()}) ${objectInfoText}`,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     alOjectType: isCurrentEditor ? 'Current Editor' : alObject.objectTypeCamelCase(),
