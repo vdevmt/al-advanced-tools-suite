@@ -89,7 +89,7 @@
       },
       {
         "command": "ats.showAllTableKeys",
-        "title": "Show all keys",
+        "title": "Show all table keys",
         "category": "ATS AL Object Explorer"
       },
       {

@@ -22,6 +22,10 @@ These features are concluded at this moment:
 <br />
 <img src="./images/ShowAllFields.png" alt="ATS: Show all Fields">
 
+* Show and search table keys on the current AL Object with command **ATS: Show all Table Keys**
+<br />
+<img src="./images/ShowAllKeys.png" alt="ATS: Show all Table Keys">
+
 * Show and search procedures on the current AL Object with command **ATS: Show all Procedures**
 <br />
 <img src="./images/ShowAllProcedures.png" alt="ATS: Show all Procedures">
