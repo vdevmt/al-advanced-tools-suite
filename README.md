@@ -13,10 +13,14 @@ If you want to support my work:
 # Features
 These features are concluded at this moment:
 
-## AL Object informations
+## AL Object Explorer
 * Info and statistics of the current AL Object in status bar
 <br />
 <img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info">
+
+* Show all elements of the current AL Object with command **ATS: AL Object Explorer**
+<br />
+<img src="./images/ALObjectExplorer.png" alt="AL Object Explorer">
 
 * Show and search fields on the current AL Object with command **ATS: Show all Fields**
 <br />
