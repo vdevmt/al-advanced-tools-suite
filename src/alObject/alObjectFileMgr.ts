@@ -1,9 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
-import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures } from './alObject';
-import { applyEdits } from 'jsonc-parser';
-import internal = require('stream');
+import { ALObject } from './alObject';
 
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
@@ -235,108 +233,6 @@ export function makeALObjectDescriptionText(alObject: ALObject) {
     return '';
 }
 
-export async function showOpenALObjects() {
-    const textDocuments = vscode.workspace.textDocuments;
-    const activeEditor = vscode.window.activeTextEditor;
-    const activeUri = activeEditor?.document.uri.toString();
-
-    // Recupera i tab aperti
-    const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
-
-    const items: QuickPickItem[] = [];
-
-    for (const editor of openEditors) {
-        try {
-            const documentUri = (editor.input as any).uri;
-
-            if (isALObjectFile(documentUri, true)) {
-                const doc = await vscode.workspace.openTextDocument(documentUri);
-
-                let alObject: ALObject;
-                alObject = new ALObject(doc);
-                let objectInfoText = makeALObjectDescriptionText(alObject);
-
-                const isCurrentEditor = (doc.uri.toString() === activeUri);
-                let iconName = isPreviewALObjectFile(documentUri) ? 'shield' : 'symbol-class';
-
-                items.push({
-                    label: `$(${iconName}) ${objectInfoText}`,
-                    description: isCurrentEditor ? '$(eye)' : '',
-                    detail: vscode.workspace.asRelativePath(doc.uri),
-                    sortKey: objectSortKey(alObject, isCurrentEditor),
-                    uri: doc.uri
-                });
-            }
-        } catch (err) {
-            console.log(`Unable to read file: ${editor}`, err);
-        }
-    }
-
-    items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-
-    // Show object list
-    const picked = await vscode.window.showQuickPick(items.map(item => ({
-        label: item.label,
-        description: item.description,
-        detail: item.detail,
-        uri: item.uri,
-    })), {
-        placeHolder: 'Select a file to open',
-        matchOnDescription: true,
-        matchOnDetail: true,
-    });
-
-    if (picked) {
-        // Open selected
-        vscode.window.showTextDocument(picked.uri);
-    }
-}
-
-function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
-    let objPriority: number = 9999;
-
-    if (alObject) {
-        if (isCurrentEditor) {
-            objPriority = 10;
-        }
-        else {
-            switch (alObject.objectType) {
-                case 'table':
-                    objPriority = 20;
-                    break;
-
-                case 'tableextension':
-                    objPriority = 21;
-                    break;
-
-                case 'codeunit':
-                    objPriority = 30;
-                    break;
-
-                case 'page':
-                    objPriority = 40;
-                    break;
-
-                case 'pageextension':
-                    objPriority = 41;
-                    break;
-
-                case 'report':
-                    objPriority = 50;
-                    break;
-
-                case 'reportextension':
-                    objPriority = 51;
-                    break;
-            }
-        }
-
-        return `${objPriority.toString().padStart(4, '0')}_${alObject.objectType}_${alObject.objectName}`;
-    }
-
-    return `${objPriority.toString().padStart(4, '0')}`;
-}
-
 //#region Object Properties
 export function isProcedureDefinition(alObject: ALObject, lineText: string, procedureInfo: { scope: string, name: string }): boolean {
     const match = lineText.trim().match(regExpr.procedure);
@@ -415,6 +311,18 @@ export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number
         fieldInfo.id = Number(match[1].trim()); // Primo gruppo: numero
         fieldInfo.name = match[2].trim(); // Secondo gruppo: Nome con o senza virgolette
         fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isTableKeyDefinition(lineText: string, keyInfo: { name: string, fieldsList: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableKey);
+    if (match) {
+        keyInfo.name = match[1] || '';
+        keyInfo.fieldsList = match[2] || '';
 
         return true;
     }
@@ -562,174 +470,6 @@ export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectTyp
     }
 
     return false;
-}
-
-export async function showAllFields() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectFields: ALObjectFields;
-        alObjectFields = new ALObjectFields(alObject);
-        if (alObjectFields.fields) {
-            if (alObjectFields.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectFields.fields.map(item => ({
-                    label: item.id > 0 ? `[${item.id}]  ${item.name}` : `${item.name}`,
-                    description: item.type,
-                    detail: item.dataItem ? item.dataItem : '',
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: 0,
-                    level: 0,
-                    iconName: item.iconName
-                }));
-
-                showObjectItems(items, 'Fields');
-                return;
-            }
-        }
-
-        vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
-    }
-}
-
-export async function showAllProcedures() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectProcedures: ALObjectProcedures;
-        alObjectProcedures = new ALObjectProcedures(alObject);
-        if (alObjectProcedures.procedures) {
-            if (alObjectProcedures.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectProcedures.procedures.map(item => ({
-                    label: item.name,
-                    description: '',
-                    detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
-                        (item.regionPath) ? `Region: ${item.regionPath}` :
-                            (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: 0,
-                    level: 0,
-                    iconName: item.iconName
-                }));
-
-                showObjectItems(items, 'Procedure');
-                return;
-            }
-        }
-
-        vscode.window.showInformationMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
-    }
-}
-
-export async function showAllDataItems() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectDataItems: ALObjectDataItems;
-        alObjectDataItems = new ALObjectDataItems(alObject);
-        if (alObjectDataItems.dataItems) {
-            if (alObjectDataItems.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectDataItems.dataItems.map(item => ({
-                    label: item.name,
-                    description: item.sourceExpression,
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: 0,
-                    level: item.level,
-                    iconName: item.iconName
-                }));
-
-                showObjectItems(items, 'Dataitems');
-                return;
-            }
-        }
-
-        vscode.window.showInformationMessage(`No Dataitem found in ${alObject.objectType} ${alObject.objectName}`);
-    }
-}
-
-export async function showAllActions() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectActions: ALObjectActions;
-        alObjectActions = new ALObjectActions(alObject);
-        if (alObjectActions.actions) {
-            if (alObjectActions.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
-                    label: item.name,
-                    description: item.sourceAction,
-                    detail: item.area ? `Area: ${item.area}` : '',
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: 0,
-                    level: 0,
-                    iconName: item.iconName
-                }));
-
-                showObjectItems(items, 'Actions');
-                return;
-            }
-        }
-
-        vscode.window.showInformationMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
-    }
-}
-
-export async function showObjectItems(items: QuickPickItem[], title: string) {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (items) {
-        const currentLine = editor.selection.active.line;
-
-        let currItemStartLine: number;
-        try {
-            const currentItem = [...items]
-                .reverse()             // Inverte l'array
-                .find(item => ((item.startLine <= currentLine) && (item.endLine === 0 || item.endLine >= currentLine)));  // Trova il primo che soddisfa la condizione
-            currItemStartLine = currentItem.startLine;
-        }
-        catch {
-            currItemStartLine = 0;
-        }
-
-        const picked = await vscode.window.showQuickPick(items.map(item => ({
-            label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
-                (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
-                    (item.iconName) ? `$(${item.iconName}) ${item.label}` :
-                        `${item.label}`,
-            description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
-            detail: item.detail,
-            startLine: item.startLine
-        })), {
-            placeHolder: `${title}`,
-            matchOnDescription: true,
-            matchOnDetail: true,
-        });
-
-        if (picked) {
-            if (picked.startLine > 0) {
-                const position = new vscode.Position(picked.startLine, 0);
-                const newSelection = new vscode.Selection(position, position);
-                editor.selection = newSelection;
-                editor.revealRange(new vscode.Range(position, position));
-            }
-        }
-    }
 }
 //#endregion Object Properties
 

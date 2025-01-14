@@ -39,51 +39,78 @@
     "commands": [
       {
         "command": "ats.importLaunchFile",
-        "title": "ATS: Import 'launch.json'"
+        "title": "Import 'launch.json'",
+        "category": "ATS"
       },
       {
         "command": "ats.exportLaunchFile",
-        "title": "ATS: Export 'launch.json'"
+        "title": "Export 'launch.json'",
+        "category": "ATS"
       },
       {
         "command": "ats.openLaunchFile",
-        "title": "ATS: Open 'launch.json'"
+        "title": "Open 'launch.json'",
+        "category": "ATS"
       },
       {
         "command": "ats.runBusinessCentral",
-        "title": "ATS: Run Business Central"
+        "title": "Run Business Central",
+        "category": "ATS"
       },
       {
         "command": "ats.changerStartupObjectAndRunBusinessCentral",
-        "title": "ATS: Change default startup object and run Business Central"
-      },
-      {
-        "command": "ats.showAllFields",
-        "title": "ATS: Show all fields"
-      },
-      {
-        "command": "ats.showAllProcedures",
-        "title": "ATS: Show all procedures"
-      },
-      {
-        "command": "ats.showAllDataItems",
-        "title": "ATS: Show all dataitems"
-      },
-      {
-        "command": "ats.showAllRegions",
-        "title": "ATS: Show all regions"
-      },
-      {
-        "command": "ats.showAllActions",
-        "title": "ATS: Show all actions"
+        "title": "Change default startup object and run Business Central",
+        "category": "ATS"
       },
       {
         "command": "ats.createRegionBySelection",
-        "title": "ATS: Create region by selection"
+        "title": "Create region by selection",
+        "category": "ATS"
       },
       {
         "command": "ats.setNamespaceByFilePath",
-        "title": "ATS: Set object namespace based on file path"
+        "title": "Set object namespace based on file path",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.execALObjectExplorer",
+        "title": "AL Object Explorer",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.showOpenALObjects",
+        "title": "Show open objects",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllFields",
+        "title": "Show all fields",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllTableKeys",
+        "title": "Show all keys",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllProcedures",
+        "title": "Show all procedures",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllDataItems",
+        "title": "Show all dataitems",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllRegions",
+        "title": "Show all regions",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllActions",
+        "title": "Show all page actions",
+        "category": "ATS AL Object Explorer"
       }
     ],
     "snippets": [

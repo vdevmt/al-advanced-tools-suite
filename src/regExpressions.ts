@@ -6,7 +6,7 @@ export const multiLineCommentEnd = /\*\//;   // Fine commento multi-linea (*/)
 // Table
 export const tableTrigger = /^trigger\s+(OnInsert|OnModify|OnDelete|OnRename)\s*\(.*\)/i;
 export const tableField = /^field\( *(\d+) *; *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)/i;
-
+export const tableKey = /^key\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-,]+ *)\)/i;
 
 // Page
 export const pageTrigger = /^trigger\s+(OnOpenPage|OnInit|OnAfterGetRecord|OnAfterGetCurrRecord|OnClosePage|OnQueryClosePage|OnInsertRecord|OnModifyRecord|OnDeleteRecord|OnClosePage|OnNewRecord|OnPageBackgroundTaskCompleted|OnPageBackgroundTaskError|OnFindRecord|OnNextRecord)\s*\(.*\)/i;

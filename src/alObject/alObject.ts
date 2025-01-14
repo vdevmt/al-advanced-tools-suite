@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alRegionMgr from '../regions/regionMgr';
 
+//#region AL Object Definition
 export class ALObject {
     public objectType: string;
     public objectId: string;
@@ -229,7 +230,9 @@ export class ALObject {
         return false;
     }
 }
+//#endregion AL Object Definition
 
+//#region AL Object Fields
 export class ALObjectFields {
     public objectType: string;
     public objectId: string;
@@ -390,6 +393,9 @@ export class ALObjectFields {
         }
     }
 }
+//#endregion AL Object Fields
+
+//#region AL Object Procedures
 export class ALObjectProcedures {
     public objectType: string;
     public objectId: string;
@@ -500,6 +506,9 @@ export class ALObjectProcedures {
         }
     }
 }
+//#endregion AL Object Procedures
+
+//#region AL Object Regions
 export class ALObjectRegions {
     public objectType: string;
     public objectId: string;
@@ -573,7 +582,9 @@ export class ALObjectRegions {
         }
     }
 }
+//#endregion AL Object Regions
 
+//#region AL Object Page Actions
 export class ALObjectActions {
     public objectType: string;
     public objectId: string;
@@ -630,7 +641,13 @@ export class ALObjectActions {
                             let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
 
                             if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
-                                this.actions.push({ name: actionInfo.name, sourceAction: actionInfo.sourceAction, area: actionAreaInfo.name, iconName: 'symbol-event', startLine: lineNumber });
+                                this.actions.push({
+                                    name: actionInfo.name,
+                                    sourceAction: actionInfo.sourceAction,
+                                    area: actionAreaInfo.name,
+                                    iconName: 'symbol-event',
+                                    startLine: lineNumber
+                                });
                             }
                         }
                     });
@@ -646,13 +663,16 @@ export class ALObjectActions {
         }
     }
 }
+//#endregion AL Object Page Actions
+
+//#region AL Object Dataitems
 export class ALObjectDataItems {
     public objectType: string;
     public objectId: string;
     public objectName: string;
 
     public elementsCount: number;
-    public dataItems: { name: string, sourceExpression?: string, level?: number, iconName?: string, startLine: number }[];
+    public dataItems: { name: string, sourceExpression?: string, level?: number, iconName?: string, startLine: number, endLine?: number }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -682,6 +702,12 @@ export class ALObjectDataItems {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
                     let currentLevel = -1;
+                    const stack: {
+                        name: string;
+                        sourceExpression: string;
+                        level: number;
+                        startLine: number
+                    }[] = [];
 
                     lines.forEach((lineText, linePos) => {
                         const lineNumber = linePos;
@@ -721,15 +747,30 @@ export class ALObjectDataItems {
                                     insideDataset = false;
                                     return;
                                 }
+
+                                if (stack.length > 0) {
+                                    if (stack[stack.length - 1].level === currentLevel) {
+
+                                        const lastEntry = stack.pop();
+                                        if (lastEntry) {
+                                            this.dataItems.push({
+                                                name: lastEntry.name,
+                                                sourceExpression: lastEntry.sourceExpression,
+                                                level: lastEntry.level,
+                                                startLine: lastEntry.startLine,
+                                                endLine: lineNumber
+                                            });
+                                        }
+                                    }
+                                }
                             }
 
                             let dataItemInfo: { name: string, sourceExpr: string } = { name: '', sourceExpr: '' };
                             if (alFileMgr.isReportDataItemDefinition(lineText, dataItemInfo)) {
-                                this.dataItems.push({
+                                stack.push({
                                     name: dataItemInfo.name,
                                     sourceExpression: dataItemInfo.sourceExpr,
                                     level: currentLevel,
-                                    iconName: 'database',
                                     startLine: lineNumber
                                 });
                             }
@@ -747,3 +788,101 @@ export class ALObjectDataItems {
         }
     }
 }
+//#endregion AL Object Dataitems
+
+//#region AL Table Keys
+export class ALTableKeys {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public keys: { name: string, fieldsList: string, isPrimaryKey: boolean, iconName?: string, startLine: number, endLine?: number }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findTableKeys(alObject);
+        this.elementsCount = this.keys ? this.keys.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.keys = [];
+    }
+
+    private findTableKeys(alObject: ALObject) {
+        if (alObject) {
+            if (alObject.objectContentText) {
+                let validObjectType = alObject.isTable() || alObject.isTableExt();
+                let insideKeys: boolean = false;
+                let primaryKeyFound: boolean;
+
+                if (validObjectType) {
+                    const lines = alObject.objectContentText.split('\n');
+                    let insideMultiLineComment: boolean;
+
+                    lines.forEach((lineText, linePos) => {
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (alFileMgr.isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (alFileMgr.isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                            return; // Ignora questa riga
+                        }
+
+                        // Verifico di trovarmi nella sezione Keys
+                        if (lineText.trim().toLowerCase() === 'keys') {
+                            insideKeys = true;
+                            primaryKeyFound = false;
+                        }
+
+                        if (insideKeys) {
+                            let keyInfo: { name: string, fieldsList: string } = { name: '', fieldsList: '' };
+                            if (alFileMgr.isTableKeyDefinition(lineText, keyInfo)) {
+                                let isPrimaryKey = false;
+
+                                if (alObject.isTable()) {
+                                    if (!primaryKeyFound) {
+                                        isPrimaryKey = true;
+                                        primaryKeyFound = true;
+                                    }
+                                }
+
+                                this.keys.push({
+                                    name: keyInfo.name,
+                                    fieldsList: keyInfo.fieldsList,
+                                    isPrimaryKey: isPrimaryKey,
+                                    iconName: isPrimaryKey ? 'key' : 'list-ordered',
+                                    startLine: lineNumber,
+                                    endLine: 0
+                                });
+                            }
+                        }
+                    });
+
+                    if (this.keys) {
+                        if (this.keys.length > 0) {
+                            // Order by StartLine
+                            this.keys.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion AL Table Keys

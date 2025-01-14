@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../alObject/alObjectFileMgr';
-import { ALObject, ALObjectRegions } from '../alObject/alObject';
+import { ALObjectRegions } from '../alObject/alObject';
 
 interface RegionInfo {
     name: string;
@@ -103,36 +102,5 @@ export function findCurrentRegionStartLine(alObjectRegions: ALObjectRegions, doc
     }
 
     return 0;
-}
-
-export async function showAllRegions() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectRegions: ALObjectRegions;
-        alObjectRegions = new ALObjectRegions(alObject);
-        if (alObjectRegions.regions) {
-            if (alObjectRegions.elementsCount > 0) {
-                let items: alFileMgr.QuickPickItem[] = alObjectRegions.regions.map(item => ({
-                    label: item.name,
-                    description: '',
-                    detail: '',
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: item.endLine ? item.endLine : 0,
-                    level: item.level ? item.level : 0,
-                    iconName: item.iconName
-                }));
-
-                alFileMgr.showObjectItems(items, 'Regions');
-                return;
-            }
-        }
-
-        vscode.window.showInformationMessage(`No region found in ${alObject.objectType} ${alObject.objectName}`);
-    }
 }
 //#endregion Regions tools
