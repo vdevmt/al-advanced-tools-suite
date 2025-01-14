@@ -883,7 +883,8 @@ export class ALObjectDataItems {
                                                 sourceExpression: lastEntry.sourceExpression,
                                                 level: lastEntry.level,
                                                 startLine: lastEntry.startLine,
-                                                endLine: lineNumber
+                                                endLine: lineNumber,
+                                                iconName: 'symbol-class'
                                             });
                                         }
                                     }

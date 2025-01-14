@@ -359,8 +359,8 @@ export async function showObjectItems(items: QuickPickItem[], title: string) {
         }
 
         const picked = await vscode.window.showQuickPick(items.map(item => ({
-            label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
-                (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
+            label: ((item.level > 0) && (item.iconName)) ? `${'....'.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
+                (item.level > 0) ? `${'....'.repeat(item.level)} ${item.label}` :
                     (item.iconName) ? `$(${item.iconName}) ${item.label}` :
                         `${item.label}`,
             description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
