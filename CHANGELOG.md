@@ -3,7 +3,8 @@
 ## [1.3.19]
 - New Features:
     - Command `ATS: Show all Dataitems`: show and search dataitems of the current AL Object.    
-    - Command `ATS: Show all table keys`: show and search table keys of the current AL Object.    
+    - Command `ATS: Show all Table Keys`: show and search table keys of the current AL Object.    
+    - Command `ATS: Show open AL Objects`: show and search AL Objects among open editors
 
 ## [1.3.10]
 - New Features:

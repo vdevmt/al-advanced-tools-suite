@@ -153,7 +153,7 @@ export function changerStartupObjectAndRunBusinessCentral() {
         alObject = new ALObject(editor.document);
         if (alObject) {
             if (!alFileMgr.isValidObjectToRun(alObject)) {
-                vscode.window.showErrorMessage(`The object ${alObject.objectType} ${alObject.objectId} is not a valid object to run`);
+                vscode.window.showErrorMessage(`The object ${alObject.objectTypeCamelCase()} ${alObject.objectId} is not a valid object to run`);
                 return;
             }
 
@@ -362,7 +362,7 @@ function handleURLForwardingRules(clientURL: string, forwardingRules: { [key: st
 function setNewStartupObject(configName: string, alObject: ALObject) {
     if (alObject && configName) {
         if (!alFileMgr.isValidObjectToRun(alObject)) {
-            vscode.window.showErrorMessage(`The object ${alObject.objectType} ${alObject.objectId} is not a valid object to run`);
+            vscode.window.showErrorMessage(`The object ${alObject.objectTypeCamelCase()} ${alObject.objectId} is not a valid object to run`);
         }
         else {
             // Search launch.json in current workspace
@@ -411,7 +411,7 @@ function setNewStartupObject(configName: string, alObject: ALObject) {
             }
 
             // Store new values in variables
-            const startupObjectTypeValue = alFileMgr.capitalizeObjectType(alObject.objectType);
+            const startupObjectTypeValue = alObject.objectTypeCamelCase();
             const startupObjectIdValue = Number(alObject.objectId);
 
             // Edit configuration

@@ -166,6 +166,46 @@ export class ALObject {
         }
     }
 
+    public getDefaultIconName(): string {
+        switch (true) {
+            case this.isTable(): {
+                return 'database';
+            }
+            case this.isTableExt(): {
+                return 'database';
+            }
+            case this.isCodeunit(): {
+                return 'code';
+            }
+            case this.isPage(): {
+                return 'preview';
+            }
+            case this.isPageExt(): {
+                return 'preview';
+            }
+            case this.isQuery(): {
+                return 'graph';
+            }
+            case this.isReport(): {
+                return 'file-pdf';
+            }
+            case this.isReportExt(): {
+                return 'file-pdf';
+            }
+            case this.isEnum(): {
+                return 'symbol-enum';
+            }
+            case this.isEnumExt(): {
+                return 'symbol-enum';
+            }
+            case this.isXmlPort(): {
+                return 'globe';
+            }
+        }
+
+        return 'symbol-object';
+    }
+
     public isTable(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'table');
@@ -215,6 +255,20 @@ export class ALObject {
 
         return false;
     }
+    public isEnum(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'enum');
+        }
+
+        return false;
+    }
+    public isEnumExt(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'enumextension');
+        }
+
+        return false;
+    }
     public isQuery(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'query');
@@ -228,6 +282,57 @@ export class ALObject {
         }
 
         return false;
+    }
+
+    public objectTypeCamelCase(): string {
+        let output: string = this.objectType;
+
+        if (output) {
+            switch (this.objectType.toLowerCase()) {
+                case 'requestpage': {
+                    output = 'RequestPage';
+                    break;
+                }
+                case 'permissionset': {
+                    output = 'PermissionSet';
+                    break;
+                }
+                case 'pageextension': {
+                    output = 'PageExtension';
+                    break;
+                }
+                case 'tableextension': {
+                    output = 'TableExtension';
+                    break;
+                }
+                case 'reportextension': {
+                    output = 'ReportExtension';
+                    break;
+                }
+                case 'permissionsetextension': {
+                    output = 'PermissionSetExtension';
+                    break;
+                }
+                case 'enumextension': {
+                    output = 'EnumExtension';
+                    break;
+                }
+                case 'controladdin': {
+                    output = 'ControlAddin';
+                    break;
+                }
+                case 'pagecustomization': {
+                    output = 'PageCustomization';
+                    break;
+                }
+                default: {
+                    output = output.charAt(0).toUpperCase() + output.slice(1).toLowerCase();
+                    break;
+                }
+            }
+        }
+
+        return output;
     }
 }
 //#endregion AL Object Definition

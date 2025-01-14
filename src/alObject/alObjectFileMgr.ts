@@ -199,24 +199,6 @@ export function isValidObjectToRun(alObject: ALObject): Boolean {
     return false;
 }
 
-export function capitalizeObjectType(objectType: string): string {
-    if (objectType) {
-        if (objectType === 'tableextension') {
-            return 'TableExtension';
-        }
-        if (objectType === 'pageextension') {
-            return 'PageExtension';
-        }
-        if (objectType === 'reportextension') {
-            return 'ReportExtension';
-        }
-
-        return objectType.charAt(0).toUpperCase() + objectType.slice(1).toLowerCase();
-    }
-
-    return '';
-}
-
 export function addQuotesIfNeeded(text: string): string {
     if (text.includes(" ")) {
         return `"${text}"`;
@@ -227,7 +209,7 @@ export function addQuotesIfNeeded(text: string): string {
 
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
-        return `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+        return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
     }
 
     return '';

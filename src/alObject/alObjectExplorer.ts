@@ -9,11 +9,13 @@ export interface QuickPickItem {
     sortKey?: string;
     uri?: vscode.Uri;
     alObject?: ALObject;
+    alOjectType?: string,
     iconName?: string;
     level?: number;
     startLine?: number;
     endLine?: number;
     command?: string;
+    itemkind?: vscode.QuickPickItemKind;
 }
 
 export async function execALObjectExplorer() {
@@ -130,131 +132,25 @@ export async function execALObjectExplorer() {
 
         if (items) {
             if (items.length > 0) {
-                if ((items.length === 1) && (items[0].command)) {
-                    vscode.commands.executeCommand(items[0].command);
-                }
-                else {
-                    const picked = await vscode.window.showQuickPick(items.map(item => ({
-                        label: `$(${item.iconName}) ${item.label}`,
-                        description: item.description,
-                        detail: item.detail,
-                        command: item.command
-                    })), {
-                        placeHolder: `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-                        matchOnDescription: false,
-                        matchOnDetail: false,
-                    });
+                const picked = await vscode.window.showQuickPick(items.map(item => ({
+                    label: `$(${item.iconName}) ${item.label}`,
+                    description: item.description,
+                    detail: item.detail,
+                    command: item.command
+                })), {
+                    placeHolder: `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
+                    matchOnDescription: false,
+                    matchOnDetail: false,
+                });
 
-                    if (picked) {
-                        if (picked.command) {
-                            vscode.commands.executeCommand(picked.command);
-                        }
+                if (picked) {
+                    if (picked.command) {
+                        vscode.commands.executeCommand(picked.command);
                     }
                 }
             }
         }
     }
-}
-
-export async function showOpenALObjects() {
-    const activeEditor = vscode.window.activeTextEditor;
-    const activeUri = activeEditor?.document.uri.toString();
-
-    // Recupera i tab aperti
-    const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
-
-    const items: QuickPickItem[] = [];
-
-    for (const editor of openEditors) {
-        try {
-            const documentUri = (editor.input as any).uri;
-
-            if (alFileMgr.isALObjectFile(documentUri, true)) {
-                const doc = await vscode.workspace.openTextDocument(documentUri);
-
-                let alObject: ALObject;
-                alObject = new ALObject(doc);
-                let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
-
-                const isCurrentEditor = (doc.uri.toString() === activeUri);
-                let iconName = alFileMgr.isPreviewALObjectFile(documentUri) ? 'shield' : 'symbol-class';
-
-                items.push({
-                    label: `$(${iconName}) ${objectInfoText}`,
-                    description: isCurrentEditor ? '$(eye)' : '',
-                    detail: vscode.workspace.asRelativePath(doc.uri),
-                    sortKey: objectSortKey(alObject, isCurrentEditor),
-                    uri: doc.uri
-                });
-            }
-        } catch (err) {
-            console.log(`Unable to read file: ${editor}`, err);
-        }
-    }
-
-    items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-
-    // Show object list
-    const picked = await vscode.window.showQuickPick(items.map(item => ({
-        label: item.label,
-        description: item.description,
-        detail: item.detail,
-        uri: item.uri,
-    })), {
-        placeHolder: 'Select a file to open',
-        matchOnDescription: true,
-        matchOnDetail: true,
-    });
-
-    if (picked) {
-        // Open selected
-        vscode.window.showTextDocument(picked.uri);
-    }
-}
-
-function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
-    let objPriority: number = 9999;
-
-    if (alObject) {
-        if (isCurrentEditor) {
-            objPriority = 10;
-        }
-        else {
-            switch (alObject.objectType) {
-                case 'table':
-                    objPriority = 20;
-                    break;
-
-                case 'tableextension':
-                    objPriority = 21;
-                    break;
-
-                case 'codeunit':
-                    objPriority = 30;
-                    break;
-
-                case 'page':
-                    objPriority = 40;
-                    break;
-
-                case 'pageextension':
-                    objPriority = 41;
-                    break;
-
-                case 'report':
-                    objPriority = 50;
-                    break;
-
-                case 'reportextension':
-                    objPriority = 51;
-                    break;
-            }
-        }
-
-        return `${objPriority.toString().padStart(4, '0')}_${alObject.objectType}_${alObject.objectName}`;
-    }
-
-    return `${objPriority.toString().padStart(4, '0')}`;
 }
 
 export async function showAllFields() {
@@ -284,7 +180,7 @@ export async function showAllFields() {
             }
         }
 
-        vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No field found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 
@@ -315,7 +211,7 @@ export async function showAllTableKeys() {
             }
         }
 
-        vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No field found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 
@@ -348,7 +244,7 @@ export async function showAllProcedures() {
             }
         }
 
-        vscode.window.showInformationMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No procedure found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 
@@ -378,7 +274,7 @@ export async function showAllDataItems() {
             }
         }
 
-        vscode.window.showInformationMessage(`No Dataitem found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No Dataitem found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 
@@ -409,7 +305,7 @@ export async function showAllActions() {
             }
         }
 
-        vscode.window.showInformationMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No action found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 
@@ -440,7 +336,7 @@ export async function showAllRegions() {
             }
         }
 
-        vscode.window.showInformationMessage(`No region found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No region found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 
@@ -485,4 +381,130 @@ export async function showObjectItems(items: QuickPickItem[], title: string) {
             }
         }
     }
+}
+
+export async function showOpenALObjects() {
+    const activeEditor = vscode.window.activeTextEditor;
+    const activeUri = activeEditor?.document.uri.toString();
+
+    // Recupera i tab aperti
+    const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
+
+    const stack: QuickPickItem[] = [];
+
+    for (const editor of openEditors) {
+        try {
+            const documentUri = (editor.input as any).uri;
+
+            if (alFileMgr.isALObjectFile(documentUri, true)) {
+                const doc = await vscode.workspace.openTextDocument(documentUri);
+
+                let alObject: ALObject;
+                alObject = new ALObject(doc);
+                let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
+
+                const isCurrentEditor = (doc.uri.toString() === activeUri);
+                let iconName = alFileMgr.isPreviewALObjectFile(documentUri) ? 'lock-small' : alObject.getDefaultIconName();
+
+                stack.push({
+                    label: `$(${iconName}) ${objectInfoText}`,
+                    description: isCurrentEditor ? '$(eye)' : '',
+                    detail: vscode.workspace.asRelativePath(doc.uri),
+                    alOjectType: isCurrentEditor ? 'Current Editor' : alObject.objectTypeCamelCase(),
+                    sortKey: objectSortKey(alObject, isCurrentEditor),
+                    uri: doc.uri
+                });
+            }
+        } catch (err) {
+            console.log(`Unable to read file: ${editor}`, err);
+        }
+    }
+
+    stack.sort((a, b) =>
+        a.sortKey.localeCompare(b.sortKey, undefined, { numeric: true, sensitivity: 'base' })
+    );
+
+    // Show object list
+    const quickPickItems: QuickPickItem[] = [];
+    let lastObjectType: string = '';
+
+    for (const item of stack) {
+        if (lastObjectType !== item.alOjectType) {
+            lastObjectType = item.alOjectType;
+
+            quickPickItems.push({
+                label: item.alOjectType,
+                itemkind: vscode.QuickPickItemKind.Separator
+            });
+        }
+
+        quickPickItems.push({
+            label: item.label,
+            description: item.description,
+            detail: item.detail,
+            uri: item.uri
+        });
+    }
+
+    const picked = await vscode.window.showQuickPick(quickPickItems.map(item => ({
+        label: item.label,
+        description: item.description,
+        detail: item.detail,
+        uri: item.uri,
+        kind: item.itemkind
+    })), {
+        placeHolder: 'Select a file to open',
+        matchOnDescription: true,
+        matchOnDetail: true,
+    });
+
+    if (picked) {
+        // Open selected
+        vscode.window.showTextDocument(picked.uri);
+    }
+}
+
+function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
+    let objPriority: string = 'Z';
+
+    if (alObject) {
+        if (isCurrentEditor) {
+            objPriority = 'A';
+        }
+        else {
+            switch (alObject.objectType) {
+                case 'table':
+                    objPriority = 'B';
+                    break;
+
+                case 'tableextension':
+                    objPriority = 'C';
+                    break;
+
+                case 'codeunit':
+                    objPriority = 'D';
+                    break;
+
+                case 'page':
+                    objPriority = 'E';
+                    break;
+
+                case 'pageextension':
+                    objPriority = 'F';
+                    break;
+
+                case 'report':
+                    objPriority = 'G';
+                    break;
+
+                case 'reportextension':
+                    objPriority = 'H';
+                    break;
+            }
+        }
+
+        return `${objPriority}_${alObject.objectType}_${alObject.objectName}`;
+    }
+
+    return objPriority;
 }
