@@ -2,6 +2,7 @@
 
 ## [1.3.19]
 - New Features:
+    - Command `ATS: AL Object Explorer`: navigates through the elements of the current AL Object.    
     - Command `ATS: Show all Dataitems`: show and search dataitems of the current AL Object.    
     - Command `ATS: Show all Table Keys`: show and search table keys of the current AL Object.    
     - Command `ATS: Show open AL Objects`: show and search AL Objects among open editors
