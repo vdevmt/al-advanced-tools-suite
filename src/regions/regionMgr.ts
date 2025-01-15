@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as alFileMgr from '../alObject/alObjectFileMgr';
-import { ALObject, ALObjectRegions } from '../alObject/alObject';
+import { ALObjectRegions } from '../alObject/alObject';
 
 interface RegionInfo {
     name: string;
@@ -103,55 +102,5 @@ export function findCurrentRegionStartLine(alObjectRegions: ALObjectRegions, doc
     }
 
     return 0;
-}
-
-export async function showAllRegions() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (alFileMgr.isALObjectDocument(document)) {
-        if (documentHasRegion(document)) {
-            let alObject: ALObject;
-            alObject = new ALObject(document);
-
-            let alObjectRegions: ALObjectRegions;
-            alObjectRegions = new ALObjectRegions(alObject);
-
-            if (alObjectRegions.regions.length > 0) {
-                let currRegionStartLine = 0;
-                try {
-                    const currentLine = editor.selection.active.line;
-                    currRegionStartLine = findCurrentRegionStartLine(alObjectRegions, currentLine);
-                }
-                catch {
-                    currRegionStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectRegions.regions.map(item => ({
-                    label: (item.level === 0) ? `$(symbol-number) ${item.name}` : `└──${'───'.repeat(item.level - 1)} $(symbol-number) ${item.name}`,
-                    description: (item.startLine === currRegionStartLine) ? `$(eye)` : '',
-                    detail: '',
-                    regionStartLine: item.startLine
-                })), {
-                    placeHolder: 'Regions',
-                    matchOnDescription: false,
-                    matchOnDetail: false,
-                });
-
-                if (picked) {
-                    const position = new vscode.Position(picked.regionStartLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
-            }
-        }
-        else {
-            vscode.window.showInformationMessage('No regions found in the current document');
-        }
-    }
 }
 //#endregion Regions tools

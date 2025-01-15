@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
 import * as alFileMgr from './alObject/alObjectFileMgr';
+import * as alObjectExplorer from './alObject/alObjectExplorer';
 import * as regionMgr from './regions/regionMgr';
 import * as regionStatusBar from './regions/regionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
@@ -16,12 +17,16 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.openLaunchFile', launchMgr.openLaunchFile));
     //#endregion launch.json tools
 
-    //#region AL Objects Mgt
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alFileMgr.showOpenALObjects));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alFileMgr.showAllFields));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllProcedures', alFileMgr.showAllProcedures));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alFileMgr.showAllActions));
-    //#endregion AL Objects Mgt
+    //#region AL Objects Explorer
+    context.subscriptions.push(vscode.commands.registerCommand('ats.execALObjectExplorer', alObjectExplorer.execALObjectExplorer));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alObjectExplorer.showOpenALObjects));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alObjectExplorer.showAllFields));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTableKeys', alObjectExplorer.showAllTableKeys));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllProcedures', alObjectExplorer.showAllProcedures));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alObjectExplorer.showAllActions));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllDataItems', alObjectExplorer.showAllDataItems));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllRegions', alObjectExplorer.showAllRegions));
+    //#endregion AL Objects Explorer
 
     //#region Run Business Central       
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
@@ -30,7 +35,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     //#region Region tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.createRegionBySelection', regionMgr.createRegionBySelection));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllRegions', regionMgr.showAllRegions));
     //#endregion Region tools
 
     //#region Namespace tools

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alRegionMgr from '../regions/regionMgr';
 
+//#region AL Object Definition
 export class ALObject {
     public objectType: string;
     public objectId: string;
@@ -214,6 +215,20 @@ export class ALObject {
 
         return false;
     }
+    public isEnum(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'enum');
+        }
+
+        return false;
+    }
+    public isEnumExt(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'enumextension');
+        }
+
+        return false;
+    }
     public isQuery(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'query');
@@ -228,8 +243,121 @@ export class ALObject {
 
         return false;
     }
-}
+    public isInterface(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'interface');
+        }
 
+        return false;
+    }
+    public isEntitlement(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'entitlement');
+        }
+
+        return false;
+    }
+
+    public objectTypeCamelCase(): string {
+        let output: string = this.objectType;
+
+        if (output) {
+            switch (this.objectType.toLowerCase()) {
+                case 'requestpage': {
+                    output = 'RequestPage';
+                    break;
+                }
+                case 'permissionset': {
+                    output = 'PermissionSet';
+                    break;
+                }
+                case 'pageextension': {
+                    output = 'PageExtension';
+                    break;
+                }
+                case 'tableextension': {
+                    output = 'TableExtension';
+                    break;
+                }
+                case 'reportextension': {
+                    output = 'ReportExtension';
+                    break;
+                }
+                case 'permissionsetextension': {
+                    output = 'PermissionSetExtension';
+                    break;
+                }
+                case 'enumextension': {
+                    output = 'EnumExtension';
+                    break;
+                }
+                case 'controladdin': {
+                    output = 'ControlAddin';
+                    break;
+                }
+                case 'pagecustomization': {
+                    output = 'PageCustomization';
+                    break;
+                }
+                default: {
+                    output = output.charAt(0).toUpperCase() + output.slice(1).toLowerCase();
+                    break;
+                }
+            }
+        }
+
+        return output;
+    }
+
+    public getDefaultIconName(): string {
+        switch (true) {
+            case this.isTable(): {
+                return 'database';
+            }
+            case this.isTableExt(): {
+                return 'database';
+            }
+            case this.isCodeunit(): {
+                return 'code';
+            }
+            case this.isPage(): {
+                return 'preview';
+            }
+            case this.isPageExt(): {
+                return 'preview';
+            }
+            case this.isQuery(): {
+                return 'graph';
+            }
+            case this.isReport(): {
+                return 'file-pdf';
+            }
+            case this.isReportExt(): {
+                return 'file-pdf';
+            }
+            case this.isEnum(): {
+                return 'symbol-enum';
+            }
+            case this.isEnumExt(): {
+                return 'symbol-enum';
+            }
+            case this.isXmlPort(): {
+                return 'globe';
+            }
+            case this.isInterface(): {
+                return 'symbol-interface';
+            }
+            case this.isEntitlement(): {
+                return 'symbol-interface';
+            }
+        }
+
+        return 'symbol-misc';
+    }
+}
+//#endregion AL Object Definition
+
+//#region AL Object Fields
 export class ALObjectFields {
     public objectType: string;
     public objectId: string;
@@ -345,6 +473,21 @@ export class ALObjectFields {
 
                                 return;
                             }
+                            else {
+                                if (alFileMgr.isReportReqPageFieldDefinition(lineText, reportField)) {
+                                    this.fields.push({
+                                        id: 0,
+                                        name: reportField.name,
+                                        type: reportField.sourceExpr,
+                                        sourceExpr: reportField.sourceExpr,
+                                        dataItem: 'requestpage',
+                                        iconName: 'symbol-field',
+                                        startLine: lineNumber
+                                    });
+
+                                    return;
+                                }
+                            }
                         }
                         if (alObject.isQuery) {
                             let reportField: { name: string, sourceExpr: string };
@@ -375,6 +518,9 @@ export class ALObjectFields {
         }
     }
 }
+//#endregion AL Object Fields
+
+//#region AL Object Procedures
 export class ALObjectProcedures {
     public objectType: string;
     public objectId: string;
@@ -445,7 +591,7 @@ export class ALObjectProcedures {
                             if (alFileMgr.isProcedureDefinition(alObject, lineText, procedureInfo)) {
                                 let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
                                     insideEventSubscription ? 'plug' :
-                                        procedureInfo.scope === 'trigger' ? 'symbol-class' :
+                                        procedureInfo.scope === 'trigger' ? 'server-process' :
                                             procedureInfo.scope === 'global' ? 'symbol-function' :
                                                 procedureInfo.scope === 'local' ? 'shield' :
                                                     procedureInfo.scope === 'internal' ? 'symbol-variable' :
@@ -485,6 +631,9 @@ export class ALObjectProcedures {
         }
     }
 }
+//#endregion AL Object Procedures
+
+//#region AL Object Regions
 export class ALObjectRegions {
     public objectType: string;
     public objectId: string;
@@ -558,7 +707,9 @@ export class ALObjectRegions {
         }
     }
 }
+//#endregion AL Object Regions
 
+//#region AL Object Page Actions
 export class ALObjectActions {
     public objectType: string;
     public objectId: string;
@@ -615,7 +766,13 @@ export class ALObjectActions {
                             let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
 
                             if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
-                                this.actions.push({ name: actionInfo.name, sourceAction: actionInfo.sourceAction, area: actionAreaInfo.name, iconName: 'symbol-event', startLine: lineNumber });
+                                this.actions.push({
+                                    name: actionInfo.name,
+                                    sourceAction: actionInfo.sourceAction,
+                                    area: actionAreaInfo.name,
+                                    iconName: 'symbol-event',
+                                    startLine: lineNumber
+                                });
                             }
                         }
                     });
@@ -631,3 +788,227 @@ export class ALObjectActions {
         }
     }
 }
+//#endregion AL Object Page Actions
+
+//#region AL Object Dataitems
+export class ALObjectDataItems {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public dataItems: { name: string, sourceExpression?: string, level?: number, iconName?: string, startLine: number, endLine?: number }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findObjectDataItems(alObject);
+        this.elementsCount = this.dataItems ? this.dataItems.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.dataItems = [];
+    }
+
+    private findObjectDataItems(alObject: ALObject) {
+        if (alObject) {
+            if (alObject.objectContentText) {
+                let validObjectType = alObject.isReport() || alObject.isReportExt() || alObject.isQuery();
+                let insideDataset: boolean;
+
+                if (validObjectType) {
+                    const lines = alObject.objectContentText.split('\n');
+                    let insideMultiLineComment: boolean;
+                    let currentLevel = -1;
+                    const stack: {
+                        name: string;
+                        sourceExpression: string;
+                        level: number;
+                        startLine: number
+                    }[] = [];
+
+                    lines.forEach((lineText, linePos) => {
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (alFileMgr.isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (alFileMgr.isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                            return; // Ignora questa riga
+                        }
+
+                        // Verifico di trovarmi nella sezione Dataset
+                        if (alObject.isReport() || alObject.isReportExt()) {
+                            if (lineText.trim().toLowerCase() === 'dataset') {
+                                insideDataset = true;
+                            }
+                        }
+                        if (alObject.isQuery()) {
+                            if (lineText.trim().toLowerCase() === 'elements') {
+                                insideDataset = true;
+                            }
+                        }
+
+                        if (insideDataset) {
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+                                if (currentLevel < 0) {
+                                    insideDataset = false;
+                                    return;
+                                }
+
+                                if (stack.length > 0) {
+                                    if (stack[stack.length - 1].level === currentLevel) {
+
+                                        const lastEntry = stack.pop();
+                                        if (lastEntry) {
+                                            this.dataItems.push({
+                                                name: lastEntry.name,
+                                                sourceExpression: lastEntry.sourceExpression,
+                                                level: lastEntry.level,
+                                                startLine: lastEntry.startLine,
+                                                endLine: lineNumber,
+                                                iconName: 'symbol-class'
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+
+                            let dataItemInfo: { name: string, sourceExpr: string } = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                stack.push({
+                                    name: dataItemInfo.name,
+                                    sourceExpression: dataItemInfo.sourceExpr,
+                                    level: currentLevel,
+                                    startLine: lineNumber
+                                });
+                            }
+                        }
+                    });
+
+                    if (this.dataItems) {
+                        if (this.dataItems.length > 0) {
+                            // Order by StartLine
+                            this.dataItems.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion AL Object Dataitems
+
+//#region AL Table Keys
+export class ALTableKeys {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public keys: { name: string, fieldsList: string, isPrimaryKey: boolean, iconName?: string, startLine: number, endLine?: number }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findTableKeys(alObject);
+        this.elementsCount = this.keys ? this.keys.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.keys = [];
+    }
+
+    private findTableKeys(alObject: ALObject) {
+        if (alObject) {
+            if (alObject.objectContentText) {
+                let validObjectType = alObject.isTable() || alObject.isTableExt();
+                let insideKeys: boolean = false;
+                let primaryKeyFound: boolean;
+
+                if (validObjectType) {
+                    const lines = alObject.objectContentText.split('\n');
+                    let insideMultiLineComment: boolean;
+
+                    lines.forEach((lineText, linePos) => {
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (alFileMgr.isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (alFileMgr.isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                            return; // Ignora questa riga
+                        }
+
+                        // Verifico di trovarmi nella sezione Keys
+                        if (lineText.trim().toLowerCase() === 'keys') {
+                            insideKeys = true;
+                            primaryKeyFound = false;
+                        }
+
+                        if (insideKeys) {
+                            let keyInfo: { name: string, fieldsList: string } = { name: '', fieldsList: '' };
+                            if (alFileMgr.isTableKeyDefinition(lineText, keyInfo)) {
+                                let isPrimaryKey = false;
+
+                                if (alObject.isTable()) {
+                                    if (!primaryKeyFound) {
+                                        isPrimaryKey = true;
+                                        primaryKeyFound = true;
+                                    }
+                                }
+
+                                this.keys.push({
+                                    name: keyInfo.name,
+                                    fieldsList: keyInfo.fieldsList,
+                                    isPrimaryKey: isPrimaryKey,
+                                    iconName: isPrimaryKey ? 'key' : 'list-ordered',
+                                    startLine: lineNumber,
+                                    endLine: 0
+                                });
+                            }
+                        }
+                    });
+
+                    if (this.keys) {
+                        if (this.keys.length > 0) {
+                            // Order by StartLine
+                            this.keys.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion AL Table Keys

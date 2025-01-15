@@ -13,28 +13,44 @@ If you want to support my work:
 # Features
 These features are concluded at this moment:
 
-## AL Object informations
+## AL Object Explorer
 * Info and statistics of the current AL Object in status bar
 <br />
 <img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info">
 
-* Show and search fields on the current AL Object with command **ATS: Show all fields**
+* **ATS: AL Object Explorer**: navigate through the elements of the current AL object
 <br />
-<img src="./images/ShowAllFields.png" alt="ATS: Show all fields">
+<img src="./images/ALObjectExplorer.png" alt="AL Object Explorer">
 
-* Show and search procedures on the current AL Object with command **ATS: Show all procedures**
+* **ATS AL Object Explorer: Show all Fields**: Show and search fields of the current AL Object
 <br />
-<img src="./images/ShowAllProcedures.png" alt="ATS: Show all procedures">
-<br />
-<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all procedures with regions">
+<img src="./images/ShowAllFields.png" alt="ATS: Show all Fields">
 
-* Show and search page actions on the current AL Object with command **ATS: Show all actions**
+* **ATS AL Object Explorer: Show all Table Keys**: Show and search keys of the current AL Table
 <br />
-<img src="./images/ShowAllActions.png" alt="ATS: Show all actions">
+<img src="./images/ShowAllKeys.png" alt="ATS: Show all Table Keys">
 
-* Show and search regions on the current AL Object with command **ATS: Show all regions**
+* **ATS AL Object Explorer: Show all Procedures**: Show and search procedure of the current AL Object
 <br />
-<img src="./images/RegionsStructure.png" alt="ATS: Show all regions">
+<img src="./images/ShowAllProcedures.png" alt="ATS: Show all Procedures">
+<br />
+<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all Procedures with regions">
+
+* **ATS AL Object Explorer: Show all Page Actions**: Show and search page actions of the current AL Object
+<br />
+<img src="./images/ShowAllActions.png" alt="ATS: Show all Actions">
+
+* **ATS AL Object Explorer: Show all Dataitems**: Show the complete dataitems structure of the current AL Report
+<br />
+<img src="./images/ShowAllDataitems.png" alt="ATS: Show all Dataitems">
+
+* **ATS AL Object Explorer: Show all Regions**: Show the complete region structure of the current AL Object
+<br />
+<img src="./images/RegionsStructure.png" alt="ATS: Show all Regions">
+
+* **ATS AL Object Explorer: Show open objects**: Show detailed list of open AL Objects
+<br />
+<img src="./images/OpenALObjects.png" alt="ATS: open objects">
 
 ## launch.json manager
 Store all launch.json files in a local or shared folder and select which one to use for the current project.<br />

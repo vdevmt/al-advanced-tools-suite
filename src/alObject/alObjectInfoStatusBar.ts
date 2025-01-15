@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures, ALObjectRegions } from './alObject';
+import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
 export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
@@ -15,8 +15,8 @@ export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
         objectInfoStatusBarItem.text = `$(info)`;
         objectInfoStatusBarItem.tooltip = makeTooltip(null, '');
         objectInfoStatusBarItem.command = {
-            command: 'ats.showOpenALObjects',
-            title: `ATS: Show open AL Objects`
+            command: 'ats.execALObjectExplorer',
+            title: `ATS: AL Object Explorer`
         };
 
         objectInfoStatusBarItem.show();
@@ -68,8 +68,14 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}\n\n`);
         }
 
+        let alObjectDataItems: ALObjectDataItems;
+        alObjectDataItems = new ALObjectDataItems(alObject);
+
         let alObjectFields: ALObjectFields;
         alObjectFields = new ALObjectFields(alObject);
+
+        let alTableKeys: ALTableKeys;
+        alTableKeys = new ALTableKeys(alObject);
 
         let alObjectProcedures: ALObjectProcedures;
         alObjectProcedures = new ALObjectProcedures(alObject);
@@ -81,10 +87,12 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
         alObjectActions = new ALObjectActions(alObject);
 
         const counters = [
+            alObjectDataItems.elementsCount > 0 ? `Dataitems: ${alObjectDataItems.elementsCount}` : '',
             alObjectFields.elementsCount > 0 ? `Fields: ${alObjectFields.elementsCount}` : '',
+            alTableKeys.elementsCount > 0 ? `Keys: ${alTableKeys.elementsCount}` : '',
+            alObjectActions.elementsCount > 0 ? `Actions: ${alObjectActions.elementsCount}` : '',
             alObjectProcedures.elementsCount > 0 ? `Procedures: ${alObjectProcedures.elementsCount}` : '',
-            alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : '',
-            alObjectActions.elementsCount > 0 ? `Actions: ${alObjectActions.elementsCount}` : ''
+            alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : ''
         ]
             .filter(Boolean)
             .join(' | ');

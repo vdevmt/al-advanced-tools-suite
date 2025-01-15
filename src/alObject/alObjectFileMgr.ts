@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
-import { ALObject, ALObjectActions, ALObjectFields, ALObjectProcedures } from './alObject';
-import { applyEdits } from 'jsonc-parser';
+import { ALObject } from './alObject';
 
-export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean): Boolean {
+export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
         return true;
     }
@@ -18,7 +17,7 @@ export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: Boolean):
     return false;
 }
 
-export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
+export function isPreviewALObjectFile(file: vscode.Uri): boolean {
     if (file.fsPath.toLowerCase().endsWith('.dal')) {
         return true;
     }
@@ -26,7 +25,7 @@ export function isPreviewALObjectFile(file: vscode.Uri): Boolean {
     return false;
 }
 
-export function isALObjectDocument(document: vscode.TextDocument): Boolean {
+export function isALObjectDocument(document: vscode.TextDocument): boolean {
     if (document.languageId === 'al') {
         return true;
     }
@@ -34,7 +33,7 @@ export function isALObjectDocument(document: vscode.TextDocument): Boolean {
     return false;
 }
 
-export function IsPreviewALObject(document: vscode.TextDocument): Boolean {
+export function IsPreviewALObject(document: vscode.TextDocument): boolean {
     if (document.fileName.toLowerCase().endsWith('.dal')) {
         return true;
     }
@@ -200,24 +199,6 @@ export function isValidObjectToRun(alObject: ALObject): Boolean {
     return false;
 }
 
-export function capitalizeObjectType(objectType: string): string {
-    if (objectType) {
-        if (objectType === 'tableextension') {
-            return 'TableExtension';
-        }
-        if (objectType === 'pageextension') {
-            return 'PageExtension';
-        }
-        if (objectType === 'reportextension') {
-            return 'ReportExtension';
-        }
-
-        return objectType.charAt(0).toUpperCase() + objectType.slice(1).toLowerCase();
-    }
-
-    return '';
-}
-
 export function addQuotesIfNeeded(text: string): string {
     if (text.includes(" ")) {
         return `"${text}"`;
@@ -228,112 +209,10 @@ export function addQuotesIfNeeded(text: string): string {
 
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
-        return `${capitalizeObjectType(alObject.objectType)} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+        return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
     }
 
     return '';
-}
-
-export async function showOpenALObjects() {
-    const textDocuments = vscode.workspace.textDocuments;
-    const activeEditor = vscode.window.activeTextEditor;
-    const activeUri = activeEditor?.document.uri.toString();
-
-    // Recupera i tab aperti
-    const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
-
-    const items: QuickPickItem[] = [];
-
-    for (const editor of openEditors) {
-        try {
-            const documentUri = (editor.input as any).uri;
-
-            if (isALObjectFile(documentUri, true)) {
-                const doc = await vscode.workspace.openTextDocument(documentUri);
-
-                let alObject: ALObject;
-                alObject = new ALObject(doc);
-                let objectInfoText = makeALObjectDescriptionText(alObject);
-
-                const isCurrentEditor = (doc.uri.toString() === activeUri);
-                let iconName = isPreviewALObjectFile(documentUri) ? 'shield' : 'symbol-class';
-
-                items.push({
-                    label: `$(${iconName}) ${objectInfoText}`,
-                    description: isCurrentEditor ? '$(eye)' : '',
-                    detail: vscode.workspace.asRelativePath(doc.uri),
-                    sortKey: objectSortKey(alObject, isCurrentEditor),
-                    uri: doc.uri
-                });
-            }
-        } catch (err) {
-            console.log(`Unable to read file: ${editor}`, err);
-        }
-    }
-
-    items.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-
-    // Show object list
-    const picked = await vscode.window.showQuickPick(items.map(item => ({
-        label: item.label,
-        description: item.description,
-        detail: item.detail,
-        uri: item.uri,
-    })), {
-        placeHolder: 'Select a file to open',
-        matchOnDescription: true,
-        matchOnDetail: true,
-    });
-
-    if (picked) {
-        // Open selected
-        vscode.window.showTextDocument(picked.uri);
-    }
-}
-
-function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
-    let objPriority: number = 9999;
-
-    if (alObject) {
-        if (isCurrentEditor) {
-            objPriority = 10;
-        }
-        else {
-            switch (alObject.objectType) {
-                case 'table':
-                    objPriority = 20;
-                    break;
-
-                case 'tableextension':
-                    objPriority = 21;
-                    break;
-
-                case 'codeunit':
-                    objPriority = 30;
-                    break;
-
-                case 'page':
-                    objPriority = 40;
-                    break;
-
-                case 'pageextension':
-                    objPriority = 41;
-                    break;
-
-                case 'report':
-                    objPriority = 50;
-                    break;
-
-                case 'reportextension':
-                    objPriority = 51;
-                    break;
-            }
-        }
-
-        return `${objPriority.toString().padStart(4, '0')}_${alObject.objectType}_${alObject.objectName}`;
-    }
-
-    return `${objPriority.toString().padStart(4, '0')}`;
 }
 
 //#region Object Properties
@@ -380,6 +259,17 @@ export function isProcedureDefinition(alObject: ALObject, lineText: string, proc
                     }
                     break;
                 }
+            case (alObject.isCodeunit()):
+                {
+                    const match = lineText.trim().match(regExpr.codeunitTrigger);
+                    if (match) {
+                        procedureInfo.scope = 'trigger';
+                        procedureInfo.name = match[1];
+
+                        return true;
+                    }
+                    break;
+                }
             case (alObject.isQuery()):
                 {
                     const match = lineText.trim().match(regExpr.queryTrigger);
@@ -410,6 +300,18 @@ export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number
     return false;
 }
 
+export function isTableKeyDefinition(lineText: string, keyInfo: { name: string, fieldsList: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableKey);
+    if (match) {
+        keyInfo.name = match[1] || '';
+        keyInfo.fieldsList = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+
 export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
     const match = lineText.trim().match(regExpr.pageField);
     if (match) {
@@ -433,6 +335,17 @@ export function isReportColumnDefinition(lineText: string, fieldInfo: { name: st
 
     return false;
 }
+export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportReqPageField);
+    if (match) {
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
 
 export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
     const match = lineText.trim().match(regExpr.reportDataItem);
@@ -449,8 +362,8 @@ export function isReportDataItemDefinition(lineText: string, dataItemInfo: { nam
 export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
     const match = lineText.trim().match(regExpr.queryColumn);
     if (match) {
-        fieldInfo.name = match[1] || 'Column';
-        fieldInfo.sourceExpr = match[2] || '';
+        fieldInfo.name = match[2] || 'Column';
+        fieldInfo.sourceExpr = match[3] || '';
 
         return true;
     }
@@ -540,170 +453,19 @@ export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectTyp
 
     return false;
 }
-
-export async function showAllFields() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectFields: ALObjectFields;
-        alObjectFields = new ALObjectFields(alObject);
-        if (alObjectFields.fields) {
-            if (alObjectFields.elementsCount > 0) {
-                const currentLine = editor.selection.active.line;
-
-                let currentFieldStartLine: number;
-                try {
-                    const currentField = [...alObjectFields.fields]
-                        .reverse()             // Inverte l'array
-                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-                    currentFieldStartLine = currentField.startLine;
-                }
-                catch {
-                    currentFieldStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectFields.fields.map(item => ({
-                    label: item.id > 0 ? `${item.id} $(${item.iconName}) ${item.name.replace('"', '')}` : `$(${item.iconName}) ${item.name.replace('"', '')}`,
-                    description: (item.startLine === currentFieldStartLine) ? `${item.type} $(eye)` : item.type,
-                    detail: item.dataItem ? item.dataItem : '',
-                    startLine: item.startLine
-                })), {
-                    placeHolder: 'Fields',
-                    matchOnDescription: true,
-                    matchOnDetail: true,
-                });
-
-                if (picked) {
-                    const position = new vscode.Position(picked.startLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No field found in ${alObject.objectType} ${alObject.objectName}`);
-            }
-        }
-    }
-}
-export async function showAllProcedures() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectProcedures: ALObjectProcedures;
-        alObjectProcedures = new ALObjectProcedures(alObject);
-        if (alObjectProcedures.procedures) {
-            if (alObjectProcedures.elementsCount > 0) {
-                const currentLine = editor.selection.active.line;
-
-                let currentProcStartLine: number;
-                try {
-                    const currentProcedure = [...alObjectProcedures.procedures]
-                        .reverse()             // Inverte l'array
-                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-
-                    currentProcStartLine = currentProcedure.startLine;
-                }
-                catch {
-                    currentProcStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectProcedures.procedures.map(item => ({
-                    label: `$(${item.iconName}) ${item.name}`,
-                    description: (item.startLine === currentProcStartLine) ? `$(eye)` : '',
-                    detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
-                        (item.regionPath) ? `Region: ${item.regionPath}` :
-                            (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
-                    startLine: item.startLine ? item.startLine : 0
-                })), {
-                    placeHolder: 'Procedure',
-                    matchOnDescription: false,
-                    matchOnDetail: true,
-                });
-
-                if (picked) {
-                    const position = new vscode.Position(picked.startLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No procedure found in ${alObject.objectType} ${alObject.objectName}`);
-            }
-        }
-    }
-}
-export async function showAllActions() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let alObjectActions: ALObjectActions;
-        alObjectActions = new ALObjectActions(alObject);
-        if (alObjectActions.actions) {
-            if (alObjectActions.elementsCount > 0) {
-                const currentLine = editor.selection.active.line;
-
-                let currentProcStartLine: number;
-                try {
-                    const currentProcedure = [...alObjectActions.actions]
-                        .reverse()             // Inverte l'array
-                        .find(item => item.startLine <= currentLine);  // Trova il primo che soddisfa la condizione
-
-                    currentProcStartLine = currentProcedure.startLine;
-                }
-                catch {
-                    currentProcStartLine = 0;
-                }
-
-                const picked = await vscode.window.showQuickPick(alObjectActions.actions.map(item => ({
-                    label: `$(${item.iconName}) ${item.name}`,
-                    description: (item.sourceAction && (item.startLine === currentProcStartLine)) ? `${item.sourceAction} $(eye)` :
-                        item.sourceAction ? `${item.sourceAction}` :
-                            (item.startLine === currentProcStartLine) ? `$(eye)` : '',
-                    detail: item.area ? `Area: ${item.area}` : '',
-                    startLine: item.startLine ? item.startLine : 0
-                })), {
-                    placeHolder: 'Actions',
-                    matchOnDescription: true,
-                    matchOnDetail: true,
-                });
-
-                if (picked) {
-                    const position = new vscode.Position(picked.startLine, 0);
-                    const newSelection = new vscode.Selection(position, position);
-                    editor.selection = newSelection;
-                    editor.revealRange(new vscode.Range(position, position));
-                }
-            }
-            else {
-                vscode.window.showInformationMessage(`No action found in ${alObject.objectType} ${alObject.objectName}`);
-            }
-        }
-    }
-}
 //#endregion Object Properties
 
 //#region Interfaces
-interface QuickPickItem {
+export interface QuickPickItem {
     label: string;
     description?: string;
     detail?: string;
     sortKey?: string;
     uri?: vscode.Uri;
     alObject?: ALObject;
+    iconName?: string;
+    level?: number;
+    startLine?: number;
+    endLine?: number;
 }
-
 //#endregion Interfaces
