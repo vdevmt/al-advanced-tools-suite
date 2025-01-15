@@ -15,7 +15,7 @@ export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
         objectInfoStatusBarItem.text = `$(info)`;
         objectInfoStatusBarItem.tooltip = makeTooltip(null, '');
         objectInfoStatusBarItem.command = {
-            command: 'ats.execALObjectExplorer',
+            command: 'ats.ALObjectExplorer',
             title: `ATS: AL Object Explorer`
         };
 

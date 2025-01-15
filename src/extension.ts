@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion launch.json tools
 
     //#region AL Objects Explorer
-    context.subscriptions.push(vscode.commands.registerCommand('ats.execALObjectExplorer', alObjectExplorer.execALObjectExplorer));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.ALObjectExplorer', alObjectExplorer.execALObjectExplorer));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alObjectExplorer.showOpenALObjects));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alObjectExplorer.showAllFields));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTableKeys', alObjectExplorer.showAllTableKeys));
