@@ -18,6 +18,7 @@ export interface QuickPickItem {
     itemkind?: vscode.QuickPickItemKind;
 }
 
+//#region AL Object Explorer
 export async function execALObjectExplorer() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -117,9 +118,9 @@ export async function execALObjectExplorer() {
             let alObjectActions: ALObjectActions;
             alObjectActions = new ALObjectActions(alObject);
             if (alObjectActions) {
-                if (alObjectActions.elementsCount > 0) {
+                if (alObjectActions.actionsCount > 0) {
                     items.push({
-                        label: `Page Actions: ${alObjectActions.elementsCount}`,
+                        label: `Page Actions: ${alObjectActions.actionsCount}`,
                         iconName: 'symbol-event',
                         command: 'ats.showAllActions'
                     });
@@ -153,6 +154,51 @@ export async function execALObjectExplorer() {
     }
 }
 
+export async function showObjectItems(items: QuickPickItem[], title: string) {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (items) {
+        const currentLine = editor.selection.active.line;
+
+        let currItemStartLine: number;
+        try {
+            const currentItem = [...items]
+                .reverse()             // Inverte l'array
+                .find(item => ((item.startLine <= currentLine) && (item.endLine === 0 || item.endLine >= currentLine)));  // Trova il primo che soddisfa la condizione
+            currItemStartLine = currentItem.startLine;
+        }
+        catch {
+            currItemStartLine = 0;
+        }
+
+        const picked = await vscode.window.showQuickPick(items.map(item => ({
+            label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
+                (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
+                    (item.iconName) ? `$(${item.iconName}) ${item.label}` :
+                        `${item.label}`,
+            description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
+            detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
+            startLine: item.startLine
+        })), {
+            placeHolder: `${title}`,
+            matchOnDescription: true,
+            matchOnDetail: true,
+        });
+
+        if (picked) {
+            if (picked.startLine > 0) {
+                const position = new vscode.Position(picked.startLine, 0);
+                const newSelection = new vscode.Selection(position, position);
+                editor.selection = newSelection;
+                editor.revealRange(new vscode.Range(position, position));
+            }
+        }
+    }
+}
+//#endregion AL Object Explorer
+
+//#region AL Object Fields
 export async function showAllFields() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -183,7 +229,9 @@ export async function showAllFields() {
         vscode.window.showInformationMessage(`No field found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
+//#endregion AL Object Fields
 
+//#region AL Table Keys
 export async function showAllTableKeys() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -214,7 +262,9 @@ export async function showAllTableKeys() {
         vscode.window.showInformationMessage(`No field found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
+//#endregion AL Table Keys
 
+//#region AL Object Procedures
 export async function showAllProcedures() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -247,7 +297,9 @@ export async function showAllProcedures() {
         vscode.window.showInformationMessage(`No procedure found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
+//#endregion AL Object Procedures
 
+//#region AL Object Dataitems
 export async function showAllDataItems() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -277,7 +329,9 @@ export async function showAllDataItems() {
         vscode.window.showInformationMessage(`No Dataitem found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
+//#endregion AL Object Dataitems
 
+//#region AL Object Page Actions
 export async function showAllActions() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -293,10 +347,12 @@ export async function showAllActions() {
                 let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
                     label: item.name,
                     description: item.sourceAction,
-                    detail: item.area ? `Area: ${item.area}` : '',
+                    detail: (item.area && item.actionGroupRef) ? `Area: ${item.area} | Group: ${item.actionGroupRef}` :
+                        item.area ? `Area: ${item.area}` :
+                            item.actionGroupRef ? `Group: ${item.actionGroupRef}` : '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
-                    level: 0,
+                    level: item.level,
                     iconName: item.iconName
                 }));
 
@@ -308,7 +364,9 @@ export async function showAllActions() {
         vscode.window.showInformationMessage(`No action found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
+//#endregion AL Object Page Actions
 
+//#region AL Object Regions
 export async function showAllRegions() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -339,50 +397,9 @@ export async function showAllRegions() {
         vscode.window.showInformationMessage(`No region found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
+//#endregion AL Object Regions
 
-export async function showObjectItems(items: QuickPickItem[], title: string) {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (items) {
-        const currentLine = editor.selection.active.line;
-
-        let currItemStartLine: number;
-        try {
-            const currentItem = [...items]
-                .reverse()             // Inverte l'array
-                .find(item => ((item.startLine <= currentLine) && (item.endLine === 0 || item.endLine >= currentLine)));  // Trova il primo che soddisfa la condizione
-            currItemStartLine = currentItem.startLine;
-        }
-        catch {
-            currItemStartLine = 0;
-        }
-
-        const picked = await vscode.window.showQuickPick(items.map(item => ({
-            label: ((item.level > 0) && (item.iconName)) ? `${'....'.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
-                (item.level > 0) ? `${'....'.repeat(item.level)} ${item.label}` :
-                    (item.iconName) ? `$(${item.iconName}) ${item.label}` :
-                        `${item.label}`,
-            description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
-            detail: item.detail,
-            startLine: item.startLine
-        })), {
-            placeHolder: `${title}`,
-            matchOnDescription: true,
-            matchOnDetail: true,
-        });
-
-        if (picked) {
-            if (picked.startLine > 0) {
-                const position = new vscode.Position(picked.startLine, 0);
-                const newSelection = new vscode.Selection(position, position);
-                editor.selection = newSelection;
-                editor.revealRange(new vscode.Range(position, position));
-            }
-        }
-    }
-}
-
+//#region Open AL Objects
 export async function showOpenALObjects() {
     const activeEditor = vscode.window.activeTextEditor;
     const activeUri = activeEditor?.document.uri.toString();
@@ -509,3 +526,4 @@ function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
 
     return objPriority;
 }
+//#endregion Open AL Objects

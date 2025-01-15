@@ -725,7 +725,18 @@ export class ALObjectActions {
     public objectName: string;
 
     public elementsCount: number;
-    public actions: { name: string, sourceAction?: string, area?: string, iconName?: string, startLine: number }[];
+    public actionsCount: number;
+    public actions: {
+        kind: string,
+        name: string,
+        level: number,
+        sourceAction?: string,
+        isAction: boolean,
+        area?: string,
+        actionGroupRef?: string,
+        iconName?: string,
+        startLine: number
+    }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -734,7 +745,10 @@ export class ALObjectActions {
         this.objectName = alObject.objectName;
 
         this.findObjectActions(alObject);
-        this.elementsCount = this.actions ? this.actions.length : 0;
+        if (this.actions) {
+            this.elementsCount = this.actions.length;
+            this.actionsCount = this.actions.filter(item => item.isAction === true).length;
+        }
     }
 
     private initObjectProperties() {
@@ -742,6 +756,7 @@ export class ALObjectActions {
         this.objectId = "";
         this.objectName = "";
         this.elementsCount = 0;
+        this.actionsCount = 0;
         this.actions = [];
     }
 
@@ -754,6 +769,8 @@ export class ALObjectActions {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
                     let actionAreaInfo: { name: string } = { name: '' };
+                    let actionGroupStack: { name: string, level: number }[] = [];
+                    let currentLevel: number;
 
                     lines.forEach((lineText, linePos) => {
                         const lineNumber = linePos;
@@ -771,17 +788,58 @@ export class ALObjectActions {
                             return; // Ignora questa riga
                         }
 
-                        if (!alFileMgr.isActionAreaDefinition(lineText, actionAreaInfo)) {
-                            let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+                        if (alFileMgr.isActionAreaDefinition(lineText, actionAreaInfo)) {
+                            currentLevel = -1;
+                        }
 
-                            if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
+                        if (currentLevel >= 0) {
+                            let actionGroupInfo: { name: string } = { name: '' };
+                            if (alFileMgr.isActionGroupDefinition(lineText, actionGroupInfo)) {
+                                actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
+
                                 this.actions.push({
+                                    kind: 'group',
+                                    name: actionGroupInfo.name,
+                                    level: currentLevel,
+                                    sourceAction: '',
+                                    area: actionAreaInfo.name,
+                                    isAction: false,
+                                    iconName: 'array',
+                                    startLine: lineNumber
+                                });
+                            }
+
+                            let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+                            if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
+
+                                const lastGroupName = actionGroupStack
+                                    .slice() // Copia l'array
+                                    .reverse() // Inverte l'ordine degli elementi
+                                    .find(item => item.level === (currentLevel - 1));
+
+                                this.actions.push({
+                                    kind: 'action',
                                     name: actionInfo.name,
+                                    level: currentLevel,
                                     sourceAction: actionInfo.sourceAction,
                                     area: actionAreaInfo.name,
+                                    actionGroupRef: lastGroupName ? lastGroupName.name : '',
+                                    isAction: true,
                                     iconName: 'symbol-event',
                                     startLine: lineNumber
                                 });
+                            }
+                        }
+
+                        if (lineText.includes("{")) {
+                            currentLevel++;
+                        }
+                        if (lineText.includes("}")) {
+                            currentLevel--;
+
+                            if (actionGroupStack && (actionGroupStack.length > 0)) {
+                                // Elimino tutti i gruppi di livello maggiore
+                                actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
                             }
                         }
                     });

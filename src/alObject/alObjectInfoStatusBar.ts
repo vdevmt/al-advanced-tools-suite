@@ -90,7 +90,7 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             alObjectDataItems.elementsCount > 0 ? `Dataitems: ${alObjectDataItems.elementsCount}` : '',
             alObjectFields.elementsCount > 0 ? `Fields: ${alObjectFields.elementsCount}` : '',
             alTableKeys.elementsCount > 0 ? `Keys: ${alTableKeys.elementsCount}` : '',
-            alObjectActions.elementsCount > 0 ? `Actions: ${alObjectActions.elementsCount}` : '',
+            alObjectActions.actionsCount > 0 ? `Actions: ${alObjectActions.actionsCount}` : '',
             alObjectProcedures.elementsCount > 0 ? `Procedures: ${alObjectProcedures.elementsCount}` : '',
             alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : ''
         ]

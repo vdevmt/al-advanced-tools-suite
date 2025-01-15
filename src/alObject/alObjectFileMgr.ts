@@ -393,6 +393,18 @@ export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name:
 
     return false;
 }
+
+export function isActionGroupDefinition(lineText: string, actionGroupInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageActionGroup);
+    if (match) {
+        actionGroupInfo.name = match[1] || 'group';
+
+        return true;
+    }
+
+    return false;
+}
+
 export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
     const match = lineText.trim().match(regExpr.pageAction);
     if (match) {
