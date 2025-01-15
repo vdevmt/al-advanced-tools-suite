@@ -73,7 +73,7 @@
         "category": "ATS"
       },
       {
-        "command": "ats.execALObjectExplorer",
+        "command": "ats.ALObjectExplorer",
         "title": "AL Object Explorer",
         "category": "ATS"
       },
