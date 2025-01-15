@@ -18,37 +18,37 @@ These features are concluded at this moment:
 <br />
 <img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info">
 
-* **ATS: AL Object Explorer**: navigate through the elements of the current AL object
+* **ATS: AL Object Explorer**: navigates through the elements of the current AL object
 <br />
 <img src="./images/ALObjectExplorer.png" alt="AL Object Explorer">
 
-* **ATS AL Object Explorer: Show all Fields**: Show and search fields of the current AL Object
+* **ATS: Show all Fields**: Show and search fields of the current AL Object
 <br />
 <img src="./images/ShowAllFields.png" alt="ATS: Show all Fields">
 
-* **ATS AL Object Explorer: Show all Table Keys**: Show and search keys of the current AL Table
+* **ATS: Show all Table Keys**: Show and search keys of the current AL Table
 <br />
 <img src="./images/ShowAllKeys.png" alt="ATS: Show all Table Keys">
 
-* **ATS AL Object Explorer: Show all Procedures**: Show and search procedure of the current AL Object
+* **ATS: Show all Procedures**: Show and search functions of the current AL Object
 <br />
 <img src="./images/ShowAllProcedures.png" alt="ATS: Show all Procedures">
 <br />
 <img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all Procedures with regions">
 
-* **ATS AL Object Explorer: Show all Page Actions**: Show and search page actions of the current AL Object
+* **ATS: Show all Page Actions**: Show and search page actions of the current AL Object
 <br />
 <img src="./images/ShowAllActions.png" alt="ATS: Show all Actions">
 
-* **ATS AL Object Explorer: Show all Dataitems**: Show the complete dataitems structure of the current AL Report
+* **ATS: Show all Dataitems**: Show the complete dataitems structure of the current AL Report
 <br />
 <img src="./images/ShowAllDataitems.png" alt="ATS: Show all Dataitems">
 
-* **ATS AL Object Explorer: Show all Regions**: Show the complete region structure of the current AL Object
+* **ATS: Show all Regions**: Show the complete regions structure of the current AL Object
 <br />
 <img src="./images/RegionsStructure.png" alt="ATS: Show all Regions">
 
-* **ATS AL Object Explorer: Show open objects**: Show detailed list of open AL Objects
+* **ATS: Show open AL objects**: Show detailed list of open AL Objects
 <br />
 <img src="./images/OpenALObjects.png" alt="ATS: open objects">
 

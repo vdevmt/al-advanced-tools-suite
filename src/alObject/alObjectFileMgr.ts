@@ -371,6 +371,18 @@ export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: str
     return false;
 }
 
+export function isQueryDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryDataItem);
+    if (match) {
+        dataItemInfo.name = match[1] || '';
+        dataItemInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+
 export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
     const match = lineText.trim().match(regExpr.pageActionArea);
     if (match) {

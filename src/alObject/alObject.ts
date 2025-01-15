@@ -490,6 +490,14 @@ export class ALObjectFields {
                             }
                         }
                         if (alObject.isQuery) {
+                            let dataItemInfo: { name: string, sourceExpr: string };
+                            dataItemInfo = { name: '', sourceExpr: '' };
+                            if (alFileMgr.isQueryDataItemDefinition(lineText, dataItemInfo)) {
+                                dataitemName = `DataItem: ${dataItemInfo.name} (${dataItemInfo.sourceExpr})`;
+
+                                return;
+                            }
+
                             let reportField: { name: string, sourceExpr: string };
                             reportField = { name: '', sourceExpr: '' };
                             if (alFileMgr.isQueryColumnDefinition(lineText, reportField)) {
@@ -499,6 +507,7 @@ export class ALObjectFields {
                                     type: reportField.sourceExpr,
                                     sourceExpr: reportField.sourceExpr,
                                     iconName: 'symbol-field',
+                                    dataItem: dataitemName,
                                     startLine: lineNumber
                                 });
 
