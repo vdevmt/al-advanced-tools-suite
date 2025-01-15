@@ -10,7 +10,7 @@
 ## [1.3.10]
 - New Features:
     - Command `ATS: Show all Fields`: show and search fields of the current AL Object.    
-    - Command `ATS: Show all Procedures`: show and search procedures of the current AL Object.    
+    - Command `ATS: Show all Procedures`: show and search functions of the current AL Object.    
     - Command `ATS: Show all Actions`: show and search page actions of the current AL Object.    
 
 ## [1.3.9]
