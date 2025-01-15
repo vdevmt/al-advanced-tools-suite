@@ -79,8 +79,8 @@
       },
       {
         "command": "ats.showOpenALObjects",
-        "title": "Show open objects",
-        "category": "ATS AL Object Explorer"
+        "title": "Show open AL objects",
+        "category": "ATS"
       },
       {
         "command": "ats.showAllFields",
