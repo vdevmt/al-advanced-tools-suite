@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import { ALObject } from './alObject';
 
+//#region AL Object file tools
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
         return true;
@@ -39,28 +40,6 @@ export function IsPreviewALObject(document: vscode.TextDocument): boolean {
     }
 
     return false;
-}
-
-export function getCurrentObjectNamespace(): string {
-    const editor = vscode.window.activeTextEditor;
-
-    if (editor) {
-        if (isALObjectDocument(editor.document)) {
-            return getObjectNamespace(editor.document);
-        }
-    }
-
-    return "";
-}
-
-export function getObjectNamespace(document: vscode.TextDocument): string {
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-        return alObject.objectNamespace;
-    }
-
-    return "";
 }
 
 export function isFirstObjectLine(document: vscode.TextDocument, position: vscode.Position): boolean {
@@ -198,15 +177,33 @@ export function isValidObjectToRun(alObject: ALObject): Boolean {
 
     return false;
 }
+//#endregion AL Object file tools
 
-export function addQuotesIfNeeded(text: string): string {
-    if (text.includes(" ")) {
-        return `"${text}"`;
+//#region Namespace tools
+export function getCurrentObjectNamespace(): string {
+    const editor = vscode.window.activeTextEditor;
+
+    if (editor) {
+        if (isALObjectDocument(editor.document)) {
+            return getObjectNamespace(editor.document);
+        }
     }
 
-    return text;
+    return "";
 }
 
+export function getObjectNamespace(document: vscode.TextDocument): string {
+    if (isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document);
+        return alObject.objectNamespace;
+    }
+
+    return "";
+}
+//#endregion Namespace tools
+
+//#region Object Name tools
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
         return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
@@ -215,7 +212,189 @@ export function makeALObjectDescriptionText(alObject: ALObject) {
     return '';
 }
 
-//#region Object Properties
+export function addQuotesIfNeeded(text: string): string {
+    if (text) {
+        if (!text.startsWith('"')) {
+            const specialChars = /[ #&%\\\/()$;,]/;
+
+            // Verifica se il testo contiene spazi o caratteri speciali
+            if (/\s/.test(text) || specialChars.test(text)) {
+                return `"${text}"`;
+            }
+        }
+    }
+
+    return text;
+}
+//#endregion Object Name tools
+
+//#region Table
+//#region Fields
+export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableField);
+    if (match) {
+        fieldInfo.id = Number(match[1].trim()); // Primo gruppo: numero
+        fieldInfo.name = match[2].trim(); // Secondo gruppo: Nome con o senza virgolette
+        fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Fields
+
+//#region Keys
+export function isTableKeyDefinition(lineText: string, keyInfo: { name: string, fieldsList: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableKey);
+    if (match) {
+        keyInfo.name = match[1] || '';
+        keyInfo.fieldsList = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Keys
+//#endregion Table
+
+//#region Page
+//#region Fields
+export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageField);
+    if (match) {
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Fields
+
+//#region Actions
+export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageActionArea);
+    if (match) {
+        actionAreaInfo.name = match[1] || 'actions';
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isActionGroupDefinition(lineText: string, actionGroupInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageActionGroup);
+    if (match) {
+        actionGroupInfo.name = match[1] || 'group';
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageAction);
+    if (match) {
+        actionInfo.name = match[1] || 'action';
+
+        return true;
+    }
+    else {
+        const match = lineText.trim().match(regExpr.pageActionRef);
+        if (match) {
+            actionInfo.name = match[1] || 'action';
+            actionInfo.sourceAction = match[2] || '';
+
+            return true;
+        }
+    }
+
+    return false;
+}
+//#endregion Actions
+//#endregion Page
+
+//#region Report
+//#region Data Items
+export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportDataItem);
+    if (match) {
+        dataItemInfo.name = match[1] || '';
+        dataItemInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Data Items
+
+//#region Columns
+export function isReportColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportColumn);
+    if (match) {
+        fieldInfo.name = match[1] || 'Column';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Columns
+
+//#region Request Page
+export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportReqPageField);
+    if (match) {
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Request Page
+//#endregion Report
+
+//#region Query
+//#region Data Items
+export function isQueryDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryDataItem);
+    if (match) {
+        dataItemInfo.name = match[1] || '';
+        dataItemInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Data Items
+
+//#region Columns
+export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryColumn);
+    if (match) {
+        fieldInfo.name = match[2] || 'Column';
+        fieldInfo.sourceExpr = match[3] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Columns
+
+//#endregion Query
+
+//#region Procedures
 export function isProcedureDefinition(alObject: ALObject, lineText: string, procedureInfo: { scope: string, name: string }): boolean {
     const match = lineText.trim().match(regExpr.procedure);
     if (match) {
@@ -286,145 +465,44 @@ export function isProcedureDefinition(alObject: ALObject, lineText: string, proc
 
     return false;
 }
+//#endregion Procedures
 
-export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
-    const match = lineText.trim().match(regExpr.tableField);
-    if (match) {
-        fieldInfo.id = Number(match[1].trim()); // Primo gruppo: numero
-        fieldInfo.name = match[2].trim(); // Secondo gruppo: Nome con o senza virgolette
-        fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
-
+//#region Integration Events
+export function isIntegrationEventDeclaration(lineText: string): boolean {
+    if (regExpr.integrationEventDef.test(lineText.trim())) {
         return true;
     }
-
     return false;
 }
-
-export function isTableKeyDefinition(lineText: string, keyInfo: { name: string, fieldsList: string }): boolean {
-    const match = lineText.trim().match(regExpr.tableKey);
-    if (match) {
-        keyInfo.name = match[1] || '';
-        keyInfo.fieldsList = match[2] || '';
-
+export function isBusinessEventDeclaration(lineText: string): boolean {
+    if (regExpr.businessEventDef.test(lineText.trim())) {
         return true;
     }
-
     return false;
 }
+export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string }): boolean {
+    const match = lineText.trim().match(regExpr.eventSubscriber);
 
-export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageField);
     if (match) {
-        fieldInfo.name = match[1] || 'Field';
-        fieldInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isReportColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.reportColumn);
-    if (match) {
-        fieldInfo.name = match[1] || 'Column';
-        fieldInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.reportReqPageField);
-    if (match) {
-        fieldInfo.name = match[1] || 'Field';
-        fieldInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.reportDataItem);
-    if (match) {
-        dataItemInfo.name = match[1] || '';
-        dataItemInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.queryColumn);
-    if (match) {
-        fieldInfo.name = match[2] || 'Column';
-        fieldInfo.sourceExpr = match[3] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isQueryDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.queryDataItem);
-    if (match) {
-        dataItemInfo.name = match[1] || '';
-        dataItemInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageActionArea);
-    if (match) {
-        actionAreaInfo.name = match[1] || 'actions';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isActionGroupDefinition(lineText: string, actionGroupInfo: { name: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageActionGroup);
-    if (match) {
-        actionGroupInfo.name = match[1] || 'group';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageAction);
-    if (match) {
-        actionInfo.name = match[1] || 'action';
-
-        return true;
-    }
-    else {
-        const match = lineText.trim().match(regExpr.pageActionRef);
-        if (match) {
-            actionInfo.name = match[1] || 'action';
-            actionInfo.sourceAction = match[2] || '';
-
-            return true;
+        eventSubscrInfo.objectType = match[1];
+        if (eventSubscrInfo.objectType.toLowerCase() === 'table') {
+            eventSubscrInfo.objectName = match[2].replace('Database::', '');
         }
+        else {
+            eventSubscrInfo.objectName = match[2].replace(`${eventSubscrInfo.objectType}::`, '');
+        }
+
+        eventSubscrInfo.eventName = match[3];
+        eventSubscrInfo.elementName = match[4] || '';
+
+        return true;
     }
 
     return false;
 }
+//#endregion Integration Events
 
+//#region Comments on Code
 export function cleanObjectLineText(lineText: string): string {
     let newString = lineText;
     if (isCommentedLine(newString)) {
@@ -476,52 +554,4 @@ export function isMultiLineCommentEnd(lineText: string): boolean {
 
     return false;
 }
-
-export function isIntegrationEventDeclaration(lineText: string): boolean {
-    if (regExpr.integrationEventDef.test(lineText.trim())) {
-        return true;
-    }
-    return false;
-}
-export function isBusinessEventDeclaration(lineText: string): boolean {
-    if (regExpr.businessEventDef.test(lineText.trim())) {
-        return true;
-    }
-    return false;
-}
-export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string }): boolean {
-    const match = lineText.trim().match(regExpr.eventSubscriber);
-
-    if (match) {
-        eventSubscrInfo.objectType = match[1];
-        if (eventSubscrInfo.objectType.toLowerCase() === 'table') {
-            eventSubscrInfo.objectName = match[2].replace('Database::', '');
-        }
-        else {
-            eventSubscrInfo.objectName = match[2].replace(`${eventSubscrInfo.objectType}::`, '');
-        }
-
-        eventSubscrInfo.eventName = match[3];
-        eventSubscrInfo.elementName = match[4] || '';
-
-        return true;
-    }
-
-    return false;
-}
-//#endregion Object Properties
-
-//#region Interfaces
-export interface QuickPickItem {
-    label: string;
-    description?: string;
-    detail?: string;
-    sortKey?: string;
-    uri?: vscode.Uri;
-    alObject?: ALObject;
-    iconName?: string;
-    level?: number;
-    startLine?: number;
-    endLine?: number;
-}
-//#endregion Interfaces
+//#endregion Comments on Code

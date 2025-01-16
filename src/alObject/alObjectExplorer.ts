@@ -379,7 +379,7 @@ export async function showAllRegions() {
         alObjectRegions = new ALObjectRegions(alObject);
         if (alObjectRegions.regions) {
             if (alObjectRegions.elementsCount > 0) {
-                let items: alFileMgr.QuickPickItem[] = alObjectRegions.regions.map(item => ({
+                let items: QuickPickItem[] = alObjectRegions.regions.map(item => ({
                     label: item.name,
                     description: '',
                     detail: '',
