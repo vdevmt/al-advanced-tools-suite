@@ -213,7 +213,7 @@ export async function showAllFields() {
             if (alObjectFields.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectFields.fields.map(item => ({
                     label: item.id > 0 ? `[${item.id}]  ${item.name}` : `${item.name}`,
-                    description: item.type,
+                    description: (item.pkIndex > 0) ? `${item.type} (PK${item.pkIndex})` : item.type,
                     detail: item.dataItem ? item.dataItem : '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
@@ -259,7 +259,7 @@ export async function showAllTableKeys() {
             }
         }
 
-        vscode.window.showInformationMessage(`No field found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No key found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Table Keys

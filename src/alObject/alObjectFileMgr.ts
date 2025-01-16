@@ -425,23 +425,55 @@ export function isActionDefinition(lineText: string, actionInfo: { name: string,
     return false;
 }
 
-export function isCommentedLine(lineText: string): boolean {
-    if (regExpr.singleLineComment.test(lineText.trim())) {
-        return true;
+export function cleanObjectLineText(lineText: string): string {
+    let newString = lineText;
+    if (isCommentedLine(newString)) {
+        newString = '';
     }
+
+    if (newString) {
+        // Verifico la presenza di caratteri racchiusi tra /*  e */
+        if (newString.includes('/*')) {
+            newString = newString.replace(/\/\*.*?\*\//g, '').trim();
+        }
+    }
+
+    if (newString) {
+        if (newString.includes('//')) {
+            // Verifico la presenza di commenti di riga //
+            newString = newString.split('//')[0].trim();
+        }
+    }
+
+    return newString.trim();
+}
+
+export function isCommentedLine(lineText: string): boolean {
+    if (lineText) {
+        if (regExpr.singleLineComment.test(lineText.trim())) {
+            return true;
+        }
+    }
+
     return false;
 }
 
 export function isMultiLineCommentStart(lineText: string): boolean {
-    if (regExpr.multiLineCommentStart.test(lineText.trim())) {
-        return true;
+    if (lineText) {
+        if (regExpr.multiLineCommentStart.test(lineText.trim())) {
+            return true;
+        }
     }
+
     return false;
 }
 export function isMultiLineCommentEnd(lineText: string): boolean {
-    if (regExpr.multiLineCommentEnd.test(lineText.trim())) {
-        return true;
+    if (lineText) {
+        if (regExpr.multiLineCommentEnd.test(lineText.trim())) {
+            return true;
+        }
     }
+
     return false;
 }
 

@@ -364,7 +364,16 @@ export class ALObjectFields {
     public objectName: string;
 
     public elementsCount: number;
-    public fields: { id?: number, name: string, type?: string, sourceExpr?: string, dataItem?: string, iconName?: string, startLine: number }[];
+    public fields: {
+        id?: number,
+        name: string,
+        type?: string,
+        pkIndex?: number,
+        sourceExpr?: string,
+        dataItem?: string,
+        iconName?: string,
+        startLine: number
+    }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -395,12 +404,24 @@ export class ALObjectFields {
                 alObject.isQuery();
 
             if (validObjectType) {
+                let primaryKeyFields: string[] = [];
+                if (alObject.isTable()) {
+                    let alTableKeys: ALTableKeys;
+                    alTableKeys = new ALTableKeys(alObject);
+                    if (alTableKeys && alTableKeys.keys) {
+                        primaryKeyFields = alTableKeys.keys[0].fieldsList
+                            .split(',')
+                            .map(field => field.trim().toLowerCase().replace(/^"|"$/g, ''));
+                    }
+                }
+
                 if (alObject.objectContentText) {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
                     let dataitemName: string = '';
 
                     lines.forEach((lineText, linePos) => {
+                        lineText = alFileMgr.cleanObjectLineText(lineText);
                         const lineNumber = linePos;
 
                         // Verifica inizio-fine commento multi-riga
@@ -411,20 +432,26 @@ export class ALObjectFields {
                             insideMultiLineComment = false;
                         }
 
-                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
-                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                        // Se la riga è dentro un commento multi-linea, ignorala
+                        if (insideMultiLineComment) {
                             return; // Ignora questa riga
                         }
 
                         if (alObject.isTable() || alObject.isTableExt()) {
                             let tableField: { id: number, name: string, type: string };
                             tableField = { id: 0, name: '', type: '' };
+
                             if (alFileMgr.isTableFieldDefinition(lineText, tableField)) {
+                                let normalizedFieldName = tableField.name.replace(/^"|"$/g, '').toLowerCase();
+                                let pkIndex = primaryKeyFields.indexOf(normalizedFieldName);
+                                pkIndex = pkIndex >= 0 ? pkIndex + 1 : 0;
+
                                 this.fields.push({
                                     id: tableField.id,
                                     name: tableField.name,
                                     type: tableField.type,
-                                    iconName: 'symbol-field',
+                                    pkIndex: pkIndex,
+                                    iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
                                     startLine: lineNumber
                                 });
 
@@ -569,6 +596,7 @@ export class ALObjectProcedures {
                 alObjectRegions = new ALObjectRegions(alObject);
 
                 lines.forEach((lineText, linePos) => {
+                    lineText = alFileMgr.cleanObjectLineText(lineText);
                     const lineNumber = linePos;
 
                     // Verifica inizio-fine commento multi-riga
@@ -579,8 +607,8 @@ export class ALObjectProcedures {
                         insideMultiLineComment = false;
                     }
 
-                    // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
-                    if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                    // Se la riga è dentro un commento multi-linea, ignorala
+                    if (insideMultiLineComment) {
                         return; // Ignora questa riga
                     }
 
@@ -768,11 +796,13 @@ export class ALObjectActions {
                 if (validObjectType) {
                     const lines = alObject.objectContentText.split('\n');
                     let insideMultiLineComment: boolean;
+                    let insideActions: boolean;
                     let actionAreaInfo: { name: string } = { name: '' };
                     let actionGroupStack: { name: string, level: number }[] = [];
                     let currentLevel: number;
 
                     lines.forEach((lineText, linePos) => {
+                        lineText = alFileMgr.cleanObjectLineText(lineText);
                         const lineNumber = linePos;
 
                         // Verifica inizio-fine commento multi-riga
@@ -783,63 +813,70 @@ export class ALObjectActions {
                             insideMultiLineComment = false;
                         }
 
-                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
-                        if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
+                        // Se la riga è dentro un commento multi-linea, ignorala
+                        if (insideMultiLineComment) {
                             return; // Ignora questa riga
                         }
 
-                        if (alFileMgr.isActionAreaDefinition(lineText, actionAreaInfo)) {
-                            currentLevel = -1;
-                        }
-
-                        if (currentLevel >= 0) {
-                            let actionGroupInfo: { name: string } = { name: '' };
-                            if (alFileMgr.isActionGroupDefinition(lineText, actionGroupInfo)) {
-                                actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
-
-                                this.actions.push({
-                                    kind: 'group',
-                                    name: actionGroupInfo.name,
-                                    level: currentLevel,
-                                    sourceAction: '',
-                                    area: actionAreaInfo.name,
-                                    isAction: false,
-                                    iconName: 'array',
-                                    startLine: lineNumber
-                                });
-                            }
-
-                            let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
-                            if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
-
-                                const lastGroupName = actionGroupStack
-                                    .slice() // Copia l'array
-                                    .reverse() // Inverte l'ordine degli elementi
-                                    .find(item => item.level === (currentLevel - 1));
-
-                                this.actions.push({
-                                    kind: 'action',
-                                    name: actionInfo.name,
-                                    level: currentLevel,
-                                    sourceAction: actionInfo.sourceAction,
-                                    area: actionAreaInfo.name,
-                                    actionGroupRef: lastGroupName ? lastGroupName.name : '',
-                                    isAction: true,
-                                    iconName: 'symbol-event',
-                                    startLine: lineNumber
-                                });
+                        if (!insideActions) {
+                            if (lineText.trim().toLowerCase() === 'actions') {
+                                insideActions = true;
                             }
                         }
+                        else {
+                            if (alFileMgr.isActionAreaDefinition(lineText, actionAreaInfo)) {
+                                currentLevel = -1;
+                            }
 
-                        if (lineText.includes("{")) {
-                            currentLevel++;
-                        }
-                        if (lineText.includes("}")) {
-                            currentLevel--;
+                            if (currentLevel >= 0) {
+                                let actionGroupInfo: { name: string } = { name: '' };
+                                if (alFileMgr.isActionGroupDefinition(lineText, actionGroupInfo)) {
+                                    actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
 
-                            if (actionGroupStack && (actionGroupStack.length > 0)) {
-                                // Elimino tutti i gruppi di livello maggiore
-                                actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
+                                    this.actions.push({
+                                        kind: 'group',
+                                        name: actionGroupInfo.name,
+                                        level: currentLevel,
+                                        sourceAction: '',
+                                        area: actionAreaInfo.name,
+                                        isAction: false,
+                                        iconName: 'array',
+                                        startLine: lineNumber
+                                    });
+                                }
+
+                                let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+                                if (alFileMgr.isActionDefinition(lineText, actionInfo)) {
+
+                                    const lastGroupName = actionGroupStack
+                                        .slice() // Copia l'array
+                                        .reverse() // Inverte l'ordine degli elementi
+                                        .find(item => item.level === (currentLevel - 1));
+
+                                    this.actions.push({
+                                        kind: 'action',
+                                        name: actionInfo.name,
+                                        level: currentLevel,
+                                        sourceAction: actionInfo.sourceAction,
+                                        area: actionAreaInfo.name,
+                                        actionGroupRef: lastGroupName ? lastGroupName.name : '',
+                                        isAction: true,
+                                        iconName: 'symbol-event',
+                                        startLine: lineNumber
+                                    });
+                                }
+                            }
+
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+
+                                if (actionGroupStack && (actionGroupStack.length > 0)) {
+                                    // Elimino tutti i gruppi di livello maggiore
+                                    actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
+                                }
                             }
                         }
                     });
@@ -902,6 +939,7 @@ export class ALObjectDataItems {
                     }[] = [];
 
                     lines.forEach((lineText, linePos) => {
+                        lineText = alFileMgr.cleanObjectLineText(lineText);
                         const lineNumber = linePos;
 
                         // Verifica inizio-fine commento multi-riga
@@ -912,7 +950,7 @@ export class ALObjectDataItems {
                             insideMultiLineComment = false;
                         }
 
-                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        // Se la riga è dentro un commento multi-linea, ignorala
                         if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
                             return; // Ignora questa riga
                         }
@@ -1022,6 +1060,7 @@ export class ALTableKeys {
                     let insideMultiLineComment: boolean;
 
                     lines.forEach((lineText, linePos) => {
+                        lineText = alFileMgr.cleanObjectLineText(lineText);
                         const lineNumber = linePos;
 
                         // Verifica inizio-fine commento multi-riga
@@ -1032,7 +1071,7 @@ export class ALTableKeys {
                             insideMultiLineComment = false;
                         }
 
-                        // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                        // Se la riga è dentro un commento multi-linea, ignorala
                         if (insideMultiLineComment || alFileMgr.isCommentedLine(lineText)) {
                             return; // Ignora questa riga
                         }
