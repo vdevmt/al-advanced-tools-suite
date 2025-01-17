@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
+import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
 
 export interface QuickPickItem {
     label: string;
@@ -72,6 +72,23 @@ export async function execALObjectExplorer() {
                         label: `Keys: ${alTableKeys.elementsCount}`,
                         iconName: 'key',
                         command: 'ats.showAllTableKeys'
+                    });
+                }
+            }
+        }
+        catch {
+            console.log(`No fields found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        }
+
+        try {
+            let alTableFieldGroups: ALTableFieldGroups;
+            alTableFieldGroups = new ALTableFieldGroups(alObject);
+            if (alTableFieldGroups) {
+                if (alTableFieldGroups.elementsCount > 0) {
+                    items.push({
+                        label: `Field Groups: ${alTableFieldGroups.elementsCount}`,
+                        iconName: 'group-by-ref-type',
+                        command: 'ats.showAllTableFieldGroups'
                     });
                 }
             }
@@ -213,8 +230,16 @@ export async function showAllFields() {
             if (alObjectFields.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectFields.fields.map(item => ({
                     label: item.id > 0 ? `[${item.id}]  ${item.name}` : `${item.name}`,
-                    description: (item.pkIndex > 0) ? `${item.type} (PK${item.pkIndex})` : item.type,
-                    detail: item.dataItem ? item.dataItem : '',
+                    description: (item.pkIndex > 0) ? `${item.type} (PK${item.pkIndex})` :
+                        (item.properties &&
+                            ('fieldclass' in item.properties) &&
+                            (['flowfield', 'flowfilter'].includes(item.properties['fieldclass'].toLowerCase()))) ?
+                            `${item.type} <${item.properties['fieldclass']}>` :
+                            (item.properties &&
+                                ('method' in item.properties)) ?
+                                `${item.type} <${item.properties['method']}()>` : item.type,
+                    detail: item.dataItem ? item.dataItem :
+                        (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: 0,
@@ -245,8 +270,8 @@ export async function showAllTableKeys() {
         if (alTableKeys.keys) {
             if (alTableKeys.elementsCount > 0) {
                 let items: QuickPickItem[] = alTableKeys.keys.map(item => ({
-                    label: `${item.name}: ${item.fieldsList}`,
-                    description: item.isPrimaryKey ? 'Primary Key' : '',
+                    label: item.fieldsList,
+                    description: item.isPrimaryKey ? `${item.name} [PK]` : item.name,
                     detail: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
@@ -263,6 +288,40 @@ export async function showAllTableKeys() {
     }
 }
 //#endregion AL Table Keys
+
+//#region AL Table Field Groups
+export async function showAllTableFieldGroups() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document);
+
+        let alTableFieldGroups: ALTableFieldGroups;
+        alTableFieldGroups = new ALTableFieldGroups(alObject);
+        if (alTableFieldGroups.fieldgroups) {
+            if (alTableFieldGroups.elementsCount > 0) {
+                let items: QuickPickItem[] = alTableFieldGroups.fieldgroups.map(item => ({
+                    label: item.fieldsList,
+                    description: '',
+                    detail: item.name,
+                    startLine: item.startLine ? item.startLine : 0,
+                    endLine: 0,
+                    level: 0,
+                    iconName: item.iconName
+                }));
+
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`);
+                return;
+            }
+        }
+
+        vscode.window.showInformationMessage(`No field group found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+    }
+}
+//#endregion AL Table Field Groups
+
 
 //#region AL Object Procedures
 export async function showAllProcedures() {
@@ -346,10 +405,8 @@ export async function showAllActions() {
             if (alObjectActions.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
                     label: item.name,
-                    description: item.sourceAction,
-                    detail: (item.area && item.actionGroupRef) ? `Area: ${item.area} | Group: ${item.actionGroupRef}` :
-                        item.area ? `Area: ${item.area}` :
-                            item.actionGroupRef ? `Group: ${item.actionGroupRef}` : '',
+                    description: (item.sourceAction) ? `Ref: ${item.sourceAction}` : '',
+                    detail: (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: item.level,

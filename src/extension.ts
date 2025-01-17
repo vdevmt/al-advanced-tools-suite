@@ -22,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alObjectExplorer.showOpenALObjects));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alObjectExplorer.showAllFields));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTableKeys', alObjectExplorer.showAllTableKeys));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTableFieldGroups', alObjectExplorer.showAllTableFieldGroups));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllProcedures', alObjectExplorer.showAllProcedures));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alObjectExplorer.showAllActions));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllDataItems', alObjectExplorer.showAllDataItems));

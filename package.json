@@ -93,6 +93,11 @@
         "category": "ATS AL Object Explorer"
       },
       {
+        "command": "ats.showAllTableFieldGroups",
+        "title": "Show all table field groups",
+        "category": "ATS AL Object Explorer"
+      },
+      {
         "command": "ats.showAllProcedures",
         "title": "Show all procedures",
         "category": "ATS AL Object Explorer"

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
+import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableFieldGroups, ALTableKeys } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
 export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
@@ -77,6 +77,9 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
         let alTableKeys: ALTableKeys;
         alTableKeys = new ALTableKeys(alObject);
 
+        let alTableFieldGroups: ALTableFieldGroups;
+        alTableFieldGroups = new ALTableFieldGroups(alObject);
+
         let alObjectProcedures: ALObjectProcedures;
         alObjectProcedures = new ALObjectProcedures(alObject);
 
@@ -90,6 +93,7 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             alObjectDataItems.elementsCount > 0 ? `Dataitems: ${alObjectDataItems.elementsCount}` : '',
             alObjectFields.elementsCount > 0 ? `Fields: ${alObjectFields.elementsCount}` : '',
             alTableKeys.elementsCount > 0 ? `Keys: ${alTableKeys.elementsCount}` : '',
+            alTableFieldGroups.elementsCount > 0 ? `Field Groups: ${alTableFieldGroups.elementsCount}` : '',
             alObjectActions.actionsCount > 0 ? `Actions: ${alObjectActions.actionsCount}` : '',
             alObjectProcedures.elementsCount > 0 ? `Procedures: ${alObjectProcedures.elementsCount}` : '',
             alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : ''
