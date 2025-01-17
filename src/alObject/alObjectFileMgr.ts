@@ -284,11 +284,22 @@ function extractTillToCurrElementEnd(objectText: string, startPosition: number, 
     return fullDefinition;
 }
 
-function extractElementDefinitionFromObjectTextArray(objectLines: string[], startIndex: number): string {
+function extractElementDefinitionFromObjectTextArray(objectLines: string[], startIndex: number, includeChilds: boolean): string {
     let result: string[] = [];
+    let inElementDef: boolean;
 
     for (let i = startIndex; i < objectLines.length; i++) {
         result.push(objectLines[i]);
+        if (objectLines[i].includes("{")) {
+            if (inElementDef) {
+                if (!includeChilds) {
+                    break;
+                }
+            }
+            else {
+                inElementDef = true;
+            }
+        }
         if (objectLines[i].includes("}")) {
             break;
         }
@@ -581,7 +592,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                 if (isActionGroupDefinition(lineText, actionGroupInfo)) {
                                     actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
 
-                                    const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos);
+                                    const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                     const properties: { [key: string]: string } = {};
                                     findAllProperties(actionGroupBody, properties);
 
@@ -606,7 +617,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                         .find(item => item.level === (currentLevel - 1));
 
                                     // Ricerca proprietà 
-                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos);
+                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                     const properties: { [key: string]: string } = {};
                                     findAllProperties(actionBody, properties);
 
@@ -652,9 +663,16 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
 }
 
 export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageActionArea);
+    let match = lineText.trim().match(regExpr.pageActionArea);
     if (match) {
         actionAreaInfo.name = match[1] || 'actions';
+
+        return true;
+    }
+
+    match = lineText.trim().match(regExpr.pageActionAnchor);
+    if (match) {
+        actionAreaInfo.name = match[2] || 'actions';
 
         return true;
     }
@@ -933,7 +951,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                                 if (isActionGroupDefinition(lineText, actionGroupInfo)) {
                                     actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
 
-                                    const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos);
+                                    const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                     const properties: { [key: string]: string } = {};
                                     findAllProperties(actionGroupBody, properties);
 
@@ -958,7 +976,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                                         .find(item => item.level === (currentLevel - 1));
 
                                     // Ricerca proprietà 
-                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos);
+                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                     const properties: { [key: string]: string } = {};
                                     findAllProperties(actionBody, properties);
 
@@ -1651,7 +1669,16 @@ function findAllProperties(elementDefinitionText: string, properties: { [key: st
 
     let propMatch: RegExpExecArray | null;
     while ((propMatch = propertiesRegex.exec(elementDefinitionText)) !== null) {
-        properties[propMatch[1].trim().toLowerCase()] = propMatch[2].trim().replace(/^'+|'+$/g, "");  // Rimuovo gli apici ' iniziali e finali
+        let name = propMatch[1].trim().toLowerCase();
+        let value = propMatch[2].trim();
+
+        // Prendo solo il valore tra apici (es Caption = 'Caption', locked=true;)
+        const match = value.match(/^'([^']+)'/);
+        if (match) {
+            value = match[1];
+        }
+
+        properties[name] = value;
     }
 }
 //#endregion Element Properties

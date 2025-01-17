@@ -405,8 +405,9 @@ export async function showAllActions() {
             if (alObjectActions.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
                     label: item.name,
-                    description: (item.sourceAction) ? `Ref: ${item.sourceAction}` : '',
-                    detail: (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
+                    description: (item.properties && item.properties['caption']) ? `${item.properties['caption']}` :
+                        (item.sourceAction) ? `Ref: ${item.sourceAction}` : '',
+                    detail: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: item.level,
