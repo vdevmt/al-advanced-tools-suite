@@ -364,14 +364,17 @@ export class ALObjectFields {
     public objectName: string;
 
     public elementsCount: number;
+    public fieldsCount: number;
     public fields: {
         id?: number,
         name: string,
+        isfield: boolean,
         type?: string,
         pkIndex?: number,
         properties?: { [key: string]: string },
         sourceExpr?: string,
         dataItem?: string,
+        level: number,
         iconName?: string,
         startLine: number
     }[];
@@ -383,7 +386,10 @@ export class ALObjectFields {
         this.objectName = alObject.objectName;
 
         this.findElements(alObject);
-        this.elementsCount = this.fields ? this.fields.length : 0;
+        if (this.fields) {
+            this.elementsCount = this.fields.length;
+            this.fieldsCount = this.fields.filter(item => item.isfield === true).length;
+        }
     }
 
     private initObjectProperties() {
@@ -391,6 +397,7 @@ export class ALObjectFields {
         this.objectId = "";
         this.objectName = "";
         this.elementsCount = 0;
+        this.fieldsCount = 0;
         this.fields = [];
     }
 

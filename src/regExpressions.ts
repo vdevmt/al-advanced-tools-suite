@@ -2,6 +2,7 @@
 export const singleLineComment = /^\s*\/\/.*$/; // Commenti su singola riga (//)
 export const multiLineCommentStart = /\/\*/; // Inizio commento multi-linea (/*)
 export const multiLineCommentEnd = /\*\//;   // Fine commento multi-linea (*/)
+export const pragmaDirective = /^#pragma/i; // 
 
 // Table
 export const tableTrigger = /^trigger\s+(OnInsert|OnModify|OnDelete|OnRename)\s*\(.*\)/i;
@@ -15,6 +16,9 @@ export const tableFieldGroupDefinition = /fieldgroup\s*\(\s*([^;]+)\s*;\s*([^)]*
 export const pageTrigger = /^trigger\s+(OnOpenPage|OnInit|OnAfterGetRecord|OnAfterGetCurrRecord|OnClosePage|OnQueryClosePage|OnInsertRecord|OnModifyRecord|OnDeleteRecord|OnClosePage|OnNewRecord|OnPageBackgroundTaskCompleted|OnPageBackgroundTaskError|OnFindRecord|OnNextRecord)\s*\(.*\)/i;
 export const pageField = /^field\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *; *([" a-zA-Z0-9._/&%\/()-]+ *)\)/i;
 export const pageFieldDefinition = /field\s*\(\s*([^;]+)\s*;\s*([" a-zA-Z0-9._/&%\/()-]+ *)\)\s*\{([\s\S]+?)\}/gi;
+export const pageFieldArea = /^area\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
+export const pageFieldGroup = /^(group|repeater|cuegroup|fixed|grid)\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
+export const pageFieldAnchor = /^(addafter|addbefore|addfirst|addlast)\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageActionArea = /^area\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageActionAnchor = /^(addafter|addbefore|addfirst|addlast)\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageActionGroup = /^group\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;

@@ -352,10 +352,12 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                             alTableFields.fields.push({
                                 id: fieldID,
                                 name: fieldName,
+                                isfield: true,
                                 type: fieldType,
                                 pkIndex: pkIndex,
                                 properties: properties,
                                 iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
+                                level: 0,
                                 startLine: linePosition
                             });
                         }
@@ -493,33 +495,92 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
             if (alObject.isPage() || alObject.isPageExt()) {
                 // Ricerca sezione delle chiavi
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
-                if (extractCodeSection('layout', alObject.objectContentText, true, codeSectionsInfo)) {
-                    let objectLines: string[] = alObject.objectContentText.split('\n');
-                    objectLines = objectLines.map(line => line.trim().toLowerCase());
+                if (extractCodeSection('layout', alObject.objectContentText, false, codeSectionsInfo)) {
+                    const lines = codeSectionsInfo[0].content.split('\n');
 
-                    let match: RegExpExecArray | null;
-                    while ((match = regExpr.pageFieldDefinition.exec(codeSectionsInfo[0].content)) !== null) {
-                        const fieldName = match[1].trim();
-                        if (fieldName) {
-                            const sourceExpr = match[2].trim();
+                    let insideMultiLineComment: boolean;
+                    let fieldGroupStack: { type: string, name: string, level: number }[] = [];
+                    let currentLevel = -1;
 
-                            // Ricerca proprietà 
-                            const fieldBody = match[3].trim();
-                            const properties: { [key: string]: string } = {};
-                            findAllProperties(fieldBody, properties);
+                    lines.forEach((lineText, linePos) => {
+                        lineText = cleanObjectLineText(lineText);
+                        const lineNumber = codeSectionsInfo[0].startLine + linePos;
 
-                            // Cerco la posizione dell'oggetto trovato
-                            const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
-                            let linePosition = objectLines.indexOf(searchText.toLowerCase());
+                        // Verifica inizio-fine commento multi-riga
+                        if (isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
 
-                            alPageFields.fields.push({
-                                name: fieldName,
-                                type: sourceExpr,
-                                sourceExpr: sourceExpr,
-                                properties: properties,
-                                iconName: 'symbol-field',
-                                startLine: linePosition
-                            });
+                        // Verifico se si tratta di una riga commentata
+                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                        if (!commentedLine) {
+                            if (currentLevel >= 0) {
+                                let fieldAreaInfo: { name: string } = { name: '' };
+                                if (isPageFieldAreaDefinition(lineText, fieldAreaInfo)) {
+                                    currentLevel = -1;
+                                }
+
+                                let fieldGroupInfo: { type: string, name: string, extAnchor: boolean } = { type: '', name: '', extAnchor: false };
+                                if (isPageFieldGroupDefinition(lineText, fieldGroupInfo)) {
+                                    fieldGroupStack.push({ type: fieldGroupInfo.type, name: fieldGroupInfo.name, level: currentLevel });
+
+                                    const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                    const properties: { [key: string]: string } = {};
+                                    findAllProperties(fieldGroupBody, properties);
+
+                                    alPageFields.fields.push({
+                                        name: fieldGroupInfo.name,
+                                        type: fieldGroupInfo.type,
+                                        sourceExpr: '',
+                                        isfield: false,
+                                        properties: properties,
+                                        iconName: fieldGroupInfo.extAnchor ? 'plug' : 'symbol-variable',
+                                        level: currentLevel,
+                                        startLine: lineNumber
+                                    });
+                                }
+
+                                let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
+                                if (isPageFieldDefinition(lineText, fieldInfo)) {
+                                    // Ricerca proprietà 
+                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                    const properties: { [key: string]: string } = {};
+                                    findAllProperties(actionBody, properties);
+
+                                    alPageFields.fields.push({
+                                        name: fieldInfo.name,
+                                        isfield: true,
+                                        type: fieldInfo.sourceExpr,
+                                        sourceExpr: fieldInfo.sourceExpr,
+                                        properties: properties,
+                                        iconName: 'symbol-field',
+                                        level: currentLevel,
+                                        startLine: lineNumber,
+                                    });
+                                }
+                            }
+
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+
+                                if (fieldGroupStack && (fieldGroupStack.length > 0)) {
+                                    // Elimino tutti i gruppi di livello maggiore
+                                    fieldGroupStack = fieldGroupStack.filter(item => item.level <= currentLevel);
+                                }
+                            }
+                        }
+                    });
+
+                    if (alPageFields.fields) {
+                        if (alPageFields.fields.length > 0) {
+                            // Order by StartLine
+                            alPageFields.fields.sort((a, b) => a.startLine - b.startLine);
                         }
                     }
                 }
@@ -539,6 +600,46 @@ export function isPageFieldDefinition(lineText: string, fieldInfo: { name: strin
 
     return false;
 }
+
+export function isPageFieldAreaDefinition(lineText: string, fieldAreaInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageFieldArea);
+    if (match) {
+        fieldAreaInfo.name = match[1];
+        fieldAreaInfo.name = fieldAreaInfo.name.replace('&', '');
+
+        return true;
+    }
+
+    return false;
+}
+export function isPageFieldGroupDefinition(lineText: string, fieldGroupInfo: { type: string, name: string, extAnchor: boolean }): boolean {
+    let match = lineText.trim().match(regExpr.pageFieldGroup);
+    if (match) {
+        fieldGroupInfo.type = normalizeElementTypeString(match[1]);
+        fieldGroupInfo.name = match[2];
+        fieldGroupInfo.name = fieldGroupInfo.name.replace('&', '');
+        fieldGroupInfo.extAnchor = false;
+
+        return true;
+    }
+
+    match = lineText.trim().match(regExpr.pageFieldAnchor);
+    if (match) {
+        fieldGroupInfo.type = normalizeElementTypeString(match[1]);
+        fieldGroupInfo.name = match[2];
+        fieldGroupInfo.name = fieldGroupInfo.name.replace('&', '');
+        fieldGroupInfo.extAnchor = true;
+
+        if (fieldGroupInfo.name.toLowerCase() === 'factboxes') {
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 //#endregion Fields
 
 //#region Actions
@@ -552,7 +653,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                         const lines = section.content.split('\n');
 
                         let insideMultiLineComment: boolean;
-                        let actionAreaInfo: { name: string } = { name: '' };
+                        let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
                         let actionGroupStack: { name: string, level: number }[] = [];
                         let currentLevel = -1;
 
@@ -579,7 +680,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                         sourceAction: '',
                                         area: '',
                                         isAction: false,
-                                        iconName: 'location',
+                                        iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
                                         startLine: lineNumber
                                     });
 
@@ -662,10 +763,11 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
     }
 }
 
-export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
+export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string, extAnchor: boolean }): boolean {
     let match = lineText.trim().match(regExpr.pageActionArea);
     if (match) {
         actionAreaInfo.name = match[1] || 'actions';
+        actionAreaInfo.extAnchor = false;
 
         return true;
     }
@@ -673,6 +775,7 @@ export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name:
     match = lineText.trim().match(regExpr.pageActionAnchor);
     if (match) {
         actionAreaInfo.name = match[2] || 'actions';
+        actionAreaInfo.extAnchor = true;
 
         return true;
     }
@@ -888,8 +991,10 @@ export function findReportColumns(alObject: ALObject, alReportColumns: ALObjectF
                                 type: sourceExpr,
                                 sourceExpr: sourceExpr,
                                 properties: properties,
+                                isfield: true,
                                 iconName: 'symbol-field',
                                 dataItem: refDataItem ? refDataItem.name : '',
+                                level: 0,
                                 startLine: linePosition
                             });
                         }
@@ -923,7 +1028,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                     const lines = codeSectionsInfo[0].content.split('\n');
 
                     let insideMultiLineComment: boolean;
-                    let actionAreaInfo: { name: string } = { name: '' };
+                    let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
                     let actionGroupStack: { name: string, level: number }[] = [];
                     let currentLevel = -1;
 
@@ -950,7 +1055,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                                     sourceAction: '',
                                     area: '',
                                     isAction: false,
-                                    iconName: 'location',
+                                    iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
                                     startLine: lineNumber
                                 });
 
@@ -1205,9 +1310,11 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
                                 name: fieldName,
                                 type: sourceExpr,
                                 sourceExpr: sourceExpr,
+                                isfield: true,
                                 properties: properties,
                                 iconName: (properties['method']) ? 'symbol-operator' : 'symbol-field',
                                 dataItem: refDataItem ? refDataItem.name : '',
+                                level: 0,
                                 startLine: linePosition
                             });
                         }
@@ -1286,8 +1393,10 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                         id: tableField.id,
                                         name: tableField.name,
                                         type: tableField.type,
+                                        isfield: true,
                                         pkIndex: pkIndex,
                                         iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
+                                        level: 0,
                                         startLine: lineNumber
                                     });
 
@@ -1304,7 +1413,9 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                         name: pageField.name,
                                         type: pageField.sourceExpr,
                                         sourceExpr: pageField.sourceExpr,
+                                        isfield: true,
                                         iconName: 'symbol-field',
+                                        level: 0,
                                         startLine: lineNumber
                                     });
 
@@ -1329,8 +1440,10 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                         name: reportField.name,
                                         type: reportField.sourceExpr,
                                         sourceExpr: reportField.sourceExpr,
+                                        isfield: true,
                                         dataItem: dataitemName,
                                         iconName: 'symbol-field',
+                                        level: 0,
                                         startLine: lineNumber
                                     });
 
@@ -1343,8 +1456,10 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                             name: reportField.name,
                                             type: reportField.sourceExpr,
                                             sourceExpr: reportField.sourceExpr,
+                                            isfield: true,
                                             dataItem: 'requestpage',
                                             iconName: 'symbol-field',
+                                            level: 0,
                                             startLine: lineNumber
                                         });
 
@@ -1369,8 +1484,10 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                         name: reportField.name,
                                         type: reportField.sourceExpr,
                                         sourceExpr: reportField.sourceExpr,
+                                        isfield: true,
                                         iconName: 'symbol-field',
                                         dataItem: dataitemName,
+                                        level: 0,
                                         startLine: lineNumber
                                     });
 
@@ -1403,7 +1520,7 @@ export function findObjectActions(alObject: ALObject, alObjectActions: ALObjectA
             if (validObjectType) {
                 const lines = alObject.objectContentText.split('\n');
                 let insideMultiLineComment: boolean;
-                let actionAreaInfo: { name: string } = { name: '' };
+                let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
 
                 lines.forEach((lineText, linePos) => {
                     const lineNumber = linePos;
@@ -1762,6 +1879,44 @@ function findAllProperties(elementDefinitionText: string, properties: { [key: st
         properties[name] = value;
     }
 }
+
+function normalizeElementTypeString(elementType: string): string {
+    switch (elementType.toLowerCase()) {
+        case 'field': {
+            return 'Field';
+        }
+        case 'action': {
+            return 'Action';
+        }
+        case 'group': {
+            return 'Group';
+        }
+        case 'repeater': {
+            return 'Repeater';
+        }
+        case 'cuegroup': {
+            return 'CueGroup';
+        }
+        case 'fixed': {
+            return 'Fixed';
+        }
+        case 'grid': {
+            return 'Grid';
+        }
+        case 'addfirst': {
+            return 'AddFirst';
+        }
+        case 'addlast': {
+            return 'AddLast';
+        }
+        case 'addbefore': {
+            return 'AddBefore';
+        }
+        case 'addafter': {
+            return 'AddAfter';
+        }
+    }
+}
 //#endregion Element Properties
 
 //#region Regions
@@ -1838,6 +1993,10 @@ export function cleanObjectLineText(lineText: string): string {
         newString = '';
     }
 
+    if (isPragmaDirective(newString)) {
+        newString = '';
+    }
+
     if (newString) {
         // Verifico la presenza di caratteri racchiusi tra /*  e */
         if (newString.includes('/*')) {
@@ -1858,6 +2017,15 @@ export function cleanObjectLineText(lineText: string): string {
 export function isCommentedLine(lineText: string): boolean {
     if (lineText) {
         if (regExpr.singleLineComment.test(lineText.trim())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+export function isPragmaDirective(lineText: string): boolean {
+    if (lineText) {
+        if (regExpr.pragmaDirective.test(lineText.trim())) {
             return true;
         }
     }

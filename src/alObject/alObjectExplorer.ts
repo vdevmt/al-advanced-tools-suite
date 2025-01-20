@@ -220,6 +220,9 @@ export async function showAllFields() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
+    let enableSearchOnDescription = true;
+    let enableSearchOnDetails = true;
+
     if (alFileMgr.isALObjectDocument(document)) {
         let alObject: ALObject;
         alObject = new ALObject(document);
@@ -232,19 +235,16 @@ export async function showAllFields() {
                 let items: QuickPickItem[] = [];
                 for (const field of alObjectFields.fields) {
                     let label = field.name;
-                    let description = field.type;
+                    let description = '';
                     let detail = '';
-                    if (field.properties) {
-                        if ('caption' in field.properties) {
-                            detail = `Caption: ${field.properties['caption']}`;
-                        }
-                    }
 
                     if (alObject.isTable() || alObject.isTableExt()) {
                         if (field.id > 0) {
                             label = `[${field.id}]  ${field.name}`;
                         }
 
+                        description = field.type;
+                        enableSearchOnDescription = false;
                         if (field.pkIndex > 0) {
                             description += ` (PK${field.pkIndex})`;
                         }
@@ -255,12 +255,50 @@ export async function showAllFields() {
                                 description += ` <${field.properties['fieldclass']}>`;
                             }
                         }
+
+                        if (field.properties) {
+                            if ('caption' in field.properties) {
+                                if (field.properties['caption']) {
+                                    detail = `${field.properties['caption'].trim()}`;
+                                }
+                            }
+                        }
+                    }
+
+                    if (alObject.isPage() || alObject.isPageExt()) {
+                        if (!field.isfield) {
+                            label = `${field.type}(${field.name})`;
+                        }
+
+                        if (field.properties) {
+                            if ('caption' in field.properties) {
+                                if (field.properties['caption']) {
+                                    description = `${field.properties['caption'].trim()}`;
+                                }
+                            }
+                        }
+
+                        if (field.sourceExpr) {
+                            detail = field.sourceExpr;
+                        }
                     }
 
                     if (alObject.isQuery()) {
                         if (field.properties) {
+                            if ('caption' in field.properties) {
+                                if (field.properties['caption']) {
+                                    description = `${field.properties['caption'].trim()}`;
+                                }
+                            }
+                        }
+
+                        if (field.sourceExpr) {
+                            detail = field.sourceExpr;
+                        }
+
+                        if (field.properties) {
                             if ('method' in field.properties) {
-                                description += ` <${field.properties['method']}()>`;
+                                detail += ` <${field.properties['method']}()>`;
                             }
                         }
 
@@ -270,6 +308,18 @@ export async function showAllFields() {
                     }
 
                     if (alObject.isReport() || alObject.isReportExt()) {
+                        if (field.properties) {
+                            if ('caption' in field.properties) {
+                                if (field.properties['caption']) {
+                                    description = `${field.properties['caption'].trim()}`;
+                                }
+                            }
+                        }
+
+                        if (field.sourceExpr) {
+                            detail = field.sourceExpr;
+                        }
+
                         if (field.dataItem) {
                             detail = addTextWithSeparator(detail, field.dataItem);
                         }
@@ -281,14 +331,12 @@ export async function showAllFields() {
                         detail: detail,
                         startLine: field.startLine ? field.startLine : 0,
                         endLine: 0,
-                        level: 0,
+                        level: field.level,
                         iconName: field.iconName
-
                     });
-
                 }
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, false, true);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);
                 return;
             }
         }
