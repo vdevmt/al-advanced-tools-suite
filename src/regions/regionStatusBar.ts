@@ -81,7 +81,7 @@ function makeDocumentKey(document: vscode.TextDocument): string {
 
 function truncateRegionPath(regionPath: string, maxLength: number): string {
     if (maxLength < 0) {
-        maxLength = 60; // Default value
+        maxLength = 100; // Default value
     }
 
     if (regionPath.length <= maxLength) {

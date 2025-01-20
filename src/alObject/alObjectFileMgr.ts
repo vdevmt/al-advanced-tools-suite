@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
-import { ALObject } from './alObject';
+import * as alRegionMgr from '../regions/regionMgr';
+import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions } from './alObject';
 
+//#region AL Object file tools
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
     if (file.fsPath.toLowerCase().endsWith('.al')) {
         return true;
@@ -39,28 +41,6 @@ export function IsPreviewALObject(document: vscode.TextDocument): boolean {
     }
 
     return false;
-}
-
-export function getCurrentObjectNamespace(): string {
-    const editor = vscode.window.activeTextEditor;
-
-    if (editor) {
-        if (isALObjectDocument(editor.document)) {
-            return getObjectNamespace(editor.document);
-        }
-    }
-
-    return "";
-}
-
-export function getObjectNamespace(document: vscode.TextDocument): string {
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-        return alObject.objectNamespace;
-    }
-
-    return "";
 }
 
 export function isFirstObjectLine(document: vscode.TextDocument, position: vscode.Position): boolean {
@@ -198,15 +178,33 @@ export function isValidObjectToRun(alObject: ALObject): Boolean {
 
     return false;
 }
+//#endregion AL Object file tools
 
-export function addQuotesIfNeeded(text: string): string {
-    if (text.includes(" ")) {
-        return `"${text}"`;
+//#region Namespace tools
+export function getCurrentObjectNamespace(): string {
+    const editor = vscode.window.activeTextEditor;
+
+    if (editor) {
+        if (isALObjectDocument(editor.document)) {
+            return getObjectNamespace(editor.document);
+        }
     }
 
-    return text;
+    return "";
 }
 
+export function getObjectNamespace(document: vscode.TextDocument): string {
+    if (isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document);
+        return alObject.objectNamespace;
+    }
+
+    return "";
+}
+//#endregion Namespace tools
+
+//#region Object Name tools
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
         return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
@@ -215,7 +213,1540 @@ export function makeALObjectDescriptionText(alObject: ALObject) {
     return '';
 }
 
-//#region Object Properties
+export function addQuotesIfNeeded(text: string): string {
+    if (text) {
+        if (!text.startsWith('"')) {
+            const specialChars = /[ #&%\\\/()$;,]/;
+
+            // Verifica se il testo contiene spazi o caratteri speciali
+            if (/\s/.test(text) || specialChars.test(text)) {
+                return `"${text}"`;
+            }
+        }
+    }
+
+    return text;
+}
+//#endregion Object Name tools
+
+//#region Object Structure Mgt.
+function extractCodeSection(sectionName: string, ojectFileContent: string, removeComments: boolean, sectionsInfo: { startLine: number, content: string }[]): boolean {
+    let objectLines: string[] = ojectFileContent.split('\n');
+    objectLines = objectLines.map(line => line.trim().toLowerCase());
+
+    const sectionRegExpr = new RegExp(`${sectionName}\\s*\\{`, 'gi');
+    let match: RegExpExecArray | null;
+    while ((match = sectionRegExpr.exec(ojectFileContent)) !== null) {
+        const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+
+        const startLine = objectLines.indexOf(searchText.toLowerCase());
+        if (startLine) {
+            objectLines[startLine] = 'Found: ' + objectLines[startLine];
+        }
+        sectionsInfo.push({
+            startLine: startLine,
+            content: extractTillToCurrElementEnd(ojectFileContent, match.index, removeComments)
+        });
+    }
+
+    return (sectionsInfo.length > 0);
+}
+
+function extractTillToCurrElementEnd(objectText: string, startPosition: number, removeComments: boolean): string {
+    let fullDefinition = '';
+
+    // Scorri il contenuto partendo dalla sezione individuata
+    let endPosition = startPosition;
+    let openBraces = 0;  // Contatore delle parentesi graffe
+    while (endPosition < objectText.length) {
+        const char = objectText[endPosition];
+
+        if (char === '{') {
+            openBraces++;
+        } else if (char === '}') {
+            openBraces--;
+            if (openBraces === 0) {
+                fullDefinition += char;
+                break;  // Se il contatore è zero, la fine della sezione è stata individuata
+            }
+        }
+
+        fullDefinition += char;
+        endPosition++;
+    }
+
+    if (fullDefinition && removeComments) {
+        fullDefinition = removeCommentedLines(fullDefinition);
+    }
+
+    return fullDefinition;
+}
+
+function extractElementDefinitionFromObjectTextArray(objectLines: string[], startIndex: number, includeChilds: boolean): string {
+    let result: string[] = [];
+    let inElementDef: boolean;
+
+    for (let i = startIndex; i < objectLines.length; i++) {
+        result.push(objectLines[i]);
+        if (objectLines[i].includes("{")) {
+            if (inElementDef) {
+                if (!includeChilds) {
+                    break;
+                }
+            }
+            else {
+                inElementDef = true;
+            }
+        }
+        if (objectLines[i].includes("}")) {
+            break;
+        }
+    }
+
+    return result.join('\n');
+}
+
+//#region Table
+//#region Fields
+export function findTableFields(alObject: ALObject, alTableFields: ALObjectFields) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isTable() || alObject.isTableExt()) {
+                // Ricerca sezione delle chiavi
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('fields', alObject.objectContentText, true, codeSectionsInfo)) {
+                    let primaryKeyFields: string[] = [];
+                    if (alObject.isTable()) {
+                        let alTableKeys: ALTableKeys;
+                        alTableKeys = new ALTableKeys(alObject);
+                        if (alTableKeys && (alTableKeys.elementsCount > 0)) {
+                            primaryKeyFields = alTableKeys.keys[0].fieldsList
+                                .split(',')
+                                .map(field => field.trim().toLowerCase().replace(/^"|"$/g, ''));
+                        }
+                    }
+
+                    let objectLines: string[] = alObject.objectContentText.split('\n');
+                    objectLines = objectLines.map(line => line.trim().toLowerCase());
+
+                    let match: RegExpExecArray | null;
+                    while ((match = regExpr.tableFieldDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                        const fieldName = match[2].trim();
+                        if (fieldName) {
+                            const fieldID = Number(match[1].trim());
+                            const fieldType = match[3].trim();
+
+                            let normalizedFieldName = fieldName.replace(/^"|"$/g, '').toLowerCase();
+                            let pkIndex = primaryKeyFields.indexOf(normalizedFieldName);
+                            pkIndex = pkIndex >= 0 ? pkIndex + 1 : 0;
+
+                            // Ricerca proprietà 
+                            const fieldBody = match[4].trim();
+                            const properties: { [key: string]: string } = {};
+                            findAllProperties(fieldBody, properties);
+
+                            // Cerco la posizione dell'oggetto trovato
+                            const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+                            let linePosition = objectLines.indexOf(searchText.toLowerCase());
+
+                            alTableFields.fields.push({
+                                id: fieldID,
+                                name: fieldName,
+                                isfield: true,
+                                type: fieldType,
+                                pkIndex: pkIndex,
+                                properties: properties,
+                                iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
+                                level: 0,
+                                startLine: linePosition
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableField);
+    if (match) {
+        fieldInfo.id = Number(match[1].trim()); // Primo gruppo: numero
+        fieldInfo.name = match[2].trim(); // Secondo gruppo: Nome con o senza virgolette
+        fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Fields
+
+//#region Keys
+export function findTableKeys(alObject: ALObject, alTableKeys: ALTableKeys) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isTable() || alObject.isTableExt()) {
+
+                // Ricerca sezione delle chiavi
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('keys', alObject.objectContentText, true, codeSectionsInfo)) {
+                    let objectLines: string[] = alObject.objectContentText.split('\n');
+                    objectLines = objectLines.map(line => line.trim().toLowerCase());
+                    let primaryKeyFound: boolean;
+
+                    let match: RegExpExecArray | null;
+                    while ((match = regExpr.tableKeyDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                        const keyName = match[1].trim();
+                        if (keyName) {
+                            let isPrimaryKey = false;
+                            if (alObject.isTable()) {
+                                isPrimaryKey = primaryKeyFound ? false : true;
+                                primaryKeyFound = true;
+                            }
+
+                            // Dettaglio Campi
+                            const fields = match[2].trim();
+
+                            // Cerco la posizione dell'oggetto trovato
+                            const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+                            let linePosition = objectLines.indexOf(searchText.toLowerCase());
+
+                            // Ricerca proprietà 
+                            const keyBody = match[3].trim();
+                            const properties: { [key: string]: string } = {};
+                            findAllProperties(keyBody, properties);
+
+                            alTableKeys.keys.push({
+                                name: keyName,
+                                fieldsList: fields,
+                                properties: properties,
+                                isPrimaryKey: isPrimaryKey,
+                                iconName: isPrimaryKey ? 'key' : 'list-ordered',
+                                startLine: linePosition,
+                                endLine: 0
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isTableKeyDefinition(lineText: string, keyInfo: { name: string, fieldsList: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableKey);
+    if (match) {
+        keyInfo.name = match[1] || '';
+        keyInfo.fieldsList = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Keys
+
+//#region Field Groups
+export function findTableFieldGroups(alObject: ALObject, alTableFieldGroups: ALTableFieldGroups) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isTable() || alObject.isTableExt()) {
+                // Ricerca sezione delle chiavi
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('fieldgroups', alObject.objectContentText, true, codeSectionsInfo)) {
+                    let objectLines: string[] = alObject.objectContentText.split('\n');
+                    objectLines = objectLines.map(line => line.trim().toLowerCase());
+
+                    let match: RegExpExecArray | null;
+                    while ((match = regExpr.tableFieldGroupDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                        const groupName = match[1].trim();
+                        if (groupName) {
+                            // Dettaglio Campi
+                            const fields = match[2].trim();
+
+                            // Cerco la posizione dell'oggetto trovato
+                            const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+                            let linePosition = objectLines.indexOf(searchText.toLowerCase());
+
+                            alTableFieldGroups.fieldgroups.push({
+                                name: groupName,
+                                fieldsList: fields,
+                                iconName: 'group-by-ref-type',
+                                startLine: linePosition,
+                                endLine: 0
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Field Groups
+
+//#endregion Table
+
+//#region Page
+//#region Fields
+export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isPage() || alObject.isPageExt()) {
+                // Ricerca sezione delle chiavi
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('layout', alObject.objectContentText, false, codeSectionsInfo)) {
+                    const lines = codeSectionsInfo[0].content.split('\n');
+
+                    let insideMultiLineComment: boolean;
+                    let currentLevel = -1;
+
+                    lines.forEach((lineText, linePos) => {
+                        lineText = cleanObjectLineText(lineText);
+                        const lineNumber = codeSectionsInfo[0].startLine + linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Verifico se si tratta di una riga commentata
+                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                        if (!commentedLine) {
+                            if (currentLevel >= 0) {
+                                let fieldAreaInfo: { name: string } = { name: '' };
+                                if (isPageFieldAreaDefinition(lineText, fieldAreaInfo)) {
+                                    currentLevel = -1;
+                                }
+
+                                let fieldGroupInfo: { type: string, name: string, extAnchor: boolean } = { type: '', name: '', extAnchor: false };
+                                if (isPageFieldGroupDefinition(lineText, fieldGroupInfo)) {
+                                    if (currentLevel === 0) {
+                                        const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(fieldGroupBody, properties);
+
+                                        alPageFields.fields.push({
+                                            name: fieldGroupInfo.name,
+                                            type: fieldGroupInfo.type,
+                                            sourceExpr: '',
+                                            isfield: false,
+                                            properties: properties,
+                                            iconName: fieldGroupInfo.extAnchor ? 'plug' : 'symbol-variable',
+                                            level: currentLevel,
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+
+                                let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
+                                if (isPageFieldDefinition(lineText, fieldInfo)) {
+                                    // Ricerca proprietà 
+                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                    const properties: { [key: string]: string } = {};
+                                    findAllProperties(actionBody, properties);
+
+                                    alPageFields.fields.push({
+                                        name: fieldInfo.name,
+                                        isfield: true,
+                                        type: fieldInfo.sourceExpr,
+                                        sourceExpr: fieldInfo.sourceExpr,
+                                        properties: properties,
+                                        iconName: 'symbol-field',
+                                        level: currentLevel > 0 ? 1 : 0,
+                                        startLine: lineNumber,
+                                    });
+                                }
+                            }
+
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+                            }
+                        }
+                    });
+
+                    if (alPageFields.fields) {
+                        if (alPageFields.fields.length > 0) {
+                            // Order by StartLine
+                            alPageFields.fields.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageField);
+    if (match) {
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isPageFieldAreaDefinition(lineText: string, fieldAreaInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageFieldArea);
+    if (match) {
+        fieldAreaInfo.name = match[1];
+        fieldAreaInfo.name = fieldAreaInfo.name.replace('&', '');
+
+        return true;
+    }
+
+    return false;
+}
+export function isPageFieldGroupDefinition(lineText: string, fieldGroupInfo: { type: string, name: string, extAnchor: boolean }): boolean {
+    let match = lineText.trim().match(regExpr.pageFieldGroup);
+    if (match) {
+        fieldGroupInfo.type = normalizeElementTypeString(match[1]);
+        fieldGroupInfo.name = match[2];
+        fieldGroupInfo.name = fieldGroupInfo.name.replace('&', '');
+        fieldGroupInfo.extAnchor = false;
+
+        return true;
+    }
+
+    match = lineText.trim().match(regExpr.pageFieldAnchor);
+    if (match) {
+        fieldGroupInfo.type = normalizeElementTypeString(match[1]);
+        fieldGroupInfo.name = match[2];
+        fieldGroupInfo.name = fieldGroupInfo.name.replace('&', '');
+        fieldGroupInfo.extAnchor = true;
+
+        if (fieldGroupInfo.name.toLowerCase() === 'factboxes') {
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+//#endregion Fields
+
+//#region Actions
+export function findPageActions(alObject: ALObject, alPageActions: ALObjectActions) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isPage() || alObject.isPageExt) {
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('actions', alObject.objectContentText, false, codeSectionsInfo)) {
+                    for (const section of codeSectionsInfo) {
+                        const lines = section.content.split('\n');
+
+                        let insideMultiLineComment: boolean;
+                        let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
+                        let actionGroupStack: { name: string, level: number }[] = [];
+                        let currentLevel = -1;
+
+                        lines.forEach((lineText, linePos) => {
+                            lineText = cleanObjectLineText(lineText);
+                            const lineNumber = section.startLine + linePos;
+
+                            // Verifica inizio-fine commento multi-riga
+                            if (isMultiLineCommentStart(lineText)) {
+                                insideMultiLineComment = true;
+                            }
+                            if (isMultiLineCommentEnd(lineText)) {
+                                insideMultiLineComment = false;
+                            }
+
+                            // Verifico se si tratta di una riga commentata
+                            const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                            if (!commentedLine) {
+                                if (isActionAreaDefinition(lineText, actionAreaInfo)) {
+                                    alPageActions.actions.push({
+                                        kind: 'area',
+                                        name: actionAreaInfo.name,
+                                        level: 0,
+                                        sourceAction: '',
+                                        area: '',
+                                        isAction: false,
+                                        iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
+                                        startLine: lineNumber
+                                    });
+
+                                    currentLevel = 0;
+                                }
+
+                                if (currentLevel >= 0) {
+                                    let actionGroupInfo: { name: string } = { name: '' };
+                                    if (isActionGroupDefinition(lineText, actionGroupInfo)) {
+                                        actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
+
+                                        const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(actionGroupBody, properties);
+
+                                        alPageActions.actions.push({
+                                            kind: 'group',
+                                            name: actionGroupInfo.name,
+                                            level: currentLevel,
+                                            sourceAction: '',
+                                            area: actionAreaInfo.name,
+                                            isAction: false,
+                                            properties: properties,
+                                            iconName: 'array',
+                                            startLine: lineNumber
+                                        });
+                                    }
+
+                                    let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+                                    if (isActionDefinition(lineText, actionInfo)) {
+                                        const lastGroupName = actionGroupStack
+                                            .slice() // Copia l'array
+                                            .reverse() // Inverte l'ordine degli elementi
+                                            .find(item => item.level === (currentLevel - 1));
+
+                                        // Ricerca proprietà 
+                                        const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(actionBody, properties);
+
+                                        alPageActions.actions.push({
+                                            kind: 'action',
+                                            name: actionInfo.name,
+                                            level: currentLevel,
+                                            sourceAction: actionInfo.sourceAction,
+                                            area: actionAreaInfo.name,
+                                            actionGroupRef: lastGroupName ? lastGroupName.name : '',
+                                            isAction: true,
+                                            properties: properties,
+                                            iconName: 'symbol-event',
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+
+                                if (lineText.includes("{")) {
+                                    currentLevel++;
+                                }
+                                if (lineText.includes("}")) {
+                                    currentLevel--;
+
+                                    if (actionGroupStack && (actionGroupStack.length > 0)) {
+                                        // Elimino tutti i gruppi di livello maggiore
+                                        actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
+                                    }
+                                }
+                            }
+                        });
+
+                        if (alPageActions.actions) {
+                            if (alPageActions.actions.length > 0) {
+                                // Order by StartLine
+                                alPageActions.actions.sort((a, b) => a.startLine - b.startLine);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string, extAnchor: boolean }): boolean {
+    let match = lineText.trim().match(regExpr.pageActionArea);
+    if (match) {
+        actionAreaInfo.name = match[1] || 'actions';
+        actionAreaInfo.extAnchor = false;
+
+        return true;
+    }
+
+    match = lineText.trim().match(regExpr.pageActionAnchor);
+    if (match) {
+        actionAreaInfo.name = match[2] || 'actions';
+        actionAreaInfo.extAnchor = true;
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isPageCueGroupDefinition(lineText: string, cueGroupInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageCueGroup);
+    if (match) {
+        cueGroupInfo.name = match[1] || 'Cuegroup';
+        cueGroupInfo.name = cueGroupInfo.name.replace('&', '');
+
+        return true;
+    }
+
+    return false;
+}
+export function isActionGroupDefinition(lineText: string, actionGroupInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageActionGroup);
+    if (match) {
+        actionGroupInfo.name = match[1] || 'group';
+        actionGroupInfo.name = actionGroupInfo.name.replace('&', '');
+
+        return true;
+    }
+
+    return false;
+}
+
+export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
+    let match = lineText.trim().match(regExpr.pageAction);
+    if (match) {
+        actionInfo.name = match[1] || 'action';
+        actionInfo.name = actionInfo.name.replace('&', '');
+        return true;
+    }
+    else {
+        match = lineText.trim().match(regExpr.pageActionRef);
+        if (match) {
+            actionInfo.name = match[1] || 'action';
+            actionInfo.name = actionInfo.name.replace('&', '');
+
+            actionInfo.sourceAction = match[2] || '';
+            actionInfo.sourceAction = actionInfo.sourceAction.replace('&', '');
+            return true;
+        }
+    }
+
+    return false;
+}
+//#endregion Actions
+//#endregion Page
+
+//#region Report
+//#region Data Items
+export function findReportDataitems(alObject: ALObject, alReportDataitems: ALObjectDataItems) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isReport() || alObject.isReportExt()) {
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('dataset', alObject.objectContentText, false, codeSectionsInfo)) {
+                    const datasetTxtLines = codeSectionsInfo[0].content.split('\n');
+                    let insideMultiLineComment: boolean;
+                    let currentLevel = -1;
+
+                    const stack: {
+                        name: string;
+                        sourceExpression: string;
+                        fullText: string;
+                        level: number;
+                        startLine: number
+                    }[] = [];
+
+                    datasetTxtLines.forEach((lineText, linePos) => {
+                        lineText = cleanObjectLineText(lineText);
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Verifico se si tratta di una riga commentata
+                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                        if (!commentedLine) {
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+                                if (currentLevel >= 0) {
+                                    if (stack.length > 0) {
+                                        if (stack[stack.length - 1].level === currentLevel) {
+
+                                            const lastEntry = stack.pop();
+                                            if (lastEntry) {
+                                                // Ricerca proprietà
+                                                const properties: { [key: string]: string } = {};
+
+                                                if (lastEntry.fullText) {
+                                                    lastEntry.fullText += '}';
+
+                                                    let elementDefinition = regExpr.reportDataitemDefinition.exec(lastEntry.fullText);
+                                                    if (elementDefinition) {
+                                                        let elementDefinitionText = elementDefinition[0];
+                                                        findAllProperties(elementDefinitionText, properties);
+                                                    }
+                                                }
+                                                // Aggiungo il l'elemento alla lista
+                                                alReportDataitems.dataItems.push({
+                                                    name: lastEntry.name,
+                                                    sourceExpression: lastEntry.sourceExpression,
+                                                    level: lastEntry.level,
+                                                    startLine: lastEntry.startLine,
+                                                    endLine: codeSectionsInfo[0].startLine + lineNumber,
+                                                    properties: properties,
+                                                    iconName: 'symbol-class'
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (currentLevel >= 0) {
+                                let dataItemInfo: { name: string, sourceExpr: string } = { name: '', sourceExpr: '' };
+                                if (isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                    stack.push({
+                                        name: dataItemInfo.name,
+                                        sourceExpression: dataItemInfo.sourceExpr,
+                                        level: currentLevel,
+                                        startLine: codeSectionsInfo[0].startLine + lineNumber,
+                                        fullText: lineText
+                                    });
+                                }
+                                else {
+                                    if (stack.length > 0) {
+                                        let lastDataitem = stack.pop();
+                                        lastDataitem.fullText += lineText;
+                                        stack.push(lastDataitem);
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    if (alReportDataitems.dataItems) {
+                        if (alReportDataitems.dataItems.length > 0) {
+                            // Order by StartLine
+                            alReportDataitems.dataItems.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportDataItem);
+    if (match) {
+        dataItemInfo.name = match[1] || '';
+        dataItemInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Data Items
+
+//#region Columns
+export function findReportColumns(alObject: ALObject, alReportColumns: ALObjectFields) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isReport() || alObject.isReportExt()) {
+                let alReportDataitems: ALObjectDataItems;
+                alReportDataitems = new ALObjectDataItems(alObject);
+
+                // Ricerca sezione delle chiavi
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('dataset', alObject.objectContentText, true, codeSectionsInfo)) {
+                    let objectLines: string[] = alObject.objectContentText.split('\n');
+                    objectLines = objectLines.map(line => line.trim().toLowerCase());
+
+                    let match: RegExpExecArray | null;
+                    while ((match = regExpr.reportColumnDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                        const fieldName = match[1].trim();
+                        if (fieldName) {
+                            const sourceExpr = match[2].trim();
+
+                            // Ricerca proprietà 
+                            const fieldBody = match[3].trim();
+                            const properties: { [key: string]: string } = {};
+                            findAllProperties(fieldBody, properties);
+
+                            // Cerco la posizione dell'oggetto trovato
+                            const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+                            let linePosition = objectLines.indexOf(searchText.toLowerCase());
+
+                            // Ricerca dataitem di riferimento
+                            const refDataItem = alReportDataitems.dataItems
+                                .filter((di) => linePosition >= di.startLine && linePosition <= di.endLine)  // Filtra i dataitem che contengono la linePosition
+                                .sort((a, b) => b.startLine - a.startLine)  // Ordina per startLine in ordine decrescente
+                                .shift();  // Prende il primo, che avrà lo startLine più alto
+
+                            alReportColumns.fields.push({
+                                name: fieldName,
+                                type: sourceExpr,
+                                sourceExpr: sourceExpr,
+                                properties: properties,
+                                isfield: true,
+                                iconName: 'symbol-field',
+                                dataItem: refDataItem ? refDataItem.name : '',
+                                level: 0,
+                                startLine: linePosition
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isReportColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportColumn);
+    if (match) {
+        fieldInfo.name = match[1] || 'Column';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Columns
+
+//#region Request Page
+export function findRequestPageActions(alObject: ALObject, alPageActions: ALObjectActions) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isReport() || alObject.isReportExt) {
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('actions', alObject.objectContentText, false, codeSectionsInfo)) {
+                    const lines = codeSectionsInfo[0].content.split('\n');
+
+                    let insideMultiLineComment: boolean;
+                    let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
+                    let actionGroupStack: { name: string, level: number }[] = [];
+                    let currentLevel = -1;
+
+                    lines.forEach((lineText, linePos) => {
+                        lineText = cleanObjectLineText(lineText);
+                        const lineNumber = codeSectionsInfo[0].startLine + linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Verifico se si tratta di una riga commentata
+                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                        if (!commentedLine) {
+                            if (isActionAreaDefinition(lineText, actionAreaInfo)) {
+                                alPageActions.actions.push({
+                                    kind: 'area',
+                                    name: actionAreaInfo.name,
+                                    level: 0,
+                                    sourceAction: '',
+                                    area: '',
+                                    isAction: false,
+                                    iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
+                                    startLine: lineNumber
+                                });
+
+                                currentLevel = 0;
+                            }
+
+                            if (currentLevel >= 0) {
+                                let actionGroupInfo: { name: string } = { name: '' };
+                                if (isActionGroupDefinition(lineText, actionGroupInfo)) {
+                                    actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
+
+                                    const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                    const properties: { [key: string]: string } = {};
+                                    findAllProperties(actionGroupBody, properties);
+
+                                    alPageActions.actions.push({
+                                        kind: 'group',
+                                        name: actionGroupInfo.name,
+                                        level: currentLevel,
+                                        sourceAction: '',
+                                        area: actionAreaInfo.name,
+                                        isAction: false,
+                                        properties: properties,
+                                        iconName: 'array',
+                                        startLine: lineNumber
+                                    });
+                                }
+
+                                let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+                                if (isActionDefinition(lineText, actionInfo)) {
+                                    const lastGroupName = actionGroupStack
+                                        .slice() // Copia l'array
+                                        .reverse() // Inverte l'ordine degli elementi
+                                        .find(item => item.level === (currentLevel - 1));
+
+                                    // Ricerca proprietà 
+                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                    const properties: { [key: string]: string } = {};
+                                    findAllProperties(actionBody, properties);
+
+                                    alPageActions.actions.push({
+                                        kind: 'action',
+                                        name: actionInfo.name,
+                                        level: currentLevel === 0 ? 1 : currentLevel,
+                                        sourceAction: actionInfo.sourceAction,
+                                        area: actionAreaInfo.name,
+                                        actionGroupRef: lastGroupName ? lastGroupName.name : '',
+                                        isAction: true,
+                                        properties: properties,
+                                        iconName: 'symbol-event',
+                                        startLine: lineNumber
+                                    });
+                                }
+                            }
+
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+
+                                if (actionGroupStack && (actionGroupStack.length > 0)) {
+                                    // Elimino tutti i gruppi di livello maggiore
+                                    actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
+                                }
+                            }
+                        }
+                    });
+
+                    if (alPageActions.actions) {
+                        if (alPageActions.actions.length > 0) {
+                            // Order by StartLine
+                            alPageActions.actions.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.reportReqPageField);
+    if (match) {
+        fieldInfo.name = match[1] || 'Field';
+        fieldInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Request Page
+//#endregion Report
+
+//#region Query
+//#region Data Items
+export function findQueryDataitems(alObject: ALObject, alQueryDataitems: ALObjectDataItems) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isQuery()) {
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('elements', alObject.objectContentText, false, codeSectionsInfo)) {
+                    const datasetTxtLines = codeSectionsInfo[0].content.split('\n');
+                    let insideMultiLineComment: boolean;
+                    let currentLevel = -1;
+
+                    const stack: {
+                        name: string;
+                        sourceExpression: string;
+                        fullText: string;
+                        level: number;
+                        startLine: number
+                    }[] = [];
+
+                    datasetTxtLines.forEach((lineText, linePos) => {
+                        lineText = cleanObjectLineText(lineText);
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Verifico se si tratta di una riga commentata
+                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                        if (!commentedLine) {
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+                                if (currentLevel >= 0) {
+                                    if (stack.length > 0) {
+                                        if (stack[stack.length - 1].level === currentLevel) {
+
+                                            const lastEntry = stack.pop();
+                                            if (lastEntry) {
+                                                // Ricerca proprietà
+                                                const properties: { [key: string]: string } = {};
+
+                                                if (lastEntry.fullText) {
+                                                    lastEntry.fullText += '}';
+
+                                                    let elementDefinition = regExpr.queryDataitemDefinition.exec(lastEntry.fullText);
+                                                    if (elementDefinition) {
+                                                        let elementDefinitionText = elementDefinition[0];
+                                                        findAllProperties(elementDefinitionText, properties);
+                                                    }
+                                                }
+                                                // Aggiungo il l'elemento alla lista
+                                                alQueryDataitems.dataItems.push({
+                                                    name: lastEntry.name,
+                                                    sourceExpression: lastEntry.sourceExpression,
+                                                    level: lastEntry.level,
+                                                    startLine: lastEntry.startLine,
+                                                    endLine: codeSectionsInfo[0].startLine + lineNumber,
+                                                    properties: properties,
+                                                    iconName: 'symbol-class'
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (currentLevel >= 0) {
+                                let dataItemInfo: { name: string, sourceExpr: string } = { name: '', sourceExpr: '' };
+                                if (isQueryDataItemDefinition(lineText, dataItemInfo)) {
+                                    stack.push({
+                                        name: dataItemInfo.name,
+                                        sourceExpression: dataItemInfo.sourceExpr,
+                                        level: currentLevel,
+                                        startLine: codeSectionsInfo[0].startLine + lineNumber,
+                                        fullText: lineText
+                                    });
+                                }
+                                else {
+                                    if (stack.length > 0) {
+                                        let lastDataitem = stack.pop();
+                                        lastDataitem.fullText += lineText;
+                                        stack.push(lastDataitem);
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    if (alQueryDataitems.dataItems) {
+                        if (alQueryDataitems.dataItems.length > 0) {
+                            // Order by StartLine
+                            alQueryDataitems.dataItems.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+export function isQueryDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryDataItem);
+    if (match) {
+        dataItemInfo.name = match[1] || '';
+        dataItemInfo.sourceExpr = match[2] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Data Items
+
+//#region Columns
+export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFields) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isQuery()) {
+                let alQueryDataitems: ALObjectDataItems;
+                alQueryDataitems = new ALObjectDataItems(alObject);
+
+                // Ricerca sezione delle chiavi
+                let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('elements', alObject.objectContentText, true, codeSectionsInfo)) {
+                    let objectLines: string[] = alObject.objectContentText.split('\n');
+                    objectLines = objectLines.map(line => line.trim().toLowerCase());
+
+                    let match: RegExpExecArray | null;
+                    while ((match = regExpr.queryColumnDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                        const columnType = match[1].trim().toLowerCase();
+                        const fieldName = match[2].trim();
+                        if (fieldName) {
+                            const sourceExpr = match[3].trim();
+
+                            // Ricerca proprietà 
+                            const fieldBody = match[4].trim();
+                            const properties: { [key: string]: string } = {};
+                            findAllProperties(fieldBody, properties);
+
+                            // Cerco la posizione dell'oggetto trovato
+                            const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+                            let linePosition = objectLines.indexOf(searchText.toLowerCase());
+
+                            // Ricerca dataitem di riferimento
+                            const refDataItem = alQueryDataitems.dataItems
+                                .filter((di) => linePosition >= di.startLine && linePosition <= di.endLine)  // Filtra i dataitem che contengono la linePosition
+                                .sort((a, b) => b.startLine - a.startLine)  // Ordina per startLine in ordine decrescente
+                                .shift();  // Prende il primo, che avrà lo startLine più alto
+
+                            alQueryColumns.fields.push({
+                                name: fieldName,
+                                type: sourceExpr,
+                                sourceExpr: sourceExpr,
+                                isfield: true,
+                                properties: properties,
+                                iconName: (properties['method']) ? 'symbol-operator' :
+                                    (columnType === 'filter') ? 'filter' : 'symbol-field',
+                                dataItem: refDataItem ? refDataItem.name : '',
+                                level: 0,
+                                startLine: linePosition
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryColumn);
+    if (match) {
+        fieldInfo.name = match[2] || 'Column';
+        fieldInfo.sourceExpr = match[3] || '';
+
+        return true;
+    }
+
+    return false;
+}
+//#endregion Columns
+
+//#endregion Query
+
+//#region Fields
+export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFields) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            let validObjectType = alObject.isTable() || alObject.isTableExt() ||
+                alObject.isPage() || alObject.isPageExt() ||
+                alObject.isReport() || alObject.isReportExt() ||
+                alObject.isQuery();
+
+            if (validObjectType) {
+                let primaryKeyFields: string[] = [];
+                if (alObject.isTable()) {
+                    let alTableKeys: ALTableKeys;
+                    alTableKeys = new ALTableKeys(alObject);
+                    if (alTableKeys && alTableKeys.keys) {
+                        primaryKeyFields = alTableKeys.keys[0].fieldsList
+                            .split(',')
+                            .map(field => field.trim().toLowerCase().replace(/^"|"$/g, ''));
+                    }
+                }
+
+                if (alObject.objectContentText) {
+                    const lines = alObject.objectContentText.split('\n');
+                    let insideMultiLineComment: boolean;
+                    let dataitemName: string = '';
+
+                    lines.forEach((lineText, linePos) => {
+                        lineText = cleanObjectLineText(lineText);
+                        const lineNumber = linePos;
+
+                        // Verifica inizio-fine commento multi-riga
+                        if (isMultiLineCommentStart(lineText)) {
+                            insideMultiLineComment = true;
+                        }
+                        if (isMultiLineCommentEnd(lineText)) {
+                            insideMultiLineComment = false;
+                        }
+
+                        // Verifico se si tratta di una riga commentata
+                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                        if (!commentedLine) {
+                            if (alObject.isTable() || alObject.isTableExt()) {
+                                let tableField: { id: number, name: string, type: string };
+                                tableField = { id: 0, name: '', type: '' };
+
+                                if (isTableFieldDefinition(lineText, tableField)) {
+                                    let normalizedFieldName = tableField.name.replace(/^"|"$/g, '').toLowerCase();
+                                    let pkIndex = primaryKeyFields.indexOf(normalizedFieldName);
+                                    pkIndex = pkIndex >= 0 ? pkIndex + 1 : 0;
+
+                                    alObjectFields.fields.push({
+                                        id: tableField.id,
+                                        name: tableField.name,
+                                        type: tableField.type,
+                                        isfield: true,
+                                        pkIndex: pkIndex,
+                                        iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
+                                        level: 0,
+                                        startLine: lineNumber
+                                    });
+
+                                    return;
+                                }
+                            }
+
+                            if (alObject.isPage() || alObject.isPageExt()) {
+                                let pageField: { name: string, sourceExpr: string };
+                                pageField = { name: '', sourceExpr: '' };
+                                if (isPageFieldDefinition(lineText, pageField)) {
+                                    alObjectFields.fields.push({
+                                        id: 0,
+                                        name: pageField.name,
+                                        type: pageField.sourceExpr,
+                                        sourceExpr: pageField.sourceExpr,
+                                        isfield: true,
+                                        iconName: 'symbol-field',
+                                        level: 0,
+                                        startLine: lineNumber
+                                    });
+
+                                    return;
+                                }
+                            }
+
+                            if (alObject.isReport() || alObject.isReportExt()) {
+                                let dataItemInfo: { name: string, sourceExpr: string };
+                                dataItemInfo = { name: '', sourceExpr: '' };
+                                if (isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                    dataitemName = `DataItem: ${dataItemInfo.name} (${dataItemInfo.sourceExpr})`;
+
+                                    return;
+                                }
+
+                                let reportField: { name: string, sourceExpr: string };
+                                reportField = { name: '', sourceExpr: '' };
+                                if (isReportColumnDefinition(lineText, reportField)) {
+                                    alObjectFields.fields.push({
+                                        id: 0,
+                                        name: reportField.name,
+                                        type: reportField.sourceExpr,
+                                        sourceExpr: reportField.sourceExpr,
+                                        isfield: true,
+                                        dataItem: dataitemName,
+                                        iconName: 'symbol-field',
+                                        level: 0,
+                                        startLine: lineNumber
+                                    });
+
+                                    return;
+                                }
+                                else {
+                                    if (isReportReqPageFieldDefinition(lineText, reportField)) {
+                                        alObjectFields.fields.push({
+                                            id: 0,
+                                            name: reportField.name,
+                                            type: reportField.sourceExpr,
+                                            sourceExpr: reportField.sourceExpr,
+                                            isfield: true,
+                                            dataItem: 'requestpage',
+                                            iconName: 'symbol-field',
+                                            level: 0,
+                                            startLine: lineNumber
+                                        });
+
+                                        return;
+                                    }
+                                }
+                            }
+                            if (alObject.isQuery) {
+                                let dataItemInfo: { name: string, sourceExpr: string };
+                                dataItemInfo = { name: '', sourceExpr: '' };
+                                if (isQueryDataItemDefinition(lineText, dataItemInfo)) {
+                                    dataitemName = `DataItem: ${dataItemInfo.name} (${dataItemInfo.sourceExpr})`;
+
+                                    return;
+                                }
+
+                                let reportField: { name: string, sourceExpr: string };
+                                reportField = { name: '', sourceExpr: '' };
+                                if (isQueryColumnDefinition(lineText, reportField)) {
+                                    alObjectFields.fields.push({
+                                        id: 0,
+                                        name: reportField.name,
+                                        type: reportField.sourceExpr,
+                                        sourceExpr: reportField.sourceExpr,
+                                        isfield: true,
+                                        iconName: 'symbol-field',
+                                        dataItem: dataitemName,
+                                        level: 0,
+                                        startLine: lineNumber
+                                    });
+
+                                    return;
+                                }
+                            }
+                        }
+                    });
+
+                    if (alObjectFields.fields) {
+                        if (alObjectFields.fields.length > 0) {
+                            // Order by StartLine
+                            alObjectFields.fields.sort((a, b) => a.startLine - b.startLine);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Fields
+
+//#region Actions
+export function findObjectActions(alObject: ALObject, alObjectActions: ALObjectActions) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            let validObjectType = alObject.isPage() || alObject.isPageExt ||
+                alObject.isReport() || alObject.isReportExt();
+
+            if (validObjectType) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+                let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
+
+                lines.forEach((lineText, linePos) => {
+                    const lineNumber = linePos;
+
+                    // Verifica inizio-fine commento multi-riga
+                    if (isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
+
+                    // Se la riga è dentro un commento multi-linea o è un commento su singola riga, ignorala
+                    if (insideMultiLineComment || isCommentedLine(lineText)) {
+                        return; // Ignora questa riga
+                    }
+
+                    if (!isActionAreaDefinition(lineText, actionAreaInfo)) {
+                        let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+
+                        if (isActionDefinition(lineText, actionInfo)) {
+                            alObjectActions.actions.push({
+                                kind: 'action',
+                                name: actionInfo.name,
+                                sourceAction: actionInfo.sourceAction,
+                                area: actionAreaInfo.name,
+                                actionGroupRef: '',
+                                isAction: true,
+                                iconName: 'symbol-event',
+                                startLine: lineNumber,
+                                level: 0,
+                            });
+                        }
+                    }
+                });
+
+                if (alObjectActions.actions) {
+                    if (alObjectActions.actions.length > 0) {
+                        // Order by StartLine
+                        alObjectActions.actions.sort((a, b) => a.startLine - b.startLine);
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Actions
+
+//#region Dataitems
+export function findObjectDataItems(alObject: ALObject, alObjectDataItems: ALObjectDataItems) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            let validObjectType = alObject.isReport() || alObject.isReportExt() || alObject.isQuery();
+            let insideDataset: boolean;
+            if (validObjectType) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+                let currentLevel = -1;
+                const stack: {
+                    name: string;
+                    sourceExpression: string;
+                    level: number;
+                    startLine: number
+                }[] = [];
+
+                lines.forEach((lineText, linePos) => {
+                    lineText = cleanObjectLineText(lineText);
+                    const lineNumber = linePos;
+
+                    // Verifica inizio-fine commento multi-riga
+                    if (isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
+
+                    // Verifico se la riga è commentata
+                    const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                    if (!commentedLine) {
+                        // Verifico di trovarmi nella sezione Dataset
+                        if (alObject.isReport() || alObject.isReportExt()) {
+                            if (lineText.trim().toLowerCase() === 'dataset') {
+                                insideDataset = true;
+                            }
+                        }
+                        if (alObject.isQuery()) {
+                            if (lineText.trim().toLowerCase() === 'elements') {
+                                insideDataset = true;
+                            }
+                        }
+
+                        if (insideDataset) {
+                            if (lineText.includes("{")) {
+                                currentLevel++;
+                            }
+                            if (lineText.includes("}")) {
+                                currentLevel--;
+                                if (currentLevel < 0) {
+                                    insideDataset = false;
+                                    return;
+                                }
+
+                                if (stack.length > 0) {
+                                    if (stack[stack.length - 1].level === currentLevel) {
+
+                                        const lastEntry = stack.pop();
+                                        if (lastEntry) {
+                                            alObjectDataItems.dataItems.push({
+                                                name: lastEntry.name,
+                                                sourceExpression: lastEntry.sourceExpression,
+                                                level: lastEntry.level,
+                                                startLine: lastEntry.startLine,
+                                                endLine: lineNumber,
+                                                iconName: 'symbol-class'
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+
+                            let dataItemInfo: { name: string, sourceExpr: string } = { name: '', sourceExpr: '' };
+                            if (isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                stack.push({
+                                    name: dataItemInfo.name,
+                                    sourceExpression: dataItemInfo.sourceExpr,
+                                    level: currentLevel,
+                                    startLine: lineNumber
+                                });
+                            }
+                        }
+                    }
+                });
+
+                if (alObjectDataItems.dataItems) {
+                    if (alObjectDataItems.dataItems.length > 0) {
+                        // Order by StartLine
+                        alObjectDataItems.dataItems.sort((a, b) => a.startLine - b.startLine);
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Dataitems
+
+//#region Procedures
+export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALObjectProcedures) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            const lines = alObject.objectContentText.split('\n');
+            let insideMultiLineComment: boolean;
+            let insideIntOrBusEventDecl: boolean;
+            let insideEventSubscription: boolean;
+            let eventSubscrName: string = '';
+
+            let alObjectRegions: ALObjectRegions;
+            alObjectRegions = new ALObjectRegions(alObject);
+
+            lines.forEach((lineText, linePos) => {
+                lineText = cleanObjectLineText(lineText);
+                const lineNumber = linePos;
+
+                // Verifica inizio-fine commento multi-riga
+                if (isMultiLineCommentStart(lineText)) {
+                    insideMultiLineComment = true;
+                }
+                if (isMultiLineCommentEnd(lineText)) {
+                    insideMultiLineComment = false;
+                }
+
+                // Verifico se si tratta di una riga commentata
+                const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                if (!commentedLine) {
+                    if (isIntegrationEventDeclaration(lineText) || isBusinessEventDeclaration(lineText)) {
+                        insideIntOrBusEventDecl = true;
+                    }
+                    else {
+                        let eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string } = {};
+                        if (isEventSubscriber(lineText, eventSubscrInfo)) {
+                            insideEventSubscription = true;
+                            eventSubscrName = eventSubscrInfo.elementName ? `${eventSubscrInfo.objectType} ${eventSubscrInfo.objectName}: ${eventSubscrInfo.eventName}_${eventSubscrInfo.elementName}` :
+                                `${eventSubscrInfo.objectType} ${eventSubscrInfo.objectName}: ${eventSubscrInfo.eventName} `;
+                        }
+                        else {
+                            let procedureInfo: { scope: string, name: string };
+                            procedureInfo = { scope: '', name: '' };
+                            if (isProcedureDefinition(alObject, lineText, procedureInfo)) {
+                                let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
+                                    insideEventSubscription ? 'plug' :
+                                        procedureInfo.scope === 'trigger' ? 'server-process' :
+                                            procedureInfo.scope === 'global' ? 'symbol-function' :
+                                                procedureInfo.scope === 'local' ? 'shield' :
+                                                    procedureInfo.scope === 'internal' ? 'symbol-variable' :
+                                                        'symbol-function';
+
+                                if (procedureInfo.name) {
+                                    const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
+                                    alObjectProcedures.procedures.push({
+                                        scope: procedureInfo.scope,
+                                        name: procedureInfo.name,
+                                        sourceEvent: insideEventSubscription ? eventSubscrName : '',
+                                        iconName: symbol,
+                                        regionPath: lineRegionPath,
+                                        startLine: lineNumber
+                                    });
+                                    insideIntOrBusEventDecl = false;
+                                    insideEventSubscription = false;
+                                }
+                            }
+                            else {
+                                if ((insideIntOrBusEventDecl || insideEventSubscription) && (!lineText.trim().startsWith('['))) {
+                                    insideIntOrBusEventDecl = false;
+                                    insideEventSubscription = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (alObjectProcedures.procedures) {
+                if (alObjectProcedures.procedures.length > 0) {
+                    // Order by StartLine
+                    alObjectProcedures.procedures.sort((a, b) => a.startLine - b.startLine);
+                }
+            }
+        }
+    }
+}
 export function isProcedureDefinition(alObject: ALObject, lineText: string, procedureInfo: { scope: string, name: string }): boolean {
     const match = lineText.trim().match(regExpr.procedure);
     if (match) {
@@ -287,152 +1818,7 @@ export function isProcedureDefinition(alObject: ALObject, lineText: string, proc
     return false;
 }
 
-export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
-    const match = lineText.trim().match(regExpr.tableField);
-    if (match) {
-        fieldInfo.id = Number(match[1].trim()); // Primo gruppo: numero
-        fieldInfo.name = match[2].trim(); // Secondo gruppo: Nome con o senza virgolette
-        fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isTableKeyDefinition(lineText: string, keyInfo: { name: string, fieldsList: string }): boolean {
-    const match = lineText.trim().match(regExpr.tableKey);
-    if (match) {
-        keyInfo.name = match[1] || '';
-        keyInfo.fieldsList = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageField);
-    if (match) {
-        fieldInfo.name = match[1] || 'Field';
-        fieldInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isReportColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.reportColumn);
-    if (match) {
-        fieldInfo.name = match[1] || 'Column';
-        fieldInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.reportReqPageField);
-    if (match) {
-        fieldInfo.name = match[1] || 'Field';
-        fieldInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isReportDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.reportDataItem);
-    if (match) {
-        dataItemInfo.name = match[1] || '';
-        dataItemInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.queryColumn);
-    if (match) {
-        fieldInfo.name = match[2] || 'Column';
-        fieldInfo.sourceExpr = match[3] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isQueryDataItemDefinition(lineText: string, dataItemInfo: { name: string, sourceExpr: string }): boolean {
-    const match = lineText.trim().match(regExpr.queryDataItem);
-    if (match) {
-        dataItemInfo.name = match[1] || '';
-        dataItemInfo.sourceExpr = match[2] || '';
-
-        return true;
-    }
-
-    return false;
-}
-
-export function isActionAreaDefinition(lineText: string, actionAreaInfo: { name: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageActionArea);
-    if (match) {
-        actionAreaInfo.name = match[1] || 'actions';
-
-        return true;
-    }
-
-    return false;
-}
-export function isActionDefinition(lineText: string, actionInfo: { name: string, sourceAction: string }): boolean {
-    const match = lineText.trim().match(regExpr.pageAction);
-    if (match) {
-        actionInfo.name = match[1] || 'action';
-
-        return true;
-    }
-    else {
-        const match = lineText.trim().match(regExpr.pageActionRef);
-        if (match) {
-            actionInfo.name = match[1] || 'action';
-            actionInfo.sourceAction = match[2] || '';
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
-export function isCommentedLine(lineText: string): boolean {
-    if (regExpr.singleLineComment.test(lineText.trim())) {
-        return true;
-    }
-    return false;
-}
-
-export function isMultiLineCommentStart(lineText: string): boolean {
-    if (regExpr.multiLineCommentStart.test(lineText.trim())) {
-        return true;
-    }
-    return false;
-}
-export function isMultiLineCommentEnd(lineText: string): boolean {
-    if (regExpr.multiLineCommentEnd.test(lineText.trim())) {
-        return true;
-    }
-    return false;
-}
-
+//#region Integration Events
 export function isIntegrationEventDeclaration(lineText: string): boolean {
     if (regExpr.integrationEventDef.test(lineText.trim())) {
         return true;
@@ -465,19 +1851,201 @@ export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectTyp
 
     return false;
 }
-//#endregion Object Properties
+//#endregion Integration Events
+//#endregion Procedures
 
-//#region Interfaces
-export interface QuickPickItem {
-    label: string;
-    description?: string;
-    detail?: string;
-    sortKey?: string;
-    uri?: vscode.Uri;
-    alObject?: ALObject;
-    iconName?: string;
-    level?: number;
-    startLine?: number;
-    endLine?: number;
+//#region Element Properties
+function findAllProperties(elementDefinitionText: string, properties: { [key: string]: string }) {
+    const propertiesRegex = regExpr.objectProperties;
+
+    let propMatch: RegExpExecArray | null;
+    let singleLineDefText = elementDefinitionText.replace(/[\n\r]/g, '');  // Definizione su singola riga senza \n e \r
+    singleLineDefText = singleLineDefText.replace(/\s+/g, ' '); // Riduco il numero di spazi tra una stringa e l'altra 
+
+    while ((propMatch = propertiesRegex.exec(singleLineDefText)) !== null) {
+        let name = propMatch[1].trim().toLowerCase();
+        let value = propMatch[2].trim();
+
+        // Prendo solo il valore tra apici (es Caption = 'Caption', locked=true;)
+        const match = value.match(/^'([^']+)'/);
+        if (match) {
+            value = match[1];
+        }
+
+        properties[name] = value;
+    }
 }
-//#endregion Interfaces
+
+function normalizeElementTypeString(elementType: string): string {
+    switch (elementType.toLowerCase()) {
+        case 'field': {
+            return 'Field';
+        }
+        case 'action': {
+            return 'Action';
+        }
+        case 'group': {
+            return 'Group';
+        }
+        case 'repeater': {
+            return 'Repeater';
+        }
+        case 'cuegroup': {
+            return 'CueGroup';
+        }
+        case 'fixed': {
+            return 'Fixed';
+        }
+        case 'grid': {
+            return 'Grid';
+        }
+        case 'addfirst': {
+            return 'AddFirst';
+        }
+        case 'addlast': {
+            return 'AddLast';
+        }
+        case 'addbefore': {
+            return 'AddBefore';
+        }
+        case 'addafter': {
+            return 'AddAfter';
+        }
+    }
+}
+//#endregion Element Properties
+
+//#region Regions
+export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectRegions) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            const lines = alObject.objectContentText.split('\n');
+            const stack: { name: string; startLine: number }[] = [];
+            let insideMultiLineComment: boolean;
+
+            lines.forEach((lineText, linePos) => {
+                lineText = cleanObjectLineText(lineText);
+                const lineNumber = linePos;
+
+                // Verifica inizio-fine commento multi-riga
+                if (isMultiLineCommentStart(lineText)) {
+                    insideMultiLineComment = true;
+                }
+                if (isMultiLineCommentEnd(lineText)) {
+                    insideMultiLineComment = false;
+                }
+
+                // Verifico se si tratta di una riga commentata
+                const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                if (!commentedLine) {
+                    if (alRegionMgr.isRegionStartLine(lineText)) {
+                        let name = alRegionMgr.getRegionName(lineText);
+                        stack.push({ name, startLine: lineNumber });
+                        return;
+                    }
+
+                    if (alRegionMgr.isRegionEndLine(lineText)) {
+                        if (stack.length > 0) {
+
+                            const lastRegion = stack.pop();
+                            if (lastRegion) {
+                                const level = stack.length;
+
+                                alObjectRegions.regions.push({
+                                    name: lastRegion.name,
+                                    startLine: lastRegion.startLine,
+                                    endLine: lineNumber,
+                                    iconName: 'symbol-number',
+                                    level: level
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (alObjectRegions.regions.length > 0) {
+                // Order by StartLine
+                alObjectRegions.regions.sort((a, b) => a.startLine - b.startLine);
+            }
+        }
+    }
+}
+//#endregion Regions
+
+
+//#region Comments on Code
+function removeCommentedLines(objectFileContent: string): string {
+    const uncommentedContent = objectFileContent
+        .replace(/\/\/.*/g, '') // Commenti di riga
+        .replace(/\/\*[\s\S]*?\*\//g, ''); // Commenti multi-riga
+
+    return uncommentedContent;
+}
+
+export function cleanObjectLineText(lineText: string): string {
+    let newString = lineText;
+    if (isCommentedLine(newString)) {
+        newString = '';
+    }
+
+    if (isPragmaDirective(newString)) {
+        newString = '';
+    }
+
+    if (newString) {
+        // Verifico la presenza di caratteri racchiusi tra /*  e */
+        if (newString.includes('/*')) {
+            newString = newString.replace(/\/\*.*?\*\//g, '').trim();
+        }
+    }
+
+    if (newString) {
+        if (newString.includes('//')) {
+            // Verifico la presenza di commenti di riga //
+            newString = newString.split('//')[0].trim();
+        }
+    }
+
+    return newString.trim();
+}
+
+export function isCommentedLine(lineText: string): boolean {
+    if (lineText) {
+        if (regExpr.singleLineComment.test(lineText.trim())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+export function isPragmaDirective(lineText: string): boolean {
+    if (lineText) {
+        if (regExpr.pragmaDirective.test(lineText.trim())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+export function isMultiLineCommentStart(lineText: string): boolean {
+    if (lineText) {
+        if (regExpr.multiLineCommentStart.test(lineText.trim())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+export function isMultiLineCommentEnd(lineText: string): boolean {
+    if (lineText) {
+        if (regExpr.multiLineCommentEnd.test(lineText.trim())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+//#endregion Comments on Code
+//#endregion Object Structure Mgt.
