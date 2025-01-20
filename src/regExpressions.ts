@@ -18,6 +18,7 @@ export const pageFieldDefinition = /field\s*\(\s*([^;]+)\s*;\s*([" a-zA-Z0-9._/&
 export const pageActionArea = /^area\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageActionAnchor = /^(addafter|addbefore|addfirst|addlast)\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageActionGroup = /^group\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
+export const pageCueGroup = /^cuegroup\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageAction = /^action\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageActionRef = /^actionref\("?([ a-zA-Z0-9._/&%\/()-]+)"?\s*;\s*"?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 

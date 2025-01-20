@@ -171,7 +171,7 @@ export async function execALObjectExplorer() {
     }
 }
 
-export async function showObjectItems(items: QuickPickItem[], title: string) {
+export async function showObjectItems(items: QuickPickItem[], title: string, enableSearchOnDescription: boolean, enableSearchOnDetails: boolean) {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
@@ -199,8 +199,8 @@ export async function showObjectItems(items: QuickPickItem[], title: string) {
             startLine: item.startLine
         })), {
             placeHolder: `${title}`,
-            matchOnDescription: true,
-            matchOnDetail: true,
+            matchOnDescription: enableSearchOnDescription,
+            matchOnDetail: enableSearchOnDetails,
         });
 
         if (picked) {
@@ -228,25 +228,67 @@ export async function showAllFields() {
         alObjectFields = new ALObjectFields(alObject);
         if (alObjectFields.fields) {
             if (alObjectFields.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectFields.fields.map(item => ({
-                    label: item.id > 0 ? `[${item.id}]  ${item.name}` : `${item.name}`,
-                    description: (item.pkIndex > 0) ? `${item.type} (PK${item.pkIndex})` :
-                        (item.properties &&
-                            ('fieldclass' in item.properties) &&
-                            (['flowfield', 'flowfilter'].includes(item.properties['fieldclass'].toLowerCase()))) ?
-                            `${item.type} <${item.properties['fieldclass']}>` :
-                            (item.properties &&
-                                ('method' in item.properties)) ?
-                                `${item.type} <${item.properties['method']}()>` : item.type,
-                    detail: item.dataItem ? item.dataItem :
-                        (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: 0,
-                    level: 0,
-                    iconName: item.iconName
-                }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`);
+                let items: QuickPickItem[] = [];
+                for (const field of alObjectFields.fields) {
+                    let label = field.name;
+                    let description = field.type;
+                    let detail = '';
+                    if (field.properties) {
+                        if ('caption' in field.properties) {
+                            detail = `Caption: ${field.properties['caption']}`;
+                        }
+                    }
+
+                    if (alObject.isTable() || alObject.isTableExt()) {
+                        if (field.id > 0) {
+                            label = `[${field.id}]  ${field.name}`;
+                        }
+
+                        if (field.pkIndex > 0) {
+                            description += ` (PK${field.pkIndex})`;
+                        }
+
+                        if (field.properties) {
+                            if (('fieldclass' in field.properties) &&
+                                (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase()))) {
+                                description += ` <${field.properties['fieldclass']}>`;
+                            }
+                        }
+                    }
+
+                    if (alObject.isQuery()) {
+                        if (field.properties) {
+                            if ('method' in field.properties) {
+                                description += ` <${field.properties['method']}()>`;
+                            }
+                        }
+
+                        if (field.dataItem) {
+                            detail = addTextWithSeparator(detail, field.dataItem);
+                        }
+                    }
+
+                    if (alObject.isReport() || alObject.isReportExt()) {
+                        if (field.dataItem) {
+                            detail = addTextWithSeparator(detail, field.dataItem);
+                        }
+                    }
+
+                    items.push({
+                        label: label,
+                        description: description,
+                        detail: detail,
+                        startLine: field.startLine ? field.startLine : 0,
+                        endLine: 0,
+                        level: 0,
+                        iconName: field.iconName
+
+                    });
+
+                }
+
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, false, true);
                 return;
             }
         }
@@ -279,7 +321,7 @@ export async function showAllTableKeys() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, true, false);
                 return;
             }
         }
@@ -312,7 +354,7 @@ export async function showAllTableFieldGroups() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, false, true);
                 return;
             }
         }
@@ -348,7 +390,7 @@ export async function showAllProcedures() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Procedures`);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Procedures`, false, true);
                 return;
             }
         }
@@ -374,13 +416,14 @@ export async function showAllDataItems() {
                 let items: QuickPickItem[] = alObjectDataItems.dataItems.map(item => ({
                     label: item.name,
                     description: item.sourceExpression,
+                    detail: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: item.endLine ? item.endLine : 0,
                     level: item.level,
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`, true, false);
                 return;
             }
         }
@@ -405,16 +448,15 @@ export async function showAllActions() {
             if (alObjectActions.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
                     label: item.name,
-                    description: (item.properties && item.properties['caption']) ? `${item.properties['caption']}` :
-                        (item.sourceAction) ? `Ref: ${item.sourceAction}` : '',
-                    detail: '',
+                    description: item.sourceAction ? `Ref: ${item.sourceAction}` : '',
+                    detail: (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: item.level,
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`, true, true);
                 return;
             }
         }
@@ -447,7 +489,7 @@ export async function showAllRegions() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`);
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`, false, false);
                 return;
             }
         }
@@ -585,3 +627,19 @@ function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
     return objPriority;
 }
 //#endregion Open AL Objects
+
+//#region Utilities
+
+function addTextWithSeparator(originalText: string, textToAdd: string): string {
+    if (textToAdd) {
+        if (originalText) {
+            return `${originalText} | ${textToAdd}`;
+        }
+        else {
+            return textToAdd;
+        }
+    }
+
+    return originalText;
+}
+//#endregion Utilities
