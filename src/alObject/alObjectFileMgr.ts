@@ -499,7 +499,6 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                     const lines = codeSectionsInfo[0].content.split('\n');
 
                     let insideMultiLineComment: boolean;
-                    let fieldGroupStack: { type: string, name: string, level: number }[] = [];
                     let currentLevel = -1;
 
                     lines.forEach((lineText, linePos) => {
@@ -525,22 +524,22 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
 
                                 let fieldGroupInfo: { type: string, name: string, extAnchor: boolean } = { type: '', name: '', extAnchor: false };
                                 if (isPageFieldGroupDefinition(lineText, fieldGroupInfo)) {
-                                    fieldGroupStack.push({ type: fieldGroupInfo.type, name: fieldGroupInfo.name, level: currentLevel });
+                                    if (currentLevel === 0) {
+                                        const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(fieldGroupBody, properties);
 
-                                    const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
-                                    const properties: { [key: string]: string } = {};
-                                    findAllProperties(fieldGroupBody, properties);
-
-                                    alPageFields.fields.push({
-                                        name: fieldGroupInfo.name,
-                                        type: fieldGroupInfo.type,
-                                        sourceExpr: '',
-                                        isfield: false,
-                                        properties: properties,
-                                        iconName: fieldGroupInfo.extAnchor ? 'plug' : 'symbol-variable',
-                                        level: currentLevel,
-                                        startLine: lineNumber
-                                    });
+                                        alPageFields.fields.push({
+                                            name: fieldGroupInfo.name,
+                                            type: fieldGroupInfo.type,
+                                            sourceExpr: '',
+                                            isfield: false,
+                                            properties: properties,
+                                            iconName: fieldGroupInfo.extAnchor ? 'plug' : 'symbol-variable',
+                                            level: currentLevel,
+                                            startLine: lineNumber
+                                        });
+                                    }
                                 }
 
                                 let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
@@ -557,7 +556,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                         sourceExpr: fieldInfo.sourceExpr,
                                         properties: properties,
                                         iconName: 'symbol-field',
-                                        level: currentLevel,
+                                        level: currentLevel > 0 ? 1 : 0,
                                         startLine: lineNumber,
                                     });
                                 }
@@ -568,11 +567,6 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                             }
                             if (lineText.includes("}")) {
                                 currentLevel--;
-
-                                if (fieldGroupStack && (fieldGroupStack.length > 0)) {
-                                    // Elimino tutti i gruppi di livello maggiore
-                                    fieldGroupStack = fieldGroupStack.filter(item => item.level <= currentLevel);
-                                }
                             }
                         }
                     });
@@ -1287,6 +1281,7 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
 
                     let match: RegExpExecArray | null;
                     while ((match = regExpr.queryColumnDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                        const columnType = match[1].trim().toLowerCase();
                         const fieldName = match[2].trim();
                         if (fieldName) {
                             const sourceExpr = match[3].trim();
@@ -1312,7 +1307,8 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
                                 sourceExpr: sourceExpr,
                                 isfield: true,
                                 properties: properties,
-                                iconName: (properties['method']) ? 'symbol-operator' : 'symbol-field',
+                                iconName: (properties['method']) ? 'symbol-operator' :
+                                    (columnType === 'filter') ? 'filter' : 'symbol-field',
                                 dataItem: refDataItem ? refDataItem.name : '',
                                 level: 0,
                                 startLine: linePosition

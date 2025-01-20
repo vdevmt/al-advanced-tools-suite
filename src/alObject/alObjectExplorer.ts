@@ -196,7 +196,8 @@ export async function showObjectItems(items: QuickPickItem[], title: string, ena
                         `${item.label}`,
             description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
             detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
-            startLine: item.startLine
+            startLine: item.startLine,
+            kind: item.itemkind
         })), {
             placeHolder: `${title}`,
             matchOnDescription: enableSearchOnDescription,
@@ -222,6 +223,7 @@ export async function showAllFields() {
 
     let enableSearchOnDescription = true;
     let enableSearchOnDetails = true;
+    let lastGroupName = '';
 
     if (alFileMgr.isALObjectDocument(document)) {
         let alObject: ALObject;
@@ -231,12 +233,12 @@ export async function showAllFields() {
         alObjectFields = new ALObjectFields(alObject);
         if (alObjectFields.fields) {
             if (alObjectFields.elementsCount > 0) {
-
                 let items: QuickPickItem[] = [];
                 for (const field of alObjectFields.fields) {
                     let label = field.name;
                     let description = '';
                     let detail = '';
+                    let itemkind = vscode.QuickPickItemKind.Default;
 
                     if (alObject.isTable() || alObject.isTableExt()) {
                         if (field.id > 0) {
@@ -268,60 +270,55 @@ export async function showAllFields() {
                     if (alObject.isPage() || alObject.isPageExt()) {
                         if (!field.isfield) {
                             label = `${field.type}(${field.name})`;
+                            itemkind = vscode.QuickPickItemKind.Separator;
+                            field.iconName = '';
                         }
-
-                        if (field.properties) {
-                            if ('caption' in field.properties) {
-                                if (field.properties['caption']) {
-                                    description = `${field.properties['caption'].trim()}`;
+                        else {
+                            field.level -= 1;
+                            if (field.properties) {
+                                if ('caption' in field.properties) {
+                                    if (field.properties['caption']) {
+                                        description = `${field.properties['caption'].trim()}`;
+                                    }
                                 }
                             }
-                        }
 
-                        if (field.sourceExpr) {
-                            detail = field.sourceExpr;
+                            if (field.sourceExpr) {
+                                description = addTextWithSeparator(description, field.sourceExpr);
+                            }
                         }
                     }
 
                     if (alObject.isQuery()) {
-                        if (field.properties) {
-                            if ('caption' in field.properties) {
-                                if (field.properties['caption']) {
-                                    description = `${field.properties['caption'].trim()}`;
-                                }
-                            }
-                        }
-
                         if (field.sourceExpr) {
-                            detail = field.sourceExpr;
-                        }
-
-                        if (field.properties) {
-                            if ('method' in field.properties) {
-                                detail += ` <${field.properties['method']}()>`;
+                            if (field.properties && ('method' in field.properties)) {
+                                description = `${field.properties['method'].toUpperCase()}(${field.sourceExpr})`;
+                            }
+                            else {
+                                description = field.sourceExpr;
                             }
                         }
 
-                        if (field.dataItem) {
-                            detail = addTextWithSeparator(detail, field.dataItem);
+                        if (field.dataItem !== lastGroupName) {
+                            items.push({
+                                label: field.dataItem,
+                                itemkind: vscode.QuickPickItemKind.Separator
+                            });
+                            lastGroupName = field.dataItem;
                         }
                     }
 
                     if (alObject.isReport() || alObject.isReportExt()) {
-                        if (field.properties) {
-                            if ('caption' in field.properties) {
-                                if (field.properties['caption']) {
-                                    description = `${field.properties['caption'].trim()}`;
-                                }
-                            }
-                        }
-
                         if (field.sourceExpr) {
-                            detail = field.sourceExpr;
+                            description = field.sourceExpr;
                         }
 
-                        if (field.dataItem) {
-                            detail = addTextWithSeparator(detail, field.dataItem);
+                        if (field.dataItem !== lastGroupName) {
+                            items.push({
+                                label: field.dataItem,
+                                itemkind: vscode.QuickPickItemKind.Separator
+                            });
+                            lastGroupName = field.dataItem;
                         }
                     }
 
@@ -332,7 +329,8 @@ export async function showAllFields() {
                         startLine: field.startLine ? field.startLine : 0,
                         endLine: 0,
                         level: field.level,
-                        iconName: field.iconName
+                        iconName: field.iconName,
+                        itemkind: itemkind
                     });
                 }
 
@@ -496,8 +494,9 @@ export async function showAllActions() {
             if (alObjectActions.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
                     label: item.name,
-                    description: item.sourceAction ? `Ref: ${item.sourceAction}` : '',
-                    detail: (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
+                    description: item.sourceAction ? `Ref: ${item.sourceAction}` :
+                        (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
+                    detail: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: item.level,
