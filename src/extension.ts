@@ -110,14 +110,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         // Imposta un nuovo timeout per l'aggiornamento della status bar
         debounceTimeout = setTimeout(() => {
-            if (objectInfoStatusBarItem) {
-                refreshObjectInfoStatusBar();
-            }
-
             if (regionStatusBarItem) {
                 refreshRegionsStatusBar();
             }
-        }, 300); // 300ms di attesa prima di invocare updateRegionsStatusBar               
+        }, 1000); // 1000ms di attesa prima di invocare l'aggiornamento dei controlli su status bar               
     }
 }
 

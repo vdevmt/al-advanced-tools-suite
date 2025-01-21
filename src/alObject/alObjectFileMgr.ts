@@ -1669,7 +1669,8 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
         if (alObject.objectContentText) {
             const lines = alObject.objectContentText.split('\n');
             let insideMultiLineComment: boolean;
-            let insideIntOrBusEventDecl: boolean;
+            let insideIntegrationEventDecl: boolean;
+            let insideBusinessEventDecl: boolean;
             let insideEventSubscription: boolean;
             let eventSubscrName: string = '';
 
@@ -1692,7 +1693,11 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                 const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
                 if (!commentedLine) {
                     if (isIntegrationEventDeclaration(lineText) || isBusinessEventDeclaration(lineText)) {
-                        insideIntOrBusEventDecl = true;
+                        insideIntegrationEventDecl = isIntegrationEventDeclaration(lineText);
+                        insideBusinessEventDecl = false;
+                        if (!insideIntegrationEventDecl) {
+                            insideBusinessEventDecl = isBusinessEventDeclaration(lineText);
+                        }
                     }
                     else {
                         let eventSubscrInfo: { objectType?: string, objectName?: string, eventName?: string, elementName?: string } = {};
@@ -1705,7 +1710,7 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                             let procedureInfo: { scope: string, name: string };
                             procedureInfo = { scope: '', name: '' };
                             if (isProcedureDefinition(alObject, lineText, procedureInfo)) {
-                                let symbol = insideIntOrBusEventDecl ? 'symbol-event' :
+                                let symbol = (insideIntegrationEventDecl || insideBusinessEventDecl) ? 'symbol-event' :
                                     insideEventSubscription ? 'plug' :
                                         procedureInfo.scope === 'trigger' ? 'server-process' :
                                             procedureInfo.scope === 'global' ? 'symbol-function' :
@@ -1716,20 +1721,25 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                                 if (procedureInfo.name) {
                                     const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
                                     alObjectProcedures.procedures.push({
-                                        scope: procedureInfo.scope,
+                                        scope: insideIntegrationEventDecl ? 'IntegrationEvent' :
+                                            insideBusinessEventDecl ? 'BusinessEvent' :
+                                                insideEventSubscription ? 'EventSubscriber' :
+                                                    procedureInfo.scope.toLowerCase(),
                                         name: procedureInfo.name,
                                         sourceEvent: insideEventSubscription ? eventSubscrName : '',
                                         iconName: symbol,
                                         regionPath: lineRegionPath,
                                         startLine: lineNumber
                                     });
-                                    insideIntOrBusEventDecl = false;
+                                    insideIntegrationEventDecl = false;
+                                    insideBusinessEventDecl = false;
                                     insideEventSubscription = false;
                                 }
                             }
                             else {
-                                if ((insideIntOrBusEventDecl || insideEventSubscription) && (!lineText.trim().startsWith('['))) {
-                                    insideIntOrBusEventDecl = false;
+                                if ((insideIntegrationEventDecl || insideBusinessEventDecl || insideEventSubscription) && (!lineText.trim().startsWith('['))) {
+                                    insideIntegrationEventDecl = false;
+                                    insideBusinessEventDecl = false;
                                     insideEventSubscription = false;
                                 }
                             }
