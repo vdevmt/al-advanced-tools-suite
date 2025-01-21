@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.3.22]
+- `AL Object Explorer` enhancements: new elements and performance optimizations
+
 ## [1.3.19]
 - New Features:
     - Command `ATS: AL Object Explorer`: navigates through the elements of the current AL Object.    

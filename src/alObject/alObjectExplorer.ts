@@ -426,7 +426,7 @@ export async function showAllProcedures() {
             if (alObjectProcedures.elementsCount > 0) {
                 let items: QuickPickItem[] = alObjectProcedures.procedures.map(item => ({
                     label: item.name,
-                    description: '',
+                    description: item.scope,
                     detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
                         (item.regionPath) ? `Region: ${item.regionPath}` :
                             (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
