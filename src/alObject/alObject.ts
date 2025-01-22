@@ -484,6 +484,47 @@ export class ALObjectProcedures {
 }
 //#endregion AL Object Procedures
 
+//#region AL Object Triggers
+export class ALObjectTriggers {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public triggers: {
+        scope?: string,
+        name: string,
+        groupName: string,
+        iconName?: string,
+        startLine: number
+    }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findElements(alObject);
+        this.elementsCount = this.triggers ? this.triggers.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.triggers = [];
+    }
+
+    private findElements(alObject: ALObject) {
+        if (alObject) {
+            alFileMgr.findObjectTriggers(alObject, this);
+        }
+    }
+}
+//#endregion AL Object Procedures
+
 //#region AL Object Regions
 export class ALObjectRegions {
     public objectType: string;

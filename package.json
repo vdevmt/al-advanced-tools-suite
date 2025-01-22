@@ -98,6 +98,11 @@
         "category": "ATS AL Object Explorer"
       },
       {
+        "command": "ats.showAllTriggers",
+        "title": "Show all triggers",
+        "category": "ATS AL Object Explorer"
+      },
+      {
         "command": "ats.showAllProcedures",
         "title": "Show all procedures",
         "category": "ATS AL Object Explorer"

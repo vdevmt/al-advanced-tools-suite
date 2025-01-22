@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import * as alRegionMgr from '../regions/regionMgr';
-import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions } from './alObject';
+import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers } from './alObject';
 
 //#region AL Object file tools
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
@@ -1868,11 +1868,10 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                             if (isProcedureDefinition(alObject, lineText, procedureInfo)) {
                                 let symbol = (insideIntegrationEventDecl || insideBusinessEventDecl) ? 'symbol-event' :
                                     insideEventSubscription ? 'plug' :
-                                        procedureInfo.scope === 'trigger' ? 'server-process' :
-                                            procedureInfo.scope === 'global' ? 'symbol-function' :
-                                                procedureInfo.scope === 'local' ? 'shield' :
-                                                    procedureInfo.scope === 'internal' ? 'symbol-variable' :
-                                                        'symbol-function';
+                                        procedureInfo.scope === 'global' ? 'symbol-function' :
+                                            procedureInfo.scope === 'local' ? 'shield' :
+                                                procedureInfo.scope === 'internal' ? 'symbol-variable' :
+                                                    'symbol-function';
 
                                 if (procedureInfo.name) {
                                     const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
@@ -1886,8 +1885,7 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                                         groupName: insideIntegrationEventDecl ? 'Integration Events' :
                                             insideBusinessEventDecl ? 'Business Events' :
                                                 insideEventSubscription ? 'Event Subscriptions' :
-                                                    (procedureInfo.scope.toLowerCase() === 'trigger') ? 'Triggers' :
-                                                        'Procedures',
+                                                    'Procedures',
                                         iconName: symbol,
                                         regionPath: lineRegionPath,
                                         startLine: lineNumber
@@ -1925,65 +1923,6 @@ export function isProcedureDefinition(alObject: ALObject, lineText: string, proc
         procedureInfo.name = match[2];
 
         return true;
-    }
-    else {
-        switch (true) {
-            case (alObject.isTable() || alObject.isTableExt()):
-                {
-                    const match = lineText.trim().match(regExpr.tableTrigger);
-                    if (match) {
-                        procedureInfo.scope = 'trigger';
-                        procedureInfo.name = match[1];
-
-                        return true;
-                    }
-                    break;
-                }
-            case (alObject.isPage() || alObject.isPageExt()):
-                {
-                    const match = lineText.trim().match(regExpr.pageTrigger);
-                    if (match) {
-                        procedureInfo.scope = 'trigger';
-                        procedureInfo.name = match[1];
-
-                        return true;
-                    }
-                    break;
-                }
-            case (alObject.isReport()):
-                {
-                    const match = lineText.trim().match(regExpr.reportTrigger);
-                    if (match) {
-                        procedureInfo.scope = 'trigger';
-                        procedureInfo.name = match[1];
-
-                        return true;
-                    }
-                    break;
-                }
-            case (alObject.isCodeunit()):
-                {
-                    const match = lineText.trim().match(regExpr.codeunitTrigger);
-                    if (match) {
-                        procedureInfo.scope = 'trigger';
-                        procedureInfo.name = match[1];
-
-                        return true;
-                    }
-                    break;
-                }
-            case (alObject.isQuery()):
-                {
-                    const match = lineText.trim().match(regExpr.queryTrigger);
-                    if (match) {
-                        procedureInfo.scope = 'trigger';
-                        procedureInfo.name = match[1];
-
-                        return true;
-                    }
-                    break;
-                }
-        }
     }
 
     return false;
@@ -2024,6 +1963,117 @@ export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectTyp
 }
 //#endregion Integration Events
 //#endregion Procedures
+
+//#region Triggers
+export function findObjectTriggers(alObject: ALObject, alObjectTriggers: ALObjectTriggers) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            const lines = alObject.objectContentText.split('\n');
+            let insideMultiLineComment: boolean;
+
+            lines.forEach((lineText, linePos) => {
+                lineText = cleanObjectLineText(lineText);
+                const lineNumber = linePos;
+
+                // Verifica inizio-fine commento multi-riga
+                if (isMultiLineCommentStart(lineText)) {
+                    insideMultiLineComment = true;
+                }
+                if (isMultiLineCommentEnd(lineText)) {
+                    insideMultiLineComment = false;
+                }
+
+                // Verifico se si tratta di una riga commentata
+                const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                if (!commentedLine) {
+                    let triggerInfo: { scope: string, name: string };
+                    triggerInfo = { scope: '', name: '' };
+                    if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                        if (triggerInfo.name) {
+                            alObjectTriggers.triggers.push({
+                                scope: '',
+                                name: triggerInfo.name,
+                                groupName: '',
+                                iconName: 'server-process',
+                                startLine: lineNumber
+                            });
+                        }
+                    }
+                }
+            });
+
+            if (alObjectTriggers.triggers) {
+                if (alObjectTriggers.triggers.length > 0) {
+                    // Order by StartLine
+                    alObjectTriggers.triggers.sort((a, b) => a.startLine - b.startLine);
+                }
+            }
+        }
+    }
+}
+
+export function isTriggerDefinition(alObject: ALObject, lineText: string, procedureInfo: { scope: string, name: string }): boolean {
+    switch (true) {
+        case (alObject.isTable() || alObject.isTableExt()):
+            {
+                const match = lineText.trim().match(regExpr.tableTrigger);
+                if (match) {
+                    procedureInfo.scope = 'trigger';
+                    procedureInfo.name = match[1];
+
+                    return true;
+                }
+                break;
+            }
+        case (alObject.isPage() || alObject.isPageExt()):
+            {
+                const match = lineText.trim().match(regExpr.pageTrigger);
+                if (match) {
+                    procedureInfo.scope = 'trigger';
+                    procedureInfo.name = match[1];
+
+                    return true;
+                }
+                break;
+            }
+        case (alObject.isReport()):
+            {
+                const match = lineText.trim().match(regExpr.reportTrigger);
+                if (match) {
+                    procedureInfo.scope = 'trigger';
+                    procedureInfo.name = match[1];
+
+                    return true;
+                }
+                break;
+            }
+        case (alObject.isCodeunit()):
+            {
+                const match = lineText.trim().match(regExpr.codeunitTrigger);
+                if (match) {
+                    procedureInfo.scope = 'trigger';
+                    procedureInfo.name = match[1];
+
+                    return true;
+                }
+                break;
+            }
+        case (alObject.isQuery()):
+            {
+                const match = lineText.trim().match(regExpr.queryTrigger);
+                if (match) {
+                    procedureInfo.scope = 'trigger';
+                    procedureInfo.name = match[1];
+
+                    return true;
+                }
+                break;
+            }
+    }
+
+    return false;
+}
+//#endregion Triggers
 
 //#region Element Properties
 export function findAllProperties(elementDefinitionText: string, properties: { [key: string]: string }) {

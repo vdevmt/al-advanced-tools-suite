@@ -72,42 +72,59 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}`);
         }
 
-        if (alObject.properties) {
-            if (alObject.properties['caption']) {
+        if (alObject.properties['caption']) {
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Caption: "${alObject.properties['caption']}"`);
+        }
+
+        if (alObject.isTable()) {
+            let tableType = alObject.properties['tabletype'] ? alObject.properties['tabletype'] : 'Normal';
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Table Type: ${tableType}`);
+        }
+
+        if (alObject.isPage()) {
+            if (alObject.properties['pagetype']) {
                 markdownTooltip.appendText('\n');
-                markdownTooltip.appendMarkdown(`Caption: "${alObject.properties['caption']}"`);
+                markdownTooltip.appendMarkdown(`Page Type: ${alObject.properties['pagetype']}`);
             }
-
-            if (alObject.properties['description']) {
+            if (alObject.properties['sourcetable']) {
                 markdownTooltip.appendText('\n');
-                markdownTooltip.appendMarkdown(`Description: "${alObject.properties['description']}"`);
+                markdownTooltip.appendMarkdown(`Source Table: ${alObject.properties['sourcetable']}`);
             }
-
-            if (alObject.isTable()) {
-                if (alObject.properties['tabletype']) {
-                    markdownTooltip.appendText('\n');
-                    markdownTooltip.appendMarkdown(`Type: ${alObject.properties['tabletype']}`);
-                }
+        }
+        if (alObject.isReport()) {
+            let reportType = 'Print';
+            if (alObject.properties['processingonly'] && (Boolean(alObject.properties['processingonly']) === true)) {
+                reportType = 'Processing Only';
             }
-
-            if (alObject.isPage()) {
-                if (alObject.properties['pagetype']) {
-                    markdownTooltip.appendText('\n');
-                    markdownTooltip.appendMarkdown(`Type: ${alObject.properties['pagetype']}`);
-                }
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Report Type: ${reportType}`);
+        }
+        if (alObject.isCodeunit()) {
+            let codeunitType = '';
+            if (alObject.properties['subtype']) {
+                codeunitType = alObject.properties['subtype'];
             }
-            if (alObject.isReport()) {
-                if (alObject.properties['processingonly'] && (Boolean(alObject.properties['processingonly']) === true)) {
-                    markdownTooltip.appendText('\n');
-                    markdownTooltip.appendMarkdown(`Type: Processing Only`);
-                }
-            }
-            if (alObject.isCodeunit()) {
+            else {
                 if (alObject.properties['singleinstance'] && (Boolean(alObject.properties['singleinstance']) === true)) {
-                    markdownTooltip.appendText('\n');
-                    markdownTooltip.appendMarkdown(`Type: Single Instance`);
+                    codeunitType = 'Single Instance';
                 }
             }
+            if (codeunitType) {
+                markdownTooltip.appendText('\n');
+                markdownTooltip.appendMarkdown(`Codeunit Type: ${codeunitType}`);
+            }
+
+            if (alObject.properties['tableno']) {
+                markdownTooltip.appendText('\n');
+                markdownTooltip.appendMarkdown(`Source Table: ${alObject.properties['tableno']}`);
+            }
+        }
+
+        if (alObject.properties['description']) {
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Description: "${alObject.properties['description']}"`);
         }
 
         let objectElements = alObjectExplorer.countObjectElements(alObject, false);

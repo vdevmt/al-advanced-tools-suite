@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
+import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers } from './alObject';
 import { procedure } from '../regExpressions';
 
 
@@ -161,6 +161,24 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
     }
 
     try {
+        let alObjectTriggers: ALObjectTriggers;
+        alObjectTriggers = new ALObjectTriggers(alObject);
+        if (alObjectTriggers) {
+            if (alObjectTriggers.elementsCount > 0) {
+                elements.push({
+                    type: 'Triggers',
+                    count: alObjectTriggers.elementsCount,
+                    command: 'ats.showAllTriggers',
+                    iconName: 'server-process'
+                });
+            }
+        }
+    }
+    catch {
+        console.log(`No triggers found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
+    try {
         let alObjectProcedures: ALObjectProcedures;
         alObjectProcedures = new ALObjectProcedures(alObject);
         if (alObjectProcedures) {
@@ -174,29 +192,25 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
                 });
             }
             else {
-                for (let currGroup = 0; currGroup < 5; currGroup++) {
+                for (let currGroup = 0; currGroup < 4; currGroup++) {
                     let currGroupName: string = '';
                     let currGroupIconName: string = '';
 
                     switch (currGroup) {
                         case 0: {
-                            currGroupName = 'Triggers';
-                            break;
-                        }
-                        case 1: {
                             currGroupName = 'Procedures';
                             currGroupIconName = 'code';
                             break;
                         }
-                        case 2: {
+                        case 1: {
                             currGroupName = 'Event Subscriptions';
                             break;
                         }
-                        case 3: {
+                        case 2: {
                             currGroupName = 'Integration Events';
                             break;
                         }
-                        case 4: {
+                        case 3: {
                             currGroupName = 'Business Events';
                             break;
                         }
@@ -531,6 +545,39 @@ export async function showAllTableFieldGroups() {
 }
 //#endregion AL Table Field Groups
 
+//#region AL Object Triggers
+export async function showAllTriggers() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        let alObject: ALObject;
+        alObject = new ALObject(document);
+
+        let alObjectTriggers: ALObjectTriggers;
+        alObjectTriggers = new ALObjectTriggers(alObject);
+
+        if (alObjectTriggers.triggers) {
+            if (alObjectTriggers.triggers.length > 0) {
+                let items: objectExplorerItem[] = alObjectTriggers.triggers.map(item => ({
+                    label: item.name,
+                    description: '',
+                    detail: item.name,
+                    startLine: item.startLine ? item.startLine : 0,
+                    endLine: 0,
+                    level: 0,
+                    iconName: item.iconName
+                }));
+
+                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Triggers`, false, true);
+                return;
+            }
+        }
+
+        vscode.window.showInformationMessage(`No triggers found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+    }
+}
+//#endregion AL Object Triggers
 
 //#region AL Object Procedures
 export async function showAllProcedures(groupFilter?: string) {
@@ -558,27 +605,23 @@ export async function showAllProcedures(groupFilter?: string) {
             if (alObjectProcedures.procedures.length > 0) {
                 let items: objectExplorerItem[] = [];
 
-                for (let currGroup = 0; currGroup < 5; currGroup++) {
+                for (let currGroup = 0; currGroup < 4; currGroup++) {
                     let currGroupName: string = '';
 
                     switch (currGroup) {
                         case 0: {
-                            currGroupName = 'Triggers';
-                            break;
-                        }
-                        case 1: {
                             currGroupName = 'Procedures';
                             break;
                         }
-                        case 2: {
+                        case 1: {
                             currGroupName = 'Event Subscriptions';
                             break;
                         }
-                        case 3: {
+                        case 2: {
                             currGroupName = 'Integration Events';
                             break;
                         }
-                        case 4: {
+                        case 3: {
                             currGroupName = 'Business Events';
                             break;
                         }
