@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
-import * as alFileMgr from './alObject/alObjectFileMgr';
 import * as alObjectExplorer from './alObject/alObjectExplorer';
 import * as regionMgr from './regions/regionMgr';
 import * as regionStatusBar from './regions/regionStatusBar';
@@ -8,7 +7,7 @@ import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
 import * as namespaceMgr from './namespaces/namespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 
-let debounceTimeout = null;
+let regionPathSBDebounceTimeout = null;
 
 export function activate(context: vscode.ExtensionContext) {
     //#region launch.json tools
@@ -103,17 +102,17 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(refreshStatusBarItemsOnChange));
 
     function refreshStatusBarItemsOnChange() {
-        // Cancella il timeout precedente, se presente
-        if (debounceTimeout) {
-            clearTimeout(debounceTimeout);
-        }
-
-        // Imposta un nuovo timeout per l'aggiornamento della status bar
-        debounceTimeout = setTimeout(() => {
-            if (regionStatusBarItem) {
-                refreshRegionsStatusBar();
+        if (regionStatusBarItem) {
+            // Cancella il timeout precedente, se presente
+            if (regionPathSBDebounceTimeout) {
+                clearTimeout(regionPathSBDebounceTimeout);
             }
-        }, 1000); // 1000ms di attesa prima di invocare l'aggiornamento dei controlli su status bar               
+
+            // Imposta un nuovo timeout per l'aggiornamento della status bar
+            regionPathSBDebounceTimeout = setTimeout(() => {
+                refreshRegionsStatusBar();
+            }, 3000); // 3000ms di attesa prima di invocare l'aggiornamento del controllo su status bar               
+        }
     }
 }
 

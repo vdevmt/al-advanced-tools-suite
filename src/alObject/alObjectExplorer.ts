@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
 
-export interface QuickPickItem {
+
+interface objectExplorerItem {
     label: string;
     description?: string;
     detail?: string;
@@ -15,10 +16,190 @@ export interface QuickPickItem {
     startLine?: number;
     endLine?: number;
     command?: string;
+    commandArgs?: any,
     itemkind?: vscode.QuickPickItemKind;
 }
 
+interface ObjectElement {
+    type: string,
+    count: number,
+    iconName: string,
+    command: string,
+    commandArgs?: any,
+}
+
 //#region AL Object Explorer
+export function countObjectElements(alObject: ALObject): ObjectElement[] {
+    let elements: ObjectElement[] = [];
+
+    if (alObject.isReport() || alObject.isReportExt() || alObject.isQuery()) {
+        try {
+            let alObjectDataItems: ALObjectDataItems;
+            alObjectDataItems = new ALObjectDataItems(alObject);
+            if (alObjectDataItems) {
+                if (alObjectDataItems.elementsCount > 0) {
+                    elements.push({
+                        type: 'Dataitems',
+                        count: alObjectDataItems.elementsCount,
+                        command: 'ats.showAllDataItems',
+                        iconName: 'symbol-class'
+                    });
+                }
+            }
+        }
+        catch {
+            console.log(`No dataItems found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        }
+    }
+
+    try {
+        let alObjectFields: ALObjectFields;
+        alObjectFields = new ALObjectFields(alObject);
+        if (alObjectFields) {
+            if (alObjectFields.fieldsCount > 0) {
+                if (alObject.isReport() || alObject.isReportExt()) {
+                    let fieldsCount = alObjectFields.fields.filter(item => (item.section === 'dataset') && (item.isfield)).length;
+                    if (fieldsCount > 0) {
+                        let args = 'dataset';
+                        elements.push({
+                            type: 'Columns',
+                            count: fieldsCount,
+                            command: 'ats.showAllFields',
+                            commandArgs: args,
+                            iconName: 'symbol-field'
+                        });
+                    }
+                    fieldsCount = alObjectFields.fields.filter(item => (item.section === 'requestpage') && (item.isfield)).length;
+                    if (fieldsCount > 0) {
+                        let args = 'requestpage';
+                        elements.push({
+                            type: 'Options',
+                            count: fieldsCount,
+                            command: 'ats.showAllFields',
+                            commandArgs: args,
+                            iconName: 'gear'
+                        });
+                    }
+                }
+                else {
+                    let type = 'Fields';
+                    if (alObject.isQuery()) {
+                        type = 'Columns';
+                    }
+
+                    elements.push({
+                        type: type,
+                        count: alObjectFields.fieldsCount,
+                        command: 'ats.showAllFields',
+                        iconName: 'symbol-field'
+                    });
+                }
+            }
+        }
+    }
+    catch {
+        console.log(`No fields found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        try {
+            let alTableKeys: ALTableKeys;
+            alTableKeys = new ALTableKeys(alObject);
+            if (alTableKeys) {
+                if (alTableKeys.elementsCount > 0) {
+                    elements.push({
+                        type: 'Keys',
+                        count: alTableKeys.elementsCount,
+                        command: 'ats.showAllTableKeys',
+                        iconName: 'key'
+                    });
+                }
+            }
+        }
+        catch {
+            console.log(`No keys found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        }
+    }
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        try {
+            let alTableFieldGroups: ALTableFieldGroups;
+            alTableFieldGroups = new ALTableFieldGroups(alObject);
+            if (alTableFieldGroups) {
+                if (alTableFieldGroups.elementsCount > 0) {
+                    elements.push({
+                        type: 'Field Groups',
+                        count: alTableFieldGroups.elementsCount,
+                        command: 'ats.showAllTableFieldGroups',
+                        iconName: 'group-by-ref-type'
+                    });
+                }
+            }
+        }
+        catch {
+            console.log(`No field groups found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        }
+    }
+
+    try {
+        let alObjectProcedures: ALObjectProcedures;
+        alObjectProcedures = new ALObjectProcedures(alObject);
+        if (alObjectProcedures) {
+            if (alObjectProcedures.elementsCount > 0) {
+                elements.push({
+                    type: 'Procedures',
+                    count: alObjectProcedures.elementsCount,
+                    command: 'ats.showAllProcedures',
+                    iconName: 'code'
+                });
+            }
+        }
+    }
+    catch {
+        console.log(`No procedure found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
+    try {
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+        if (alObjectRegions) {
+            if (alObjectRegions.elementsCount > 0) {
+                elements.push({
+                    type: 'Regions',
+                    count: alObjectRegions.elementsCount,
+                    command: 'ats.showAllRegions',
+                    iconName: 'symbol-number'
+                });
+            }
+        }
+    }
+    catch {
+        console.log(`No regions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
+    if (alObject.isPage() || alObject.isPageExt() || alObject.isReport() || alObject.isReportExt()) {
+        try {
+            let alObjectActions: ALObjectActions;
+            alObjectActions = new ALObjectActions(alObject);
+            if (alObjectActions) {
+                if (alObjectActions.actionsCount > 0) {
+                    elements.push({
+                        type: 'Page Actions',
+                        count: alObjectActions.actionsCount,
+                        command: 'ats.showAllActions',
+                        iconName: 'symbol-event'
+                    });
+                }
+            }
+        }
+        catch {
+            console.log(`No actions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        }
+    }
+
+    return elements;
+}
+
 export async function execALObjectExplorer() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -27,151 +208,30 @@ export async function execALObjectExplorer() {
         let alObject: ALObject;
         alObject = new ALObject(document);
 
-        let items: QuickPickItem[] = [];
+        let objectElements = countObjectElements(alObject);
+        if (objectElements && (objectElements.length > 0)) {
+            const picked = await vscode.window.showQuickPick(objectElements.map(element => ({
+                label: `$(${element.iconName}) ${element.type}: ${element.count}`,
+                description: '',
+                detail: '',
+                command: element.command,
+                commandArgs: element.commandArgs
+            })), {
+                placeHolder: `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
+                matchOnDescription: false,
+                matchOnDetail: false,
+            });
 
-        try {
-            let alObjectDataItems: ALObjectDataItems;
-            alObjectDataItems = new ALObjectDataItems(alObject);
-            if (alObjectDataItems) {
-                if (alObjectDataItems.elementsCount > 0) {
-                    items.push({
-                        label: `Dataitems: ${alObjectDataItems.elementsCount}`,
-                        iconName: 'symbol-class',
-                        command: 'ats.showAllDataItems'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No dataItems found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        try {
-            let alObjectFields: ALObjectFields;
-            alObjectFields = new ALObjectFields(alObject);
-            if (alObjectFields) {
-                if (alObjectFields.elementsCount > 0) {
-                    items.push({
-                        label: `Fields: ${alObjectFields.elementsCount}`,
-                        iconName: 'symbol-field',
-                        command: 'ats.showAllFields'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No fields found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        try {
-            let alTableKeys: ALTableKeys;
-            alTableKeys = new ALTableKeys(alObject);
-            if (alTableKeys) {
-                if (alTableKeys.elementsCount > 0) {
-                    items.push({
-                        label: `Keys: ${alTableKeys.elementsCount}`,
-                        iconName: 'key',
-                        command: 'ats.showAllTableKeys'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No fields found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        try {
-            let alTableFieldGroups: ALTableFieldGroups;
-            alTableFieldGroups = new ALTableFieldGroups(alObject);
-            if (alTableFieldGroups) {
-                if (alTableFieldGroups.elementsCount > 0) {
-                    items.push({
-                        label: `Field Groups: ${alTableFieldGroups.elementsCount}`,
-                        iconName: 'group-by-ref-type',
-                        command: 'ats.showAllTableFieldGroups'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No fields found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        try {
-            let alObjectProcedures: ALObjectProcedures;
-            alObjectProcedures = new ALObjectProcedures(alObject);
-            if (alObjectProcedures) {
-                if (alObjectProcedures.elementsCount > 0) {
-                    items.push({
-                        label: `Procedures: ${alObjectProcedures.elementsCount}`,
-                        iconName: 'code',
-                        command: 'ats.showAllProcedures'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No procedure found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        try {
-            let alObjectRegions: ALObjectRegions;
-            alObjectRegions = new ALObjectRegions(alObject);
-            if (alObjectRegions) {
-                if (alObjectRegions.elementsCount > 0) {
-                    items.push({
-                        label: `Regions: ${alObjectRegions.elementsCount}`,
-                        iconName: 'symbol-number',
-                        command: 'ats.showAllRegions'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No regions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        try {
-            let alObjectActions: ALObjectActions;
-            alObjectActions = new ALObjectActions(alObject);
-            if (alObjectActions) {
-                if (alObjectActions.actionsCount > 0) {
-                    items.push({
-                        label: `Page Actions: ${alObjectActions.actionsCount}`,
-                        iconName: 'symbol-event',
-                        command: 'ats.showAllActions'
-                    });
-                }
-            }
-        }
-        catch {
-            console.log(`No actions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-        }
-
-        if (items) {
-            if (items.length > 0) {
-                const picked = await vscode.window.showQuickPick(items.map(item => ({
-                    label: `$(${item.iconName}) ${item.label}`,
-                    description: item.description,
-                    detail: item.detail,
-                    command: item.command
-                })), {
-                    placeHolder: `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-                    matchOnDescription: false,
-                    matchOnDetail: false,
-                });
-
-                if (picked) {
-                    if (picked.command) {
-                        vscode.commands.executeCommand(picked.command);
-                    }
+            if (picked) {
+                if (picked.command) {
+                    vscode.commands.executeCommand(picked.command, picked.commandArgs);
                 }
             }
         }
     }
 }
 
-export async function showObjectItems(items: QuickPickItem[], title: string, enableSearchOnDescription: boolean, enableSearchOnDetails: boolean) {
+export async function showObjectItems(items: objectExplorerItem[], title: string, enableSearchOnDescription: boolean, enableSearchOnDetails: boolean) {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
@@ -217,7 +277,7 @@ export async function showObjectItems(items: QuickPickItem[], title: string, ena
 //#endregion AL Object Explorer
 
 //#region AL Object Fields
-export async function showAllFields() {
+export async function showAllFields(sectionFilter?: string) {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
@@ -229,11 +289,21 @@ export async function showAllFields() {
         let alObject: ALObject;
         alObject = new ALObject(document);
 
-        let alObjectFields: ALObjectFields;
-        alObjectFields = new ALObjectFields(alObject);
+        let alObjectFieldsFull: ALObjectFields;
+        alObjectFieldsFull = new ALObjectFields(alObject);
+
+        let alObjectFields = {
+            objectType: alObjectFieldsFull.objectType,
+            objectId: alObjectFieldsFull.objectId,
+            objectName: alObjectFieldsFull.objectName,
+            elementsCount: alObjectFieldsFull.elementsCount,
+            fields: sectionFilter ? alObjectFieldsFull.fields.filter(item => item.section === sectionFilter) :
+                alObjectFieldsFull.fields
+        };
+
         if (alObjectFields.fields) {
             if (alObjectFields.elementsCount > 0) {
-                let items: QuickPickItem[] = [];
+                let items: objectExplorerItem[] = [];
                 for (const field of alObjectFields.fields) {
                     let label = field.name;
                     let description = '';
@@ -320,6 +390,14 @@ export async function showAllFields() {
                             });
                             lastGroupName = field.dataItem;
                         }
+
+                        if (field.properties) {
+                            if ('caption' in field.properties) {
+                                if (field.properties['caption']) {
+                                    detail = `${field.properties['caption'].trim()}`;
+                                }
+                            }
+                        }
                     }
 
                     items.push({
@@ -339,7 +417,7 @@ export async function showAllFields() {
             }
         }
 
-        vscode.window.showInformationMessage(`No field found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No fields found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Fields
@@ -357,7 +435,7 @@ export async function showAllTableKeys() {
         alTableKeys = new ALTableKeys(alObject);
         if (alTableKeys.keys) {
             if (alTableKeys.elementsCount > 0) {
-                let items: QuickPickItem[] = alTableKeys.keys.map(item => ({
+                let items: objectExplorerItem[] = alTableKeys.keys.map(item => ({
                     label: item.fieldsList,
                     description: item.isPrimaryKey ? `${item.name} [PK]` : item.name,
                     detail: '',
@@ -372,7 +450,7 @@ export async function showAllTableKeys() {
             }
         }
 
-        vscode.window.showInformationMessage(`No key found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No keys found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Table Keys
@@ -390,7 +468,7 @@ export async function showAllTableFieldGroups() {
         alTableFieldGroups = new ALTableFieldGroups(alObject);
         if (alTableFieldGroups.fieldgroups) {
             if (alTableFieldGroups.elementsCount > 0) {
-                let items: QuickPickItem[] = alTableFieldGroups.fieldgroups.map(item => ({
+                let items: objectExplorerItem[] = alTableFieldGroups.fieldgroups.map(item => ({
                     label: item.fieldsList,
                     description: '',
                     detail: item.name,
@@ -405,7 +483,7 @@ export async function showAllTableFieldGroups() {
             }
         }
 
-        vscode.window.showInformationMessage(`No field group found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No field groups found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Table Field Groups
@@ -424,7 +502,7 @@ export async function showAllProcedures() {
         alObjectProcedures = new ALObjectProcedures(alObject);
         if (alObjectProcedures.procedures) {
             if (alObjectProcedures.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectProcedures.procedures.map(item => ({
+                let items: objectExplorerItem[] = alObjectProcedures.procedures.map(item => ({
                     label: item.name,
                     description: item.scope,
                     detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
@@ -441,7 +519,7 @@ export async function showAllProcedures() {
             }
         }
 
-        vscode.window.showInformationMessage(`No procedure found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No procedures found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Procedures
@@ -459,7 +537,7 @@ export async function showAllDataItems() {
         alObjectDataItems = new ALObjectDataItems(alObject);
         if (alObjectDataItems.dataItems) {
             if (alObjectDataItems.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectDataItems.dataItems.map(item => ({
+                let items: objectExplorerItem[] = alObjectDataItems.dataItems.map(item => ({
                     label: item.name,
                     description: item.sourceExpression,
                     detail: '',
@@ -474,7 +552,7 @@ export async function showAllDataItems() {
             }
         }
 
-        vscode.window.showInformationMessage(`No Dataitem found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No dataitems found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Dataitems
@@ -492,7 +570,7 @@ export async function showAllActions() {
         alObjectActions = new ALObjectActions(alObject);
         if (alObjectActions.actions) {
             if (alObjectActions.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectActions.actions.map(item => ({
+                let items: objectExplorerItem[] = alObjectActions.actions.map(item => ({
                     label: item.name,
                     description: item.sourceAction ? `Ref: ${item.sourceAction}` :
                         (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
@@ -508,7 +586,7 @@ export async function showAllActions() {
             }
         }
 
-        vscode.window.showInformationMessage(`No action found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No actions found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Page Actions
@@ -526,7 +604,7 @@ export async function showAllRegions() {
         alObjectRegions = new ALObjectRegions(alObject);
         if (alObjectRegions.regions) {
             if (alObjectRegions.elementsCount > 0) {
-                let items: QuickPickItem[] = alObjectRegions.regions.map(item => ({
+                let items: objectExplorerItem[] = alObjectRegions.regions.map(item => ({
                     label: item.name,
                     description: '',
                     detail: '',
@@ -541,7 +619,7 @@ export async function showAllRegions() {
             }
         }
 
-        vscode.window.showInformationMessage(`No region found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No regions found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Regions
@@ -554,7 +632,7 @@ export async function showOpenALObjects() {
     // Recupera i tab aperti
     const openEditors = vscode.window.tabGroups.all.flatMap(group => group.tabs);
 
-    const stack: QuickPickItem[] = [];
+    const stack: objectExplorerItem[] = [];
 
     for (const editor of openEditors) {
         try {
@@ -590,7 +668,7 @@ export async function showOpenALObjects() {
     );
 
     // Show object list
-    const quickPickItems: QuickPickItem[] = [];
+    const quickPickItems: objectExplorerItem[] = [];
     let lastObjectType: string = '';
 
     for (const item of stack) {

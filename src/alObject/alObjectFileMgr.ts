@@ -282,6 +282,30 @@ function extractTillToCurrElementEnd(objectText: string, startPosition: number, 
     return fullDefinition;
 }
 
+export function extractElementDefinitionFromObjectText(objectText: string, startIndex: number, includeChilds: boolean): string {
+    let result: string = '';
+    let inElementDef: boolean;
+
+    for (let i = startIndex; i < objectText.length; i++) {
+        result += objectText[i];
+        if (objectText[i].includes("{")) {
+            if (inElementDef) {
+                if (!includeChilds) {
+                    break;
+                }
+            }
+            else {
+                inElementDef = true;
+            }
+        }
+        if (objectText[i].includes("}")) {
+            break;
+        }
+    }
+
+    return result;
+}
+
 function extractElementDefinitionFromObjectTextArray(objectLines: string[], startIndex: number, includeChilds: boolean): string {
     let result: string[] = [];
     let inElementDef: boolean;
@@ -312,7 +336,7 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
     if (alObject) {
         if (alObject.objectContentText) {
             if (alObject.isTable() || alObject.isTableExt()) {
-                // Ricerca sezione delle chiavi
+                // Ricerca sezione fields
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('fields', alObject.objectContentText, true, codeSectionsInfo)) {
                     let primaryKeyFields: string[] = [];
@@ -352,6 +376,7 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                             alTableFields.fields.push({
                                 id: fieldID,
                                 name: fieldName,
+                                section: 'fields',
                                 isfield: true,
                                 type: fieldType,
                                 pkIndex: pkIndex,
@@ -388,7 +413,7 @@ export function findTableKeys(alObject: ALObject, alTableKeys: ALTableKeys) {
         if (alObject.objectContentText) {
             if (alObject.isTable() || alObject.isTableExt()) {
 
-                // Ricerca sezione delle chiavi
+                // Ricerca sezione keys
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('keys', alObject.objectContentText, true, codeSectionsInfo)) {
                     let objectLines: string[] = alObject.objectContentText.split('\n');
@@ -452,7 +477,7 @@ export function findTableFieldGroups(alObject: ALObject, alTableFieldGroups: ALT
     if (alObject) {
         if (alObject.objectContentText) {
             if (alObject.isTable() || alObject.isTableExt()) {
-                // Ricerca sezione delle chiavi
+                // Ricerca sezione fieldgroups
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('fieldgroups', alObject.objectContentText, true, codeSectionsInfo)) {
                     let objectLines: string[] = alObject.objectContentText.split('\n');
@@ -493,7 +518,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
     if (alObject) {
         if (alObject.objectContentText) {
             if (alObject.isPage() || alObject.isPageExt()) {
-                // Ricerca sezione delle chiavi
+                // Ricerca sezione layout
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('layout', alObject.objectContentText, false, codeSectionsInfo)) {
                     const lines = codeSectionsInfo[0].content.split('\n');
@@ -532,6 +557,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                         alPageFields.fields.push({
                                             name: fieldGroupInfo.name,
                                             type: fieldGroupInfo.type,
+                                            section: 'layout',
                                             sourceExpr: '',
                                             isfield: false,
                                             properties: properties,
@@ -551,6 +577,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
 
                                     alPageFields.fields.push({
                                         name: fieldInfo.name,
+                                        section: 'layout',
                                         isfield: true,
                                         type: fieldInfo.sourceExpr,
                                         sourceExpr: fieldInfo.sourceExpr,
@@ -945,7 +972,7 @@ export function isReportDataItemDefinition(lineText: string, dataItemInfo: { nam
 }
 //#endregion Data Items
 
-//#region Columns
+//#region Fields
 export function findReportColumns(alObject: ALObject, alReportColumns: ALObjectFields) {
     if (alObject) {
         if (alObject.objectContentText) {
@@ -953,7 +980,7 @@ export function findReportColumns(alObject: ALObject, alReportColumns: ALObjectF
                 let alReportDataitems: ALObjectDataItems;
                 alReportDataitems = new ALObjectDataItems(alObject);
 
-                // Ricerca sezione delle chiavi
+                // Ricerca sezione dataset
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('dataset', alObject.objectContentText, true, codeSectionsInfo)) {
                     let objectLines: string[] = alObject.objectContentText.split('\n');
@@ -983,6 +1010,7 @@ export function findReportColumns(alObject: ALObject, alReportColumns: ALObjectF
                             alReportColumns.fields.push({
                                 name: fieldName,
                                 type: sourceExpr,
+                                section: 'dataset',
                                 sourceExpr: sourceExpr,
                                 properties: properties,
                                 isfield: true,
@@ -1010,119 +1038,225 @@ export function isReportColumnDefinition(lineText: string, fieldInfo: { name: st
 
     return false;
 }
-//#endregion Columns
+//#endregion Fields
 
 //#region Request Page
+export function findRequestPageFields(alObject: ALObject, alReqPageFields: ALObjectFields) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            if (alObject.isReport() || alObject.isReportExt()) {
+                // Ricerca sezione requestpage
+                let reqPageSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('requestpage', alObject.objectContentText, false, reqPageSectionsInfo)) {
+                    let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                    if (extractCodeSection('layout', reqPageSectionsInfo[0].content, false, codeSectionsInfo)) {
+                        codeSectionsInfo[0].startLine += reqPageSectionsInfo[0].startLine;
+                        const lines = codeSectionsInfo[0].content.split('\n');
+
+                        let insideMultiLineComment: boolean;
+                        let currentLevel = -1;
+
+                        lines.forEach((lineText, linePos) => {
+                            lineText = cleanObjectLineText(lineText);
+                            const lineNumber = codeSectionsInfo[0].startLine + linePos;
+
+                            // Verifica inizio-fine commento multi-riga
+                            if (isMultiLineCommentStart(lineText)) {
+                                insideMultiLineComment = true;
+                            }
+                            if (isMultiLineCommentEnd(lineText)) {
+                                insideMultiLineComment = false;
+                            }
+
+                            // Verifico se si tratta di una riga commentata
+                            const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                            if (!commentedLine) {
+                                if (currentLevel >= 0) {
+                                    let fieldAreaInfo: { name: string } = { name: '' };
+                                    if (isPageFieldAreaDefinition(lineText, fieldAreaInfo)) {
+                                        currentLevel = -1;
+                                    }
+
+                                    let fieldGroupInfo: { type: string, name: string, extAnchor: boolean } = { type: '', name: '', extAnchor: false };
+                                    if (isPageFieldGroupDefinition(lineText, fieldGroupInfo)) {
+                                        if (currentLevel === 0) {
+                                            const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                            const properties: { [key: string]: string } = {};
+                                            findAllProperties(fieldGroupBody, properties);
+
+                                            alReqPageFields.fields.push({
+                                                name: fieldGroupInfo.name,
+                                                type: fieldGroupInfo.type,
+                                                section: 'requestpage',
+                                                sourceExpr: '',
+                                                isfield: false,
+                                                dataItem: 'RequestPage',
+                                                properties: properties,
+                                                iconName: fieldGroupInfo.extAnchor ? 'plug' : 'symbol-variable',
+                                                level: currentLevel,
+                                                startLine: lineNumber
+                                            });
+                                        }
+                                    }
+
+                                    let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
+                                    if (isPageFieldDefinition(lineText, fieldInfo)) {
+                                        // Ricerca proprietà 
+                                        const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(actionBody, properties);
+
+                                        alReqPageFields.fields.push({
+                                            name: fieldInfo.name,
+                                            section: 'requestpage',
+                                            isfield: true,
+                                            type: fieldInfo.sourceExpr,
+                                            dataItem: 'RequestPage',
+                                            sourceExpr: fieldInfo.sourceExpr,
+                                            properties: properties,
+                                            iconName: 'symbol-field',
+                                            level: currentLevel > 0 ? 1 : 0,
+                                            startLine: lineNumber,
+                                        });
+                                    }
+                                }
+
+                                if (lineText.includes("{")) {
+                                    currentLevel++;
+                                }
+                                if (lineText.includes("}")) {
+                                    currentLevel--;
+                                }
+                            }
+                        });
+
+                        if (alReqPageFields.fields) {
+                            if (alReqPageFields.fields.length > 0) {
+                                // Order by StartLine
+                                alReqPageFields.fields.sort((a, b) => a.startLine - b.startLine);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 export function findRequestPageActions(alObject: ALObject, alPageActions: ALObjectActions) {
     if (alObject) {
         if (alObject.objectContentText) {
             if (alObject.isReport() || alObject.isReportExt) {
-                let codeSectionsInfo: { startLine: number, content: string }[] = [];
-                if (extractCodeSection('actions', alObject.objectContentText, false, codeSectionsInfo)) {
-                    const lines = codeSectionsInfo[0].content.split('\n');
+                let reqPageSectionsInfo: { startLine: number, content: string }[] = [];
+                if (extractCodeSection('requestpage', alObject.objectContentText, false, reqPageSectionsInfo)) {
+                    let codeSectionsInfo: { startLine: number, content: string }[] = [];
+                    if (extractCodeSection('actions', alObject.objectContentText, false, codeSectionsInfo)) {
+                        codeSectionsInfo[0].startLine += reqPageSectionsInfo[0].startLine;
+                        const lines = codeSectionsInfo[0].content.split('\n');
 
-                    let insideMultiLineComment: boolean;
-                    let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
-                    let actionGroupStack: { name: string, level: number }[] = [];
-                    let currentLevel = -1;
+                        let insideMultiLineComment: boolean;
+                        let actionAreaInfo: { name: string, extAnchor: boolean } = { name: '', extAnchor: false };
+                        let actionGroupStack: { name: string, level: number }[] = [];
+                        let currentLevel = -1;
 
-                    lines.forEach((lineText, linePos) => {
-                        lineText = cleanObjectLineText(lineText);
-                        const lineNumber = codeSectionsInfo[0].startLine + linePos;
+                        lines.forEach((lineText, linePos) => {
+                            lineText = cleanObjectLineText(lineText);
+                            const lineNumber = codeSectionsInfo[0].startLine + linePos;
 
-                        // Verifica inizio-fine commento multi-riga
-                        if (isMultiLineCommentStart(lineText)) {
-                            insideMultiLineComment = true;
-                        }
-                        if (isMultiLineCommentEnd(lineText)) {
-                            insideMultiLineComment = false;
-                        }
-
-                        // Verifico se si tratta di una riga commentata
-                        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
-                        if (!commentedLine) {
-                            if (isActionAreaDefinition(lineText, actionAreaInfo)) {
-                                alPageActions.actions.push({
-                                    kind: 'area',
-                                    name: actionAreaInfo.name,
-                                    level: 0,
-                                    sourceAction: '',
-                                    area: '',
-                                    isAction: false,
-                                    iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
-                                    startLine: lineNumber
-                                });
-
-                                currentLevel = 0;
+                            // Verifica inizio-fine commento multi-riga
+                            if (isMultiLineCommentStart(lineText)) {
+                                insideMultiLineComment = true;
+                            }
+                            if (isMultiLineCommentEnd(lineText)) {
+                                insideMultiLineComment = false;
                             }
 
-                            if (currentLevel >= 0) {
-                                let actionGroupInfo: { name: string } = { name: '' };
-                                if (isActionGroupDefinition(lineText, actionGroupInfo)) {
-                                    actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
-
-                                    const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
-                                    const properties: { [key: string]: string } = {};
-                                    findAllProperties(actionGroupBody, properties);
-
+                            // Verifico se si tratta di una riga commentata
+                            const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                            if (!commentedLine) {
+                                if (isActionAreaDefinition(lineText, actionAreaInfo)) {
                                     alPageActions.actions.push({
-                                        kind: 'group',
-                                        name: actionGroupInfo.name,
-                                        level: currentLevel,
+                                        kind: 'area',
+                                        name: actionAreaInfo.name,
+                                        level: 0,
                                         sourceAction: '',
-                                        area: actionAreaInfo.name,
+                                        area: '',
                                         isAction: false,
-                                        properties: properties,
-                                        iconName: 'array',
+                                        iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
                                         startLine: lineNumber
                                     });
+
+                                    currentLevel = 0;
                                 }
 
-                                let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
-                                if (isActionDefinition(lineText, actionInfo)) {
-                                    const lastGroupName = actionGroupStack
-                                        .slice() // Copia l'array
-                                        .reverse() // Inverte l'ordine degli elementi
-                                        .find(item => item.level === (currentLevel - 1));
+                                if (currentLevel >= 0) {
+                                    let actionGroupInfo: { name: string } = { name: '' };
+                                    if (isActionGroupDefinition(lineText, actionGroupInfo)) {
+                                        actionGroupStack.push({ name: actionGroupInfo.name, level: currentLevel });
 
-                                    // Ricerca proprietà 
-                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
-                                    const properties: { [key: string]: string } = {};
-                                    findAllProperties(actionBody, properties);
+                                        const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(actionGroupBody, properties);
 
-                                    alPageActions.actions.push({
-                                        kind: 'action',
-                                        name: actionInfo.name,
-                                        level: currentLevel === 0 ? 1 : currentLevel,
-                                        sourceAction: actionInfo.sourceAction,
-                                        area: actionAreaInfo.name,
-                                        actionGroupRef: lastGroupName ? lastGroupName.name : '',
-                                        isAction: true,
-                                        properties: properties,
-                                        iconName: 'symbol-event',
-                                        startLine: lineNumber
-                                    });
+                                        alPageActions.actions.push({
+                                            kind: 'group',
+                                            name: actionGroupInfo.name,
+                                            level: currentLevel,
+                                            sourceAction: '',
+                                            area: actionAreaInfo.name,
+                                            isAction: false,
+                                            properties: properties,
+                                            iconName: 'array',
+                                            startLine: lineNumber
+                                        });
+                                    }
+
+                                    let actionInfo: { name: string, sourceAction: string } = { name: '', sourceAction: '' };
+                                    if (isActionDefinition(lineText, actionInfo)) {
+                                        const lastGroupName = actionGroupStack
+                                            .slice() // Copia l'array
+                                            .reverse() // Inverte l'ordine degli elementi
+                                            .find(item => item.level === (currentLevel - 1));
+
+                                        // Ricerca proprietà 
+                                        const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const properties: { [key: string]: string } = {};
+                                        findAllProperties(actionBody, properties);
+
+                                        alPageActions.actions.push({
+                                            kind: 'action',
+                                            name: actionInfo.name,
+                                            level: currentLevel === 0 ? 1 : currentLevel,
+                                            sourceAction: actionInfo.sourceAction,
+                                            area: actionAreaInfo.name,
+                                            actionGroupRef: lastGroupName ? lastGroupName.name : '',
+                                            isAction: true,
+                                            properties: properties,
+                                            iconName: 'symbol-event',
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+
+                                if (lineText.includes("{")) {
+                                    currentLevel++;
+                                }
+                                if (lineText.includes("}")) {
+                                    currentLevel--;
+
+                                    if (actionGroupStack && (actionGroupStack.length > 0)) {
+                                        // Elimino tutti i gruppi di livello maggiore
+                                        actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
+                                    }
                                 }
                             }
+                        });
 
-                            if (lineText.includes("{")) {
-                                currentLevel++;
+                        if (alPageActions.actions) {
+                            if (alPageActions.actions.length > 0) {
+                                // Order by StartLine
+                                alPageActions.actions.sort((a, b) => a.startLine - b.startLine);
                             }
-                            if (lineText.includes("}")) {
-                                currentLevel--;
-
-                                if (actionGroupStack && (actionGroupStack.length > 0)) {
-                                    // Elimino tutti i gruppi di livello maggiore
-                                    actionGroupStack = actionGroupStack.filter(item => item.level <= currentLevel);
-                                }
-                            }
-                        }
-                    });
-
-                    if (alPageActions.actions) {
-                        if (alPageActions.actions.length > 0) {
-                            // Order by StartLine
-                            alPageActions.actions.sort((a, b) => a.startLine - b.startLine);
                         }
                     }
                 }
@@ -1273,7 +1407,7 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
                 let alQueryDataitems: ALObjectDataItems;
                 alQueryDataitems = new ALObjectDataItems(alObject);
 
-                // Ricerca sezione delle chiavi
+                // Ricerca sezione elements
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('elements', alObject.objectContentText, true, codeSectionsInfo)) {
                     let objectLines: string[] = alObject.objectContentText.split('\n');
@@ -1303,6 +1437,7 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
 
                             alQueryColumns.fields.push({
                                 name: fieldName,
+                                section: 'elements',
                                 type: sourceExpr,
                                 sourceExpr: sourceExpr,
                                 isfield: true,
@@ -1388,6 +1523,7 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                     alObjectFields.fields.push({
                                         id: tableField.id,
                                         name: tableField.name,
+                                        section: 'fields',
                                         type: tableField.type,
                                         isfield: true,
                                         pkIndex: pkIndex,
@@ -1407,6 +1543,7 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                     alObjectFields.fields.push({
                                         id: 0,
                                         name: pageField.name,
+                                        section: 'layout',
                                         type: pageField.sourceExpr,
                                         sourceExpr: pageField.sourceExpr,
                                         isfield: true,
@@ -1434,6 +1571,7 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                     alObjectFields.fields.push({
                                         id: 0,
                                         name: reportField.name,
+                                        section: 'dataset',
                                         type: reportField.sourceExpr,
                                         sourceExpr: reportField.sourceExpr,
                                         isfield: true,
@@ -1450,10 +1588,11 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                         alObjectFields.fields.push({
                                             id: 0,
                                             name: reportField.name,
+                                            section: 'requestpage',
                                             type: reportField.sourceExpr,
                                             sourceExpr: reportField.sourceExpr,
                                             isfield: true,
-                                            dataItem: 'requestpage',
+                                            dataItem: '',
                                             iconName: 'symbol-field',
                                             level: 0,
                                             startLine: lineNumber
@@ -1478,6 +1617,7 @@ export function findObjectFields(alObject: ALObject, alObjectFields: ALObjectFie
                                     alObjectFields.fields.push({
                                         id: 0,
                                         name: reportField.name,
+                                        section: 'elements',
                                         type: reportField.sourceExpr,
                                         sourceExpr: reportField.sourceExpr,
                                         isfield: true,
@@ -1865,7 +2005,7 @@ export function isEventSubscriber(lineText: string, eventSubscrInfo: { objectTyp
 //#endregion Procedures
 
 //#region Element Properties
-function findAllProperties(elementDefinitionText: string, properties: { [key: string]: string }) {
+export function findAllProperties(elementDefinitionText: string, properties: { [key: string]: string }) {
     const propertiesRegex = regExpr.objectProperties;
 
     let propMatch: RegExpExecArray | null;

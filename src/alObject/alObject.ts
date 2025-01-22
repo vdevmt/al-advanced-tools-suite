@@ -12,6 +12,7 @@ export class ALObject {
     public objectNamespace?: string;
     public objectContentText?: string;
     public objectFileName?: string;
+    public properties: { [key: string]: string };
 
     constructor(document: vscode.TextDocument) {
         this.initObjectProperties();
@@ -37,6 +38,7 @@ export class ALObject {
         this.extendedObjectId = "";
         this.extendedObjectName = "";
         this.objectNamespace = "";
+        this.properties = {};
     }
 
     private loadObjectProperties(): any {
@@ -90,7 +92,6 @@ export class ALObject {
                 if (currObject === null) {
                     vscode.window.showErrorMessage(`File '${this.objectFileName}' does not have valid object name. Maybe it got double quotes (") in the object name?`);
                     return null;
-
                 }
 
                 this.objectType = currObject[1];
@@ -159,6 +160,9 @@ export class ALObject {
         this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
         this.extendedObjectId = this.extendedObjectId.trim().toString();
         this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
+
+        let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 1, false);
+        alFileMgr.findAllProperties(objectDefTxt, this.properties);
 
         if (!(alFileMgr.IsValidALObjectType(this.objectType))) {
             this.initObjectProperties();
@@ -368,6 +372,7 @@ export class ALObjectFields {
     public fields: {
         id?: number,
         name: string,
+        section: string,
         isfield: boolean,
         type?: string,
         pkIndex?: number,
@@ -416,6 +421,7 @@ export class ALObjectFields {
 
                 case (alObject.isReport() || alObject.isReportExt()): {
                     alFileMgr.findReportColumns(alObject, this);
+                    alFileMgr.findRequestPageFields(alObject, this);
                     break;
                 }
                 case (alObject.isQuery()): {
