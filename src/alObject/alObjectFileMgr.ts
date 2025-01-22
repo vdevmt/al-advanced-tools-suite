@@ -1861,12 +1861,17 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                                 if (procedureInfo.name) {
                                     const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
                                     alObjectProcedures.procedures.push({
-                                        scope: insideIntegrationEventDecl ? 'IntegrationEvent' :
-                                            insideBusinessEventDecl ? 'BusinessEvent' :
-                                                insideEventSubscription ? 'EventSubscriber' :
+                                        scope: insideIntegrationEventDecl ? '' :
+                                            insideBusinessEventDecl ? '' :
+                                                insideEventSubscription ? '' :
                                                     procedureInfo.scope.toLowerCase(),
                                         name: procedureInfo.name,
                                         sourceEvent: insideEventSubscription ? eventSubscrName : '',
+                                        groupName: insideIntegrationEventDecl ? 'Integration Events' :
+                                            insideBusinessEventDecl ? 'Business Events' :
+                                                insideEventSubscription ? 'Event Subscriptions' :
+                                                    (procedureInfo.scope.toLowerCase() === 'trigger') ? 'Triggers' :
+                                                        'Procedures',
                                         iconName: symbol,
                                         regionPath: lineRegionPath,
                                         startLine: lineNumber

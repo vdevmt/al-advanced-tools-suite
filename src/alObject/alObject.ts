@@ -154,17 +154,19 @@ export class ALObject {
         if (match && match[1]) {
             this.objectNamespace = match[1];
         }
+
         this.objectType = this.objectType.trim().toString();
-        this.objectId = this.objectId.trim().toString();
-        this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
-        this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
-        this.extendedObjectId = this.extendedObjectId.trim().toString();
-        this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
+        if (alFileMgr.IsValidALObjectType(this.objectType)) {
+            this.objectId = this.objectId.trim().toString();
+            this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
+            this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
+            this.extendedObjectId = this.extendedObjectId.trim().toString();
+            this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
 
-        let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 1, false);
-        alFileMgr.findAllProperties(objectDefTxt, this.properties);
-
-        if (!(alFileMgr.IsValidALObjectType(this.objectType))) {
+            let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 1, false);
+            alFileMgr.findAllProperties(objectDefTxt, this.properties);
+        }
+        else {
             this.initObjectProperties();
             return null;
         }
@@ -446,7 +448,15 @@ export class ALObjectProcedures {
     public objectName: string;
 
     public elementsCount: number;
-    public procedures: { scope?: string, name: string, sourceEvent?: string, iconName?: string, regionPath?: string, startLine: number }[];
+    public procedures: {
+        scope?: string,
+        name: string,
+        sourceEvent?: string,
+        groupName: string,
+        iconName?: string,
+        regionPath?: string,
+        startLine: number
+    }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys } from './alObject';
+import { procedure } from '../regExpressions';
 
 
 interface objectExplorerItem {
@@ -29,7 +30,7 @@ interface ObjectElement {
 }
 
 //#region AL Object Explorer
-export function countObjectElements(alObject: ALObject): ObjectElement[] {
+export function countObjectElements(alObject: ALObject, compressResult: boolean): ObjectElement[] {
     let elements: ObjectElement[] = [];
 
     if (alObject.isReport() || alObject.isReportExt() || alObject.isQuery()) {
@@ -60,23 +61,21 @@ export function countObjectElements(alObject: ALObject): ObjectElement[] {
                 if (alObject.isReport() || alObject.isReportExt()) {
                     let fieldsCount = alObjectFields.fields.filter(item => (item.section === 'dataset') && (item.isfield)).length;
                     if (fieldsCount > 0) {
-                        let args = 'dataset';
                         elements.push({
                             type: 'Columns',
                             count: fieldsCount,
                             command: 'ats.showAllFields',
-                            commandArgs: args,
+                            commandArgs: 'dataset',
                             iconName: 'symbol-field'
                         });
                     }
                     fieldsCount = alObjectFields.fields.filter(item => (item.section === 'requestpage') && (item.isfield)).length;
                     if (fieldsCount > 0) {
-                        let args = 'requestpage';
                         elements.push({
                             type: 'Options',
                             count: fieldsCount,
                             command: 'ats.showAllFields',
-                            commandArgs: args,
+                            commandArgs: 'requestpage',
                             iconName: 'gear'
                         });
                     }
@@ -141,42 +140,6 @@ export function countObjectElements(alObject: ALObject): ObjectElement[] {
         }
     }
 
-    try {
-        let alObjectProcedures: ALObjectProcedures;
-        alObjectProcedures = new ALObjectProcedures(alObject);
-        if (alObjectProcedures) {
-            if (alObjectProcedures.elementsCount > 0) {
-                elements.push({
-                    type: 'Procedures',
-                    count: alObjectProcedures.elementsCount,
-                    command: 'ats.showAllProcedures',
-                    iconName: 'code'
-                });
-            }
-        }
-    }
-    catch {
-        console.log(`No procedure found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-    }
-
-    try {
-        let alObjectRegions: ALObjectRegions;
-        alObjectRegions = new ALObjectRegions(alObject);
-        if (alObjectRegions) {
-            if (alObjectRegions.elementsCount > 0) {
-                elements.push({
-                    type: 'Regions',
-                    count: alObjectRegions.elementsCount,
-                    command: 'ats.showAllRegions',
-                    iconName: 'symbol-number'
-                });
-            }
-        }
-    }
-    catch {
-        console.log(`No regions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
-    }
-
     if (alObject.isPage() || alObject.isPageExt() || alObject.isReport() || alObject.isReportExt()) {
         try {
             let alObjectActions: ALObjectActions;
@@ -197,6 +160,82 @@ export function countObjectElements(alObject: ALObject): ObjectElement[] {
         }
     }
 
+    try {
+        let alObjectProcedures: ALObjectProcedures;
+        alObjectProcedures = new ALObjectProcedures(alObject);
+        if (alObjectProcedures) {
+            if (compressResult) {
+                elements.push({
+                    type: 'Procedures',
+                    count: alObjectProcedures.elementsCount,
+                    command: 'ats.showAllProcedures',
+                    commandArgs: '',
+                    iconName: 'code'
+                });
+            }
+            else {
+                for (let currGroup = 0; currGroup < 5; currGroup++) {
+                    let currGroupName: string = '';
+
+                    switch (currGroup) {
+                        case 0: {
+                            currGroupName = 'Triggers';
+                            break;
+                        }
+                        case 1: {
+                            currGroupName = 'Procedures';
+                            break;
+                        }
+                        case 2: {
+                            currGroupName = 'Event Subscriptions';
+                            break;
+                        }
+                        case 3: {
+                            currGroupName = 'Integration Events';
+                            break;
+                        }
+                        case 4: {
+                            currGroupName = 'Business Events';
+                            break;
+                        }
+                    }
+
+                    let procedures = alObjectProcedures.procedures.filter(item => (item.groupName === currGroupName));
+                    if (procedures.length > 0) {
+                        elements.push({
+                            type: currGroupName,
+                            count: procedures.length,
+                            command: 'ats.showAllProcedures',
+                            commandArgs: currGroupName,
+                            iconName: procedures[0].iconName
+                        });
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        console.log(`No procedures found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
+    try {
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+        if (alObjectRegions) {
+            if (alObjectRegions.elementsCount > 0) {
+                elements.push({
+                    type: 'Regions',
+                    count: alObjectRegions.elementsCount,
+                    command: 'ats.showAllRegions',
+                    iconName: 'symbol-number'
+                });
+            }
+        }
+    }
+    catch {
+        console.log(`No regions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
     return elements;
 }
 
@@ -208,7 +247,7 @@ export async function execALObjectExplorer() {
         let alObject: ALObject;
         alObject = new ALObject(document);
 
-        let objectElements = countObjectElements(alObject);
+        let objectElements = countObjectElements(alObject, false);
         if (objectElements && (objectElements.length > 0)) {
             const picked = await vscode.window.showQuickPick(objectElements.map(element => ({
                 label: `$(${element.iconName}) ${element.type}: ${element.count}`,
@@ -490,7 +529,7 @@ export async function showAllTableFieldGroups() {
 
 
 //#region AL Object Procedures
-export async function showAllProcedures() {
+export async function showAllProcedures(groupFilter?: string) {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
@@ -498,24 +537,78 @@ export async function showAllProcedures() {
         let alObject: ALObject;
         alObject = new ALObject(document);
 
-        let alObjectProcedures: ALObjectProcedures;
-        alObjectProcedures = new ALObjectProcedures(alObject);
-        if (alObjectProcedures.procedures) {
-            if (alObjectProcedures.elementsCount > 0) {
-                let items: objectExplorerItem[] = alObjectProcedures.procedures.map(item => ({
-                    label: item.name,
-                    description: item.scope,
-                    detail: (item.regionPath && item.sourceEvent) ? `Region: ${item.regionPath} | Event: ${item.sourceEvent}` :
-                        (item.regionPath) ? `Region: ${item.regionPath}` :
-                            (item.sourceEvent) ? `Event: ${item.sourceEvent}` : '',
-                    startLine: item.startLine ? item.startLine : 0,
-                    endLine: 0,
-                    level: 0,
-                    iconName: item.iconName
-                }));
+        let alObjectProceduresFull: ALObjectProcedures;
+        alObjectProceduresFull = new ALObjectProcedures(alObject);
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Procedures`, false, true);
-                return;
+        let alObjectProcedures = {
+            objectType: alObjectProceduresFull.objectType,
+            objectId: alObjectProceduresFull.objectId,
+            objectName: alObjectProceduresFull.objectName,
+            elementsCount: (groupFilter) ? alObjectProceduresFull.procedures.filter(item => item.groupName === groupFilter).length :
+                alObjectProceduresFull.elementsCount,
+            procedures: (groupFilter) ? alObjectProceduresFull.procedures.filter(item => item.groupName === groupFilter) :
+                alObjectProceduresFull.procedures
+        };
+
+        if (alObjectProcedures.procedures) {
+            if (alObjectProcedures.procedures.length > 0) {
+                let items: objectExplorerItem[] = [];
+
+                for (let currGroup = 0; currGroup < 5; currGroup++) {
+                    let currGroupName: string = '';
+
+                    switch (currGroup) {
+                        case 0: {
+                            currGroupName = 'Triggers';
+                            break;
+                        }
+                        case 1: {
+                            currGroupName = 'Procedures';
+                            break;
+                        }
+                        case 2: {
+                            currGroupName = 'Event Subscriptions';
+                            break;
+                        }
+                        case 3: {
+                            currGroupName = 'Integration Events';
+                            break;
+                        }
+                        case 4: {
+                            currGroupName = 'Business Events';
+                            break;
+                        }
+                    }
+
+                    if (currGroupName) {
+                        let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
+                        if (procedures && (procedures.length > 0)) {
+                            items.push({
+                                label: currGroupName,
+                                itemkind: vscode.QuickPickItemKind.Separator
+                            });
+
+                            for (let i = 0; i < procedures.length - 1; i++) {
+                                items.push({
+                                    label: procedures[i].name,
+                                    description: procedures[i].scope,
+                                    detail: (procedures[i].regionPath && procedures[i].sourceEvent) ? `Region: ${procedures[i].regionPath} | Event: ${procedures[i].sourceEvent}` :
+                                        (procedures[i].regionPath) ? `Region: ${procedures[i].regionPath}` :
+                                            (procedures[i].sourceEvent) ? `Event: ${procedures[i].sourceEvent}` : '',
+                                    startLine: procedures[i].startLine ? procedures[i].startLine : 0,
+                                    endLine: 0,
+                                    level: 0,
+                                    iconName: procedures[i].iconName
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (items) {
+                    showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Procedures`, false, true);
+                    return;
+                }
             }
         }
 

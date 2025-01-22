@@ -104,7 +104,7 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             }
         }
 
-        let objectElements = alObjectExplorer.countObjectElements(alObject);
+        let objectElements = alObjectExplorer.countObjectElements(alObject, false);
         if (objectElements && (objectElements.length > 0)) {
             const counters = objectElements.map(element => (`${element.type}: ${element.count}`));
             markdownTooltip.appendText('\n');
