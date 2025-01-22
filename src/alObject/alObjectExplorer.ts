@@ -176,6 +176,7 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
             else {
                 for (let currGroup = 0; currGroup < 5; currGroup++) {
                     let currGroupName: string = '';
+                    let currGroupIconName: string = '';
 
                     switch (currGroup) {
                         case 0: {
@@ -184,6 +185,7 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
                         }
                         case 1: {
                             currGroupName = 'Procedures';
+                            currGroupIconName = 'code';
                             break;
                         }
                         case 2: {
@@ -202,12 +204,14 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
 
                     let procedures = alObjectProcedures.procedures.filter(item => (item.groupName === currGroupName));
                     if (procedures.length > 0) {
+                        currGroupIconName = currGroupIconName || procedures[0].iconName;
+
                         elements.push({
                             type: currGroupName,
                             count: procedures.length,
                             command: 'ats.showAllProcedures',
                             commandArgs: currGroupName,
-                            iconName: procedures[0].iconName
+                            iconName: currGroupIconName
                         });
                     }
                 }
