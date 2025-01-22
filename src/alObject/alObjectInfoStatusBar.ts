@@ -99,7 +99,13 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
             if (alObject.isReport()) {
                 if (alObject.properties['processingonly'] && (Boolean(alObject.properties['processingonly']) === true)) {
                     markdownTooltip.appendText('\n');
-                    markdownTooltip.appendMarkdown(`Type: ProcessingOnly`);
+                    markdownTooltip.appendMarkdown(`Type: Processing Only`);
+                }
+            }
+            if (alObject.isCodeunit()) {
+                if (alObject.properties['singleinstance'] && (Boolean(alObject.properties['singleinstance']) === true)) {
+                    markdownTooltip.appendText('\n');
+                    markdownTooltip.appendMarkdown(`Type: Single Instance`);
                 }
             }
         }

@@ -163,7 +163,7 @@ export class ALObject {
             this.extendedObjectId = this.extendedObjectId.trim().toString();
             this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
 
-            let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 1, false);
+            let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
             alFileMgr.findAllProperties(objectDefTxt, this.properties);
         }
         else {

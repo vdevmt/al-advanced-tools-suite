@@ -592,7 +592,7 @@ export async function showAllProcedures(groupFilter?: string) {
                                 itemkind: vscode.QuickPickItemKind.Separator
                             });
 
-                            for (let i = 0; i < procedures.length - 1; i++) {
+                            for (let i = 0; i < procedures.length; i++) {
                                 items.push({
                                     label: procedures[i].name,
                                     description: procedures[i].scope,

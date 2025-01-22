@@ -288,7 +288,7 @@ export function extractElementDefinitionFromObjectText(objectText: string, start
 
     for (let i = startIndex; i < objectText.length; i++) {
         result += objectText[i];
-        if (objectText[i].includes("{")) {
+        if (objectText[i] === "{") {
             if (inElementDef) {
                 if (!includeChilds) {
                     break;
@@ -298,8 +298,24 @@ export function extractElementDefinitionFromObjectText(objectText: string, start
                 inElementDef = true;
             }
         }
-        if (objectText[i].includes("}")) {
-            break;
+        else {
+            if (objectText[i] === "}") {
+                break;
+            }
+            else {
+                if (objectText[i] === "#") {
+                    result = result;
+                }
+                if (inElementDef && (!includeChilds)) {
+                    // Nel caso di Codeunit, ad esempio, non esistono sezioni di dettaglio aperte con {
+                    // quindi mi fermo in presenza di una procedure o altro
+                    const resultNormalized = result.replace(/\r?\n|\r/g, " ").trim();
+                    const childStartRegex = /\s*(procedure|local procedure|internal procedure|begin|#region|\[)\s*$/i;
+                    if (childStartRegex.test(resultNormalized)) {
+                        break;
+                    }
+                }
+            }
         }
     }
 
