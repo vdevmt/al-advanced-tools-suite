@@ -7,7 +7,8 @@ interface objectExplorerItem {
     description?: string;
     detail?: string;
     sortKey?: string;
-    groupName?: string;
+    groupID: number;
+    groupName: string;
     uri?: vscode.Uri;
     alObject?: ALObject;
     alOjectType?: string,
@@ -292,6 +293,7 @@ export async function showObjectItems(items: objectExplorerItem[], title: string
     const document = editor.document;
 
     if (items) {
+        // Ricerca posizione corrente
         const currentLine = editor.selection.active.line;
 
         let currItemStartLine: number;
@@ -305,27 +307,53 @@ export async function showObjectItems(items: objectExplorerItem[], title: string
             currItemStartLine = 0;
         }
 
-        const picked = await vscode.window.showQuickPick(items.map(item => ({
-            label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
-                (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
-                    (item.iconName) ? `$(${item.iconName}) ${item.label}` :
-                        `${item.label}`,
-            description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
-            detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
-            startLine: item.startLine,
-            kind: item.itemkind
-        })), {
-            placeHolder: `${title}`,
-            matchOnDescription: enableSearchOnDescription,
-            matchOnDetail: enableSearchOnDetails,
-        });
+        // Ricerca gruppi 
+        const groups = [...new Map(items.map(item =>
+            [item['groupName'], { id: item.groupID, name: item.groupName }])).values()]
+            .sort((a, b) => a.id - b.id);
 
-        if (picked) {
-            if (picked.startLine > 0) {
-                const position = new vscode.Position(picked.startLine, 0);
-                const newSelection = new vscode.Selection(position, position);
-                editor.selection = newSelection;
-                editor.revealRange(new vscode.Range(position, position));
+        // Ricerca elementi del gruppo                
+        if (groups) {
+            let qpItems = [];
+            groups.forEach(group => {
+                qpItems.push({
+                    label: group.name,
+                    description: '',
+                    detail: '',
+                    startLine: 0,
+                    kind: vscode.QuickPickItemKind.Separator
+                });
+
+                const groupItems = items
+                    .filter(item => (item.groupName === group.name))
+                    .sort((a, b) => a.startLine - b.startLine);
+
+                groupItems.forEach(item => {
+                    qpItems.push({
+                        label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
+                            (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
+                                (item.iconName) ? `$(${item.iconName}) ${item.label}` :
+                                    `${item.label}`,
+                        description: (item.startLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
+                        detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
+                        startLine: item.startLine,
+                        kind: item.itemkind
+                    });
+                });
+            });
+            const picked = await vscode.window.showQuickPick(qpItems, {
+                placeHolder: `${title}`,
+                matchOnDescription: enableSearchOnDescription,
+                matchOnDetail: enableSearchOnDetails,
+            });
+
+            if (picked) {
+                if (picked.startLine > 0) {
+                    const position = new vscode.Position(picked.startLine, 0);
+                    const newSelection = new vscode.Selection(position, position);
+                    editor.selection = newSelection;
+                    editor.revealRange(new vscode.Range(position, position));
+                }
             }
         }
     }
@@ -339,7 +367,6 @@ export async function showAllFields(sectionFilter?: string) {
 
     let enableSearchOnDescription = true;
     let enableSearchOnDetails = true;
-    let lastGroupName = '';
 
     if (alFileMgr.isALObjectDocument(document)) {
         let alObject: ALObject;
@@ -358,6 +385,9 @@ export async function showAllFields(sectionFilter?: string) {
         };
 
         if (alObjectFields.fields) {
+            let groupID: number = 0;
+            let groupName: string = '';
+
             if (alObjectFields.elementsCount > 0) {
                 let items: objectExplorerItem[] = [];
                 for (const field of alObjectFields.fields) {
@@ -377,10 +407,18 @@ export async function showAllFields(sectionFilter?: string) {
                             description += ` (PK${field.pkIndex})`;
                         }
 
+                        groupID = 0;
+                        groupName = '';
                         if (field.properties) {
-                            if (('fieldclass' in field.properties) &&
-                                (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase()))) {
-                                description += ` <${field.properties['fieldclass']}>`;
+                            if ('fieldclass' in field.properties) {
+                                if (field.properties['fieldclass'].toLowerCase() === 'flowfield') {
+                                    groupID = 10;
+                                    groupName = 'FlowFields';
+                                }
+                                if (field.properties['fieldclass'].toLowerCase() === 'flowfilter') {
+                                    groupID = 11;
+                                    groupName = 'FlowFilters';
+                                }
                             }
                         }
 
@@ -395,9 +433,7 @@ export async function showAllFields(sectionFilter?: string) {
 
                     if (alObject.isPage() || alObject.isPageExt()) {
                         if (!field.isfield) {
-                            label = `${field.type}(${field.name})`;
-                            itemkind = vscode.QuickPickItemKind.Separator;
-                            field.iconName = '';
+                            groupName = `${field.type}(${field.name})`;
                         }
                         else {
                             field.level -= 1;
@@ -416,6 +452,8 @@ export async function showAllFields(sectionFilter?: string) {
                     }
 
                     if (alObject.isQuery()) {
+                        groupName = field.dataItem;
+
                         if (field.sourceExpr) {
                             if (field.properties && ('method' in field.properties)) {
                                 description = `${field.properties['method'].toUpperCase()}(${field.sourceExpr})`;
@@ -424,27 +462,12 @@ export async function showAllFields(sectionFilter?: string) {
                                 description = field.sourceExpr;
                             }
                         }
-
-                        if (field.dataItem !== lastGroupName) {
-                            items.push({
-                                label: field.dataItem,
-                                itemkind: vscode.QuickPickItemKind.Separator
-                            });
-                            lastGroupName = field.dataItem;
-                        }
                     }
 
                     if (alObject.isReport() || alObject.isReportExt()) {
+                        groupName = field.dataItem;
                         if (field.sourceExpr) {
                             description = field.sourceExpr;
-                        }
-
-                        if (field.dataItem !== lastGroupName) {
-                            items.push({
-                                label: field.dataItem,
-                                itemkind: vscode.QuickPickItemKind.Separator
-                            });
-                            lastGroupName = field.dataItem;
                         }
 
                         if (field.properties) {
@@ -456,16 +479,20 @@ export async function showAllFields(sectionFilter?: string) {
                         }
                     }
 
-                    items.push({
-                        label: label,
-                        description: description,
-                        detail: detail,
-                        startLine: field.startLine ? field.startLine : 0,
-                        endLine: 0,
-                        level: field.level,
-                        iconName: field.iconName,
-                        itemkind: itemkind
-                    });
+                    if (field.isfield) {
+                        items.push({
+                            label: label,
+                            description: description,
+                            detail: detail,
+                            groupID: groupID,
+                            groupName: groupName,
+                            startLine: field.startLine ? field.startLine : 0,
+                            endLine: 0,
+                            level: field.level,
+                            iconName: field.iconName,
+                            itemkind: itemkind
+                        });
+                    }
                 }
 
                 showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);
@@ -495,6 +522,8 @@ export async function showAllTableKeys() {
                     label: item.fieldsList,
                     description: item.isPrimaryKey ? `${item.name} [PK]` : item.name,
                     detail: '',
+                    groupID: 0,
+                    groupName: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: 0,
@@ -528,6 +557,8 @@ export async function showAllTableFieldGroups() {
                     label: item.fieldsList,
                     description: '',
                     detail: item.name,
+                    groupID: 0,
+                    groupName: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: 0,
@@ -562,6 +593,8 @@ export async function showAllTriggers() {
                     label: item.name,
                     description: '',
                     detail: '',
+                    groupID: 0,
+                    groupName: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: 0,
@@ -629,11 +662,6 @@ export async function showAllProcedures(groupFilter?: string) {
                     if (currGroupName) {
                         let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
                         if (procedures && (procedures.length > 0)) {
-                            items.push({
-                                label: currGroupName,
-                                itemkind: vscode.QuickPickItemKind.Separator
-                            });
-
                             for (let i = 0; i < procedures.length; i++) {
                                 items.push({
                                     label: procedures[i].name,
@@ -641,6 +669,8 @@ export async function showAllProcedures(groupFilter?: string) {
                                     detail: (procedures[i].regionPath && procedures[i].sourceEvent) ? `Region: ${procedures[i].regionPath} | Event: ${procedures[i].sourceEvent}` :
                                         (procedures[i].regionPath) ? `Region: ${procedures[i].regionPath}` :
                                             (procedures[i].sourceEvent) ? `Event: ${procedures[i].sourceEvent}` : '',
+                                    groupID: currGroup,
+                                    groupName: currGroupName,
                                     startLine: procedures[i].startLine ? procedures[i].startLine : 0,
                                     endLine: 0,
                                     level: 0,
@@ -681,6 +711,8 @@ export async function showAllDataItems() {
                     label: item.name,
                     description: item.sourceExpression,
                     detail: '',
+                    groupID: 0,
+                    groupName: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: item.endLine ? item.endLine : 0,
                     level: item.level,
@@ -715,6 +747,8 @@ export async function showAllActions() {
                     description: item.sourceAction ? `Ref: ${item.sourceAction}` :
                         (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
                     detail: '',
+                    groupID: 0,
+                    groupName: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: item.level,
@@ -748,6 +782,8 @@ export async function showAllRegions() {
                     label: item.name,
                     description: '',
                     detail: '',
+                    groupID: 0,
+                    groupName: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: item.endLine ? item.endLine : 0,
                     level: item.level ? item.level : 0,
@@ -793,6 +829,8 @@ export async function showOpenALObjects() {
                         `$(${alObject.getDefaultIconName()}) ${objectInfoText}`,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
+                    groupID: 0,
+                    groupName: '',
                     alOjectType: isCurrentEditor ? 'Current Editor' : alObject.objectTypeCamelCase(),
                     sortKey: objectSortKey(alObject, isCurrentEditor),
                     uri: doc.uri
@@ -817,7 +855,9 @@ export async function showOpenALObjects() {
 
             quickPickItems.push({
                 label: item.alOjectType,
-                itemkind: vscode.QuickPickItemKind.Separator
+                itemkind: vscode.QuickPickItemKind.Separator,
+                groupID: 0,
+                groupName: ''
             });
         }
 
@@ -825,6 +865,8 @@ export async function showOpenALObjects() {
             label: item.label,
             description: item.description,
             detail: item.detail,
+            groupID: 0,
+            groupName: '',
             uri: item.uri
         });
     }

@@ -1986,8 +1986,7 @@ export function findObjectTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                 // Verifico se si tratta di una riga commentata
                 const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
                 if (!commentedLine) {
-                    let triggerInfo: { scope: string, name: string };
-                    triggerInfo = { scope: '', name: '' };
+                    let triggerInfo: { name: string } = { name: '' };
                     if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
                         if (triggerInfo.name) {
                             alObjectTriggers.triggers.push({
@@ -2012,13 +2011,12 @@ export function findObjectTriggers(alObject: ALObject, alObjectTriggers: ALObjec
     }
 }
 
-export function isTriggerDefinition(alObject: ALObject, lineText: string, procedureInfo: { scope: string, name: string }): boolean {
+export function isTriggerDefinition(alObject: ALObject, lineText: string, procedureInfo: { name: string }): boolean {
     switch (true) {
         case (alObject.isTable() || alObject.isTableExt()):
             {
                 const match = lineText.trim().match(regExpr.tableTrigger);
                 if (match) {
-                    procedureInfo.scope = 'trigger';
                     procedureInfo.name = match[1];
 
                     return true;
@@ -2029,7 +2027,6 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             {
                 const match = lineText.trim().match(regExpr.pageTrigger);
                 if (match) {
-                    procedureInfo.scope = 'trigger';
                     procedureInfo.name = match[1];
 
                     return true;
@@ -2040,7 +2037,6 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             {
                 const match = lineText.trim().match(regExpr.reportTrigger);
                 if (match) {
-                    procedureInfo.scope = 'trigger';
                     procedureInfo.name = match[1];
 
                     return true;
@@ -2051,7 +2047,6 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             {
                 const match = lineText.trim().match(regExpr.codeunitTrigger);
                 if (match) {
-                    procedureInfo.scope = 'trigger';
                     procedureInfo.name = match[1];
 
                     return true;
@@ -2062,7 +2057,6 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             {
                 const match = lineText.trim().match(regExpr.queryTrigger);
                 if (match) {
-                    procedureInfo.scope = 'trigger';
                     procedureInfo.name = match[1];
 
                     return true;
