@@ -1,14 +1,13 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers } from './alObject';
-import { procedure } from '../regExpressions';
-
 
 interface objectExplorerItem {
     label: string;
     description?: string;
     detail?: string;
     sortKey?: string;
+    groupName?: string;
     uri?: vscode.Uri;
     alObject?: ALObject;
     alOjectType?: string,
@@ -562,7 +561,7 @@ export async function showAllTriggers() {
                 let items: objectExplorerItem[] = alObjectTriggers.triggers.map(item => ({
                     label: item.name,
                     description: '',
-                    detail: item.name,
+                    detail: '',
                     startLine: item.startLine ? item.startLine : 0,
                     endLine: 0,
                     level: 0,
@@ -653,7 +652,8 @@ export async function showAllProcedures(groupFilter?: string) {
                 }
 
                 if (items) {
-                    showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Procedures`, false, true);
+                    let title = groupFilter || 'Procedures';
+                    showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: ${title}`, false, true);
                     return;
                 }
             }

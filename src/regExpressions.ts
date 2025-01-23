@@ -42,7 +42,7 @@ export const queryColumn = /^(column|filter)\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *;
 export const queryColumnDefinition = /(column|filter)\s*\(\s*([^;]+)\s*;\s*([^;]+)\s*\)\s*\{([\s\S]+?)\}/gi;
 
 // Codeunit
-export const codeunitTrigger = /^trigger\s+(OnRun)\s*\(.*\)/i;
+export const codeunitTrigger = /^trigger\s+(OnRun|OnInstallAppPerCompany|OnInstallAppPerDatabase)\s*\(.*\)/i;
 
 // Procedure
 export const procedure = /^(local|internal)?\s*procedure\s+([a-zA-Z_][a-zA-Z0-9_]*)\(/i;
