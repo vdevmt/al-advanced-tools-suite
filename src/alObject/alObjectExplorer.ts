@@ -521,19 +521,17 @@ export async function showAllFields(sectionFilter?: string) {
                         }
                     }
 
-                    if (field.isfield) {
-                        items.push({
-                            label: label,
-                            description: description,
-                            detail: detail,
-                            groupID: groupID,
-                            groupName: groupName,
-                            startLine: field.startLine ? field.startLine : 0,
-                            endLine: 0,
-                            level: field.level,
-                            iconName: field.iconName
-                        });
-                    }
+                    items.push({
+                        label: label,
+                        description: description,
+                        detail: detail,
+                        groupID: groupID,
+                        groupName: groupName,
+                        startLine: field.startLine ? field.startLine : 0,
+                        endLine: 0,
+                        level: field.level,
+                        iconName: field.iconName
+                    });
                 }
 
                 showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);

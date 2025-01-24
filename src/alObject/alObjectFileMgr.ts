@@ -563,7 +563,7 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
                                             name: `${currFieldName} - ${triggerInfo.name}`,
                                             sortIndex: lineNumber,
                                             groupIndex: 10,
-                                            groupName: 'Field Triggers',
+                                            groupName: 'Fields',
                                             iconName: 'server-process',
                                             startLine: lineNumber
                                         });
@@ -986,7 +986,7 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
                                             name: `${currFieldName} - ${triggerInfo.name}`,
                                             sortIndex: lineNumber,
                                             groupIndex: 10,
-                                            groupName: 'Field Triggers',
+                                            groupName: 'Fields',
                                             iconName: 'server-process',
                                             startLine: lineNumber
                                         });
@@ -1550,7 +1550,7 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                                 name: currDataitem ? `${currDataitem.name} - ${triggerInfo.name}` : triggerInfo.name,
                                                 sortIndex: currDataitem ? currDataitem.linePosition : lineNumber,
                                                 groupIndex: currDataitem ? 10 : 0,
-                                                groupName: currDataitem ? 'Dataitem triggers' : '',
+                                                groupName: currDataitem ? 'Dataitems' : '',
                                                 iconName: 'server-process',
                                                 startLine: lineNumber
                                             });
@@ -1575,7 +1575,7 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                                     name: `${currFieldName} - ${triggerInfo.name}`,
                                                     sortIndex: lineNumber,
                                                     groupIndex: 110,
-                                                    groupName: 'Request Field Triggers',
+                                                    groupName: 'Request Fields',
                                                     iconName: 'server-process',
                                                     startLine: lineNumber
                                                 });
@@ -1598,7 +1598,7 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                                         name: triggerInfo.name,
                                                         sortIndex: lineNumber,
                                                         groupIndex: 100,
-                                                        groupName: 'Request Page Triggers',
+                                                        groupName: 'Request Page',
                                                         iconName: 'server-process',
                                                         startLine: lineNumber
                                                     });
@@ -2353,8 +2353,8 @@ export function findObjectTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                 scope: '',
                                 name: triggerInfo.name,
                                 sortIndex: lineNumber,
-                                groupIndex: triggerInfo.scope === 'requestpage' ? 10 : 0,
-                                groupName: triggerInfo.scope === 'requestpage' ? 'Request Page' : '',
+                                groupIndex: 0,
+                                groupName: '',
                                 iconName: 'server-process',
                                 startLine: lineNumber
                             });
