@@ -577,15 +577,15 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
                                 currFieldName = fieldInfo.name;
                             }
                             else {
-                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
-                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                let triggerInfo: { name: string } = { name: '' };
+                                if (isTableTriggerDefinition(lineText, triggerInfo)) {
                                     if (triggerInfo.name) {
                                         alObjectTriggers.triggers.push({
                                             scope: '',
                                             name: triggerInfo.name,
                                             sortIndex: lineNumber,
                                             groupIndex: 0,
-                                            groupName: '',
+                                            groupName: 'Table',
                                             iconName: 'server-process',
                                             startLine: lineNumber
                                         });
@@ -606,6 +606,17 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
             }
         }
     }
+}
+
+export function isTableTriggerDefinition(lineText: string, triggerInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.tableTrigger);
+    if (match) {
+        triggerInfo.name = match[1];
+
+        return true;
+    }
+
+    return false;
 }
 //#endregion Triggers
 
@@ -1000,15 +1011,15 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
                                 currFieldName = fieldInfo.name;
                             }
                             else {
-                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
-                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                let triggerInfo: { name: string } = { name: '' };
+                                if (isPageTriggerDefinition(lineText, triggerInfo)) {
                                     if (triggerInfo.name) {
                                         alObjectTriggers.triggers.push({
                                             scope: '',
                                             name: triggerInfo.name,
                                             sortIndex: lineNumber,
                                             groupIndex: 0,
-                                            groupName: '',
+                                            groupName: 'Page',
                                             iconName: 'server-process',
                                             startLine: lineNumber
                                         });
@@ -1028,6 +1039,15 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
             }
         }
     }
+}
+export function isPageTriggerDefinition(lineText: string, triggerInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.pageTrigger);
+    if (match) {
+        triggerInfo.name = match[1];
+        return true;
+    }
+
+    return false;
 }
 //#endregion Triggers
 
@@ -1536,21 +1556,20 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                     }
                                 }
 
-                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
-                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
-                                    if (triggerInfo.scope === 'dataitem') {
-                                        let currDataitem = null;
-                                        if (dataitems.length > 0) {
-                                            currDataitem = dataitems[dataitems.length - 1];
-                                        }
-
+                                let triggerInfo: { name: string } = { name: '' };
+                                if (isReportTriggerDefinition(currentSection, lineText, triggerInfo)) {
+                                    let currDataitem = null;
+                                    if (dataitems.length > 0) {
+                                        currDataitem = dataitems[dataitems.length - 1];
+                                    }
+                                    if (currDataitem) {
                                         if (triggerInfo.name) {
                                             alObjectTriggers.triggers.push({
                                                 scope: '',
                                                 name: currDataitem ? `${currDataitem.name} - ${triggerInfo.name}` : triggerInfo.name,
                                                 sortIndex: currDataitem ? currDataitem.linePosition : lineNumber,
-                                                groupIndex: currDataitem ? 10 : 0,
-                                                groupName: currDataitem ? 'Dataitems' : '',
+                                                groupIndex: 10,
+                                                groupName: 'Dataitems',
                                                 iconName: 'server-process',
                                                 startLine: lineNumber
                                             });
@@ -1589,20 +1608,18 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                         currFieldName = fieldInfo.name;
                                     }
                                     else {
-                                        let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
-                                        if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
-                                            if (triggerInfo.scope === 'requestpage') {
-                                                if (triggerInfo.name) {
-                                                    alObjectTriggers.triggers.push({
-                                                        scope: '',
-                                                        name: triggerInfo.name,
-                                                        sortIndex: lineNumber,
-                                                        groupIndex: 100,
-                                                        groupName: 'Request Page',
-                                                        iconName: 'server-process',
-                                                        startLine: lineNumber
-                                                    });
-                                                }
+                                        let triggerInfo: { name: string } = { name: '' };
+                                        if (isReportTriggerDefinition(currentSection, lineText, triggerInfo)) {
+                                            if (triggerInfo.name) {
+                                                alObjectTriggers.triggers.push({
+                                                    scope: '',
+                                                    name: triggerInfo.name,
+                                                    sortIndex: lineNumber,
+                                                    groupIndex: 100,
+                                                    groupName: 'Request Page',
+                                                    iconName: 'server-process',
+                                                    startLine: lineNumber
+                                                });
                                             }
                                         }
                                     }
@@ -1612,9 +1629,8 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                             }
 
                             default: {
-
                                 let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
-                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                if (isReportTriggerDefinition('', lineText, triggerInfo)) {
                                     if (triggerInfo.scope === 'object') {
                                         let currDataitem = null;
                                         if (dataitems.length > 0) {
@@ -1627,7 +1643,7 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                                 name: currDataitem ? `${currDataitem.name} - ${triggerInfo.name}` : triggerInfo.name,
                                                 sortIndex: currDataitem ? currDataitem.linePosition : lineNumber,
                                                 groupIndex: 0,
-                                                groupName: '',
+                                                groupName: 'Report',
                                                 iconName: 'server-process',
                                                 startLine: lineNumber
                                             });
@@ -1650,6 +1666,45 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
             }
         }
     }
+}
+
+export function isReportTriggerDefinition(section: string, lineText: string, triggerInfo: { name: string }): boolean {
+    switch (section) {
+        case '': {
+            const match = lineText.trim().match(regExpr.reportTrigger);
+            if (match) {
+                triggerInfo.name = match[1];
+
+                return true;
+            }
+
+            break;
+        }
+
+        case 'dataset': {
+            const match = lineText.trim().match(regExpr.reportDataitemTrigger);
+            if (match) {
+                triggerInfo.name = match[1];
+
+                return true;
+            }
+
+            break;
+        }
+
+        case 'requestpage': {
+            const match = lineText.trim().match(regExpr.pageTrigger);
+            if (match) {
+                triggerInfo.name = match[1];
+
+                return true;
+            }
+
+            break;
+        }
+    }
+
+    return false;
 }
 //#endregion Triggers
 
@@ -1843,6 +1898,58 @@ export function isQueryColumnDefinition(lineText: string, fieldInfo: { name: str
     return false;
 }
 //#endregion Columns
+
+//#region Triggers
+export function findQueryTriggers(alObject: ALObject, alObjectTriggers: ALObjectTriggers) {
+    if (alObject) {
+        if (alObject.isQuery()) {
+            if (alObject.objectContentText) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+
+                lines.forEach((lineText, linePos) => {
+                    lineText = cleanObjectLineText(lineText);
+                    const lineNumber = linePos;
+
+                    // Verifica inizio-fine commento multi-riga
+                    if (isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
+
+                    // Verifico se si tratta di una riga commentata
+                    const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                    if (!commentedLine) {
+                        let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                        if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                            if (triggerInfo.name) {
+                                alObjectTriggers.triggers.push({
+                                    scope: '',
+                                    name: triggerInfo.name,
+                                    sortIndex: lineNumber,
+                                    groupIndex: 0,
+                                    groupName: 'Query',
+                                    iconName: 'server-process',
+                                    startLine: lineNumber
+                                });
+                            }
+                        }
+                    }
+                });
+
+                if (alObjectTriggers.triggers) {
+                    if (alObjectTriggers.triggers.length > 0) {
+                        // Order by StartLine
+                        alObjectTriggers.triggers.sort((a, b) => a.sortIndex - b.sortIndex);
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Triggers
 
 //#endregion Query
 
