@@ -494,6 +494,8 @@ export class ALObjectTriggers {
     public triggers: {
         scope?: string,
         name: string,
+        sortIndex: number,
+        groupIndex: number,
         groupName: string,
         iconName?: string,
         startLine: number
@@ -518,8 +520,27 @@ export class ALObjectTriggers {
     }
 
     private findElements(alObject: ALObject) {
+
         if (alObject) {
-            alFileMgr.findObjectTriggers(alObject, this);
+            switch (true) {
+                case (alObject.isTable() || alObject.isTableExt()): {
+                    alFileMgr.findTableTriggers(alObject, this);
+                    break;
+                }
+                case (alObject.isPage() || alObject.isPageExt()): {
+                    alFileMgr.findPageTriggers(alObject, this);
+                    break;
+                }
+                case (alObject.isReport() || alObject.isReportExt()): {
+                    alFileMgr.findReportTriggers(alObject, this);
+                    break;
+                }
+
+                default: {
+                    alFileMgr.findObjectTriggers(alObject, this);
+                    break;
+                }
+            }
         }
     }
 }

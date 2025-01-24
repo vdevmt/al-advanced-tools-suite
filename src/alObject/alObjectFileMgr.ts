@@ -343,7 +343,7 @@ function extractElementDefinitionFromObjectTextArray(objectLines: string[], star
         }
     }
 
-    return result.join('\n');
+    return removeCommentedLines(result.join('\n'));
 }
 
 //#region Table
@@ -381,7 +381,7 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                             pkIndex = pkIndex >= 0 ? pkIndex + 1 : 0;
 
                             // Ricerca proprietà 
-                            const fieldBody = match[4].trim();
+                            const fieldBody = removeCommentedLines(match[4].trim());
                             const properties: { [key: string]: string } = {};
                             findAllProperties(fieldBody, properties);
 
@@ -526,6 +526,89 @@ export function findTableFieldGroups(alObject: ALObject, alTableFieldGroups: ALT
 }
 //#endregion Field Groups
 
+//#region Triggers
+export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObjectTriggers) {
+    if (alObject) {
+        if (alObject.isTable() || alObject.isTableExt()) {
+            if (alObject.objectContentText) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+                let currFieldName: string;
+
+                lines.forEach((lineText, linePos) => {
+                    lineText = cleanObjectLineText(lineText);
+                    const lineNumber = linePos;
+
+                    // Verifica inizio-fine commento multi-riga
+                    if (isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
+
+                    // Verifico se si tratta di una riga commentata
+                    const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                    if (!commentedLine) {
+                        if (currFieldName) {
+                            if (lineText.includes("}")) {
+                                currFieldName = '';
+                            }
+                            if (currFieldName) {
+                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                if (isFieldTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                    if (triggerInfo.name) {
+                                        alObjectTriggers.triggers.push({
+                                            scope: '',
+                                            name: `${currFieldName} - ${triggerInfo.name}`,
+                                            sortIndex: lineNumber,
+                                            groupIndex: 10,
+                                            groupName: 'Field Triggers',
+                                            iconName: 'server-process',
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            let fieldInfo: { id: number, name: string, type: string } = { id: 0, name: '', type: '' };
+                            if (isTableFieldDefinition(lineText, fieldInfo)) {
+                                currFieldName = fieldInfo.name;
+                            }
+                            else {
+                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                    if (triggerInfo.name) {
+                                        alObjectTriggers.triggers.push({
+                                            scope: '',
+                                            name: triggerInfo.name,
+                                            sortIndex: lineNumber,
+                                            groupIndex: 0,
+                                            groupName: '',
+                                            iconName: 'server-process',
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (alObjectTriggers.triggers) {
+                    if (alObjectTriggers.triggers.length > 0) {
+                        // Order by StartLine
+                        alObjectTriggers.triggers.sort((a, b) => a.sortIndex - b.sortIndex);
+                    }
+                }
+
+            }
+        }
+    }
+}
+//#endregion Triggers
+
 //#endregion Table
 
 //#region Page
@@ -587,9 +670,9 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                 let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
                                 if (isPageFieldDefinition(lineText, fieldInfo)) {
                                     // Ricerca proprietà 
-                                    const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                    const fieldBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                     const properties: { [key: string]: string } = {};
-                                    findAllProperties(actionBody, properties);
+                                    findAllProperties(fieldBody, properties);
 
                                     alPageFields.fields.push({
                                         name: fieldInfo.name,
@@ -865,6 +948,89 @@ export function isActionDefinition(lineText: string, actionInfo: { name: string,
     return false;
 }
 //#endregion Actions
+
+//#region Triggers
+export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectTriggers) {
+    if (alObject) {
+        if (alObject.isPage() || alObject.isPageExt()) {
+            if (alObject.objectContentText) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+                let currFieldName: string;
+
+                lines.forEach((lineText, linePos) => {
+                    lineText = cleanObjectLineText(lineText);
+                    const lineNumber = linePos;
+
+                    // Verifica inizio-fine commento multi-riga
+                    if (isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
+
+                    // Verifico se si tratta di una riga commentata
+                    const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                    if (!commentedLine) {
+                        if (currFieldName) {
+                            if (lineText.includes("}")) {
+                                currFieldName = '';
+                            }
+                            if (currFieldName) {
+                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                if (isFieldTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                    if (triggerInfo.name) {
+                                        alObjectTriggers.triggers.push({
+                                            scope: '',
+                                            name: `${currFieldName} - ${triggerInfo.name}`,
+                                            sortIndex: lineNumber,
+                                            groupIndex: 10,
+                                            groupName: 'Field Triggers',
+                                            iconName: 'server-process',
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
+                            if (isPageFieldDefinition(lineText, fieldInfo)) {
+                                currFieldName = fieldInfo.name;
+                            }
+                            else {
+                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                    if (triggerInfo.name) {
+                                        alObjectTriggers.triggers.push({
+                                            scope: '',
+                                            name: triggerInfo.name,
+                                            sortIndex: lineNumber,
+                                            groupIndex: 0,
+                                            groupName: '',
+                                            iconName: 'server-process',
+                                            startLine: lineNumber
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (alObjectTriggers.triggers) {
+                    if (alObjectTriggers.triggers.length > 0) {
+                        // Order by StartLine
+                        alObjectTriggers.triggers.sort((a, b) => a.sortIndex - b.sortIndex);
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Triggers
+
 //#endregion Page
 
 //#region Report
@@ -1118,9 +1284,9 @@ export function findRequestPageFields(alObject: ALObject, alReqPageFields: ALObj
                                     let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
                                     if (isPageFieldDefinition(lineText, fieldInfo)) {
                                         // Ricerca proprietà 
-                                        const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                        const fieldBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(actionBody, properties);
+                                        findAllProperties(fieldBody, properties);
 
                                         alReqPageFields.fields.push({
                                             name: fieldInfo.name,
@@ -1293,6 +1459,200 @@ export function isReportReqPageFieldDefinition(lineText: string, fieldInfo: { na
     return false;
 }
 //#endregion Request Page
+
+//#region Triggers
+export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjectTriggers) {
+    if (alObject) {
+        if (alObject.isReport() || alObject.isReportExt()) {
+            if (alObject.objectContentText) {
+                const lines = alObject.objectContentText.split('\n');
+                let insideMultiLineComment: boolean;
+                let dataitems: { name: string, linePosition: number, level: number }[] = [];
+                let currentLevel = -2;
+                let currentSection = '';
+                let currFieldName = '';
+
+                lines.forEach((lineText, linePos) => {
+                    lineText = cleanObjectLineText(lineText);
+                    const lineNumber = linePos;
+
+                    // Verifica inizio-fine commento multi-riga
+                    if (isMultiLineCommentStart(lineText)) {
+                        insideMultiLineComment = true;
+                    }
+                    if (isMultiLineCommentEnd(lineText)) {
+                        insideMultiLineComment = false;
+                    }
+
+                    // Verifico se si tratta di una riga commentata
+                    const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                    if (!commentedLine) {
+                        if (!currentSection) {
+                            if (lineText.trim().toLowerCase() === 'dataset') {
+                                currentSection = 'dataset';
+                                currentLevel = -1;
+                            }
+                            else {
+
+                                if (lineText.trim().toLowerCase() === 'requestpage') {
+                                    currentSection = 'requestpage';
+                                    currentLevel = -1;
+                                }
+                            }
+                        }
+
+                        if (lineText.includes("{")) {
+                            currentLevel++;
+                        }
+
+                        if (lineText.includes("}")) {
+                            currentLevel--;
+
+                            if (currentLevel < 0) {
+                                currentSection = '';
+                            } else {
+                                let currDataitem = null;
+                                if (dataitems.length > 0) {
+                                    currDataitem = dataitems[dataitems.length - 1];
+                                    if (currDataitem.level === currentLevel) {
+                                        dataitems.pop();
+                                    }
+                                }
+                            }
+                        }
+
+                        switch (currentSection) {
+
+                            case 'dataset': {
+                                let dataItemInfo: { name: string, sourceExpr: string, linePos: number, level: number } = {
+                                    name: '',
+                                    sourceExpr: '',
+                                    linePos: 0,
+                                    level: 0
+                                };
+                                if (isReportDataItemDefinition(lineText, dataItemInfo)) {
+                                    if (dataItemInfo.name) {
+                                        dataitems.push({ name: dataItemInfo.name, linePosition: lineNumber, level: currentLevel });
+                                    }
+                                }
+
+                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                    if (triggerInfo.scope === 'dataitem') {
+                                        let currDataitem = null;
+                                        if (dataitems.length > 0) {
+                                            currDataitem = dataitems[dataitems.length - 1];
+                                        }
+
+                                        if (triggerInfo.name) {
+                                            alObjectTriggers.triggers.push({
+                                                scope: '',
+                                                name: currDataitem ? `${currDataitem.name} - ${triggerInfo.name}` : triggerInfo.name,
+                                                sortIndex: currDataitem ? currDataitem.linePosition : lineNumber,
+                                                groupIndex: currDataitem ? 10 : 0,
+                                                groupName: currDataitem ? 'Dataitem triggers' : '',
+                                                iconName: 'server-process',
+                                                startLine: lineNumber
+                                            });
+                                        }
+                                    }
+                                }
+
+                                break;
+                            }
+
+                            case 'requestpage': {
+                                if (currFieldName) {
+                                    if (lineText.includes("}")) {
+                                        currFieldName = '';
+                                    }
+                                    if (currFieldName) {
+                                        let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                        if (isFieldTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                            if (triggerInfo.name) {
+                                                alObjectTriggers.triggers.push({
+                                                    scope: '',
+                                                    name: `${currFieldName} - ${triggerInfo.name}`,
+                                                    sortIndex: lineNumber,
+                                                    groupIndex: 110,
+                                                    groupName: 'Request Field Triggers',
+                                                    iconName: 'server-process',
+                                                    startLine: lineNumber
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                                else {
+                                    let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
+                                    if (isPageFieldDefinition(lineText, fieldInfo)) {
+                                        currFieldName = fieldInfo.name;
+                                    }
+                                    else {
+                                        let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                        if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                            if (triggerInfo.scope === 'requestpage') {
+                                                if (triggerInfo.name) {
+                                                    alObjectTriggers.triggers.push({
+                                                        scope: '',
+                                                        name: triggerInfo.name,
+                                                        sortIndex: lineNumber,
+                                                        groupIndex: 100,
+                                                        groupName: 'Request Page Triggers',
+                                                        iconName: 'server-process',
+                                                        startLine: lineNumber
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                break;
+                            }
+
+                            default: {
+
+                                let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
+                                if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                                    if (triggerInfo.scope === 'object') {
+                                        let currDataitem = null;
+                                        if (dataitems.length > 0) {
+                                            currDataitem = dataitems[dataitems.length - 1];
+                                        }
+
+                                        if (triggerInfo.name) {
+                                            alObjectTriggers.triggers.push({
+                                                scope: '',
+                                                name: currDataitem ? `${currDataitem.name} - ${triggerInfo.name}` : triggerInfo.name,
+                                                sortIndex: currDataitem ? currDataitem.linePosition : lineNumber,
+                                                groupIndex: 0,
+                                                groupName: '',
+                                                iconName: 'server-process',
+                                                startLine: lineNumber
+                                            });
+                                        }
+                                    }
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                if (alObjectTriggers.triggers) {
+                    if (alObjectTriggers.triggers.length > 0) {
+                        // Order by StartLine
+                        alObjectTriggers.triggers.sort((a, b) => a.sortIndex - b.sortIndex);
+                    }
+                }
+            }
+        }
+    }
+}
+//#endregion Triggers
+
 //#endregion Report
 
 //#region Query
@@ -1986,13 +2346,15 @@ export function findObjectTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                 // Verifico se si tratta di una riga commentata
                 const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
                 if (!commentedLine) {
-                    let triggerInfo: { name: string } = { name: '' };
+                    let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
                     if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
                         if (triggerInfo.name) {
                             alObjectTriggers.triggers.push({
                                 scope: '',
                                 name: triggerInfo.name,
-                                groupName: '',
+                                sortIndex: lineNumber,
+                                groupIndex: triggerInfo.scope === 'requestpage' ? 10 : 0,
+                                groupName: triggerInfo.scope === 'requestpage' ? 'Request Page' : '',
                                 iconName: 'server-process',
                                 startLine: lineNumber
                             });
@@ -2004,20 +2366,21 @@ export function findObjectTriggers(alObject: ALObject, alObjectTriggers: ALObjec
             if (alObjectTriggers.triggers) {
                 if (alObjectTriggers.triggers.length > 0) {
                     // Order by StartLine
-                    alObjectTriggers.triggers.sort((a, b) => a.startLine - b.startLine);
+                    alObjectTriggers.triggers.sort((a, b) => a.sortIndex - b.sortIndex);
                 }
             }
         }
     }
 }
 
-export function isTriggerDefinition(alObject: ALObject, lineText: string, procedureInfo: { name: string }): boolean {
+export function isTriggerDefinition(alObject: ALObject, lineText: string, triggerInfo: { name: string, scope: string }): boolean {
     switch (true) {
         case (alObject.isTable() || alObject.isTableExt()):
             {
                 const match = lineText.trim().match(regExpr.tableTrigger);
                 if (match) {
-                    procedureInfo.name = match[1];
+                    triggerInfo.scope = 'object';
+                    triggerInfo.name = match[1];
 
                     return true;
                 }
@@ -2027,7 +2390,8 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             {
                 const match = lineText.trim().match(regExpr.pageTrigger);
                 if (match) {
-                    procedureInfo.name = match[1];
+                    triggerInfo.scope = 'object';
+                    triggerInfo.name = match[1];
 
                     return true;
                 }
@@ -2035,19 +2399,38 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             }
         case (alObject.isReport()):
             {
-                const match = lineText.trim().match(regExpr.reportTrigger);
+                let match = lineText.trim().match(regExpr.reportTrigger);
                 if (match) {
-                    procedureInfo.name = match[1];
+                    triggerInfo.scope = 'object';
+                    triggerInfo.name = match[1];
 
                     return true;
                 }
+
+                match = lineText.trim().match(regExpr.reportDataitemTrigger);
+                if (match) {
+                    triggerInfo.scope = 'dataitem';
+                    triggerInfo.name = match[1];
+
+                    return true;
+                }
+
+                match = lineText.trim().match(regExpr.pageTrigger);
+                if (match) {
+                    triggerInfo.scope = 'requestpage';
+                    triggerInfo.name = match[1];
+
+                    return true;
+                }
+
                 break;
             }
         case (alObject.isCodeunit()):
             {
                 const match = lineText.trim().match(regExpr.codeunitTrigger);
                 if (match) {
-                    procedureInfo.name = match[1];
+                    triggerInfo.scope = 'object';
+                    triggerInfo.name = match[1];
 
                     return true;
                 }
@@ -2057,12 +2440,47 @@ export function isTriggerDefinition(alObject: ALObject, lineText: string, proced
             {
                 const match = lineText.trim().match(regExpr.queryTrigger);
                 if (match) {
-                    procedureInfo.name = match[1];
+                    triggerInfo.scope = 'object';
+                    triggerInfo.name = match[1];
 
                     return true;
                 }
                 break;
             }
+    }
+
+    return false;
+}
+export function isFieldTriggerDefinition(alObject: ALObject, lineText: string, triggerInfo: { name: string }): boolean {
+    switch (true) {
+        case (alObject.isTable() || alObject.isTableExt()):
+            {
+                const match = lineText.trim().match(regExpr.tableFieldTrigger);
+                if (match) {
+                    triggerInfo.name = match[1];
+
+                    return true;
+                }
+                break;
+            }
+        case (alObject.isPage() || alObject.isPageExt()): {
+            const match = lineText.trim().match(regExpr.pageFieldTrigger);
+            if (match) {
+                triggerInfo.name = match[1];
+
+                return true;
+            }
+            break;
+        }
+        case (alObject.isReport() || alObject.isReportExt()): {
+            const match = lineText.trim().match(regExpr.pageFieldTrigger);
+            if (match) {
+                triggerInfo.name = match[1];
+
+                return true;
+            }
+            break;
+        }
     }
 
     return false;
@@ -2191,11 +2609,15 @@ export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectR
 
 //#region Comments on Code
 function removeCommentedLines(objectFileContent: string): string {
-    const uncommentedContent = objectFileContent
-        .replace(/\/\/.*/g, '') // Commenti di riga
-        .replace(/\/\*[\s\S]*?\*\//g, ''); // Commenti multi-riga
+    if (objectFileContent) {
+        const uncommentedContent = objectFileContent
+            .replace(/\/\/.*/g, '') // Commenti di riga
+            .replace(/\/\*[\s\S]*?\*\//g, ''); // Commenti multi-riga
 
-    return uncommentedContent;
+        return uncommentedContent;
+    }
+
+    return '';
 }
 
 export function cleanObjectLineText(lineText: string): string {
