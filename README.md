@@ -20,7 +20,7 @@ These features are concluded at this moment:
 
 * **ATS: AL Object Explorer**: navigates through the elements of the current AL object
 <br />
-<img src="./images/ALObjectExplorer.png" alt="AL Object Explorer">
+<img src="./images/ALObjectExplorer.gif" alt="AL Object Explorer">
 
 * **ATS: Show all Fields**: Show and search fields of the current AL Object
 <br />
@@ -43,6 +43,12 @@ These features are concluded at this moment:
 * **ATS: Show all Dataitems**: Show the complete dataitems structure of the current AL Report
 <br />
 <img src="./images/ShowAllDataitems.png" alt="ATS: Show all Dataitems">
+
+* **ATS: Show all Triggers**: Show and search all triggers of the current AL Object (Object, fields, dataitem, etc.)
+<br />
+<img src="./images/ShowAllTriggers.png" alt="ATS: Show all Triggers">
+<br />
+<img src="./images/ShowAllReportTriggers.png" alt="ATS: Show all report triggers">
 
 * **ATS: Show all Regions**: Show the complete regions structure of the current AL Object
 <br />
