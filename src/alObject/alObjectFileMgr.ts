@@ -1566,8 +1566,8 @@ export function findReportTriggers(alObject: ALObject, alObjectTriggers: ALObjec
                                         if (triggerInfo.name) {
                                             alObjectTriggers.triggers.push({
                                                 scope: '',
-                                                name: currDataitem ? `${currDataitem.name} - ${triggerInfo.name}` : triggerInfo.name,
-                                                sortIndex: currDataitem ? currDataitem.linePosition : lineNumber,
+                                                name: `${currDataitem.name} - ${triggerInfo.name}`,
+                                                sortIndex: currDataitem.linePosition,
                                                 groupIndex: 10,
                                                 groupName: 'Dataitems',
                                                 iconName: 'server-process',
@@ -1869,7 +1869,7 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
                             alQueryColumns.fields.push({
                                 name: fieldName,
                                 section: 'elements',
-                                type: sourceExpr,
+                                type: columnType.toLowerCase(),
                                 sourceExpr: sourceExpr,
                                 isfield: true,
                                 properties: properties,
@@ -1923,7 +1923,7 @@ export function findQueryTriggers(alObject: ALObject, alObjectTriggers: ALObject
                     const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
                     if (!commentedLine) {
                         let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
-                        if (isTriggerDefinition(alObject, lineText, triggerInfo)) {
+                        if (isQueryTriggerDefinition(lineText, triggerInfo)) {
                             if (triggerInfo.name) {
                                 alObjectTriggers.triggers.push({
                                     scope: '',
@@ -1948,6 +1948,15 @@ export function findQueryTriggers(alObject: ALObject, alObjectTriggers: ALObject
             }
         }
     }
+}
+
+export function isQueryTriggerDefinition(lineText: string, triggerInfo: { name: string }): boolean {
+    const match = lineText.trim().match(regExpr.queryTrigger);
+    if (match) {
+        triggerInfo.name = match[1];
+        return true;
+    }
+    return false;
 }
 //#endregion Triggers
 

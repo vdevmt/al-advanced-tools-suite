@@ -535,6 +535,10 @@ export class ALObjectTriggers {
                     alFileMgr.findReportTriggers(alObject, this);
                     break;
                 }
+                case (alObject.isQuery()): {
+                    alFileMgr.findQueryTriggers(alObject, this);
+                    break;
+                }
 
                 default: {
                     alFileMgr.findObjectTriggers(alObject, this);
