@@ -28,7 +28,7 @@ const cmdGoToLine = 'GoToLine';
 const cmdOpenFile = 'OpenFile';
 
 //#region AL Object Explorer
-export function countObjectElements(alObject: ALObject, compressResult: boolean): ObjectElement[] {
+export function countObjectElements(alObject: ALObject, useShortNames: boolean): ObjectElement[] {
     let elements: ObjectElement[] = [];
 
     if (alObject.isReport() || alObject.isReportExt() || alObject.isQuery()) {
@@ -70,7 +70,7 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
                     fieldsCount = alObjectFields.fields.filter(item => (item.section === 'requestpage') && (item.isfield)).length;
                     if (fieldsCount > 0) {
                         elements.push({
-                            type: 'Options',
+                            type: useShortNames ? 'Req. Page Fields' : 'Request Page Fields',
                             count: fieldsCount,
                             command: 'ats.showAllFields',
                             commandArgs: 'requestpage',
@@ -180,52 +180,41 @@ export function countObjectElements(alObject: ALObject, compressResult: boolean)
         let alObjectProcedures: ALObjectProcedures;
         alObjectProcedures = new ALObjectProcedures(alObject);
         if (alObjectProcedures) {
-            if (compressResult) {
-                elements.push({
-                    type: 'Procedures',
-                    count: alObjectProcedures.elementsCount,
-                    command: 'ats.showAllProcedures',
-                    commandArgs: '',
-                    iconName: 'code'
-                });
-            }
-            else {
-                for (let currGroup = 0; currGroup < 4; currGroup++) {
-                    let currGroupName: string = '';
-                    let currGroupIconName: string = '';
+            for (let currGroup = 0; currGroup < 4; currGroup++) {
+                let currGroupName: string = '';
+                let currGroupIconName: string = '';
 
-                    switch (currGroup) {
-                        case 0: {
-                            currGroupName = 'Procedures';
-                            currGroupIconName = 'code';
-                            break;
-                        }
-                        case 1: {
-                            currGroupName = 'Event Subscriptions';
-                            break;
-                        }
-                        case 2: {
-                            currGroupName = 'Integration Events';
-                            break;
-                        }
-                        case 3: {
-                            currGroupName = 'Business Events';
-                            break;
-                        }
+                switch (currGroup) {
+                    case 0: {
+                        currGroupName = 'Procedures';
+                        currGroupIconName = 'code';
+                        break;
                     }
-
-                    let procedures = alObjectProcedures.procedures.filter(item => (item.groupName === currGroupName));
-                    if (procedures.length > 0) {
-                        currGroupIconName = currGroupIconName || procedures[0].iconName;
-
-                        elements.push({
-                            type: currGroupName,
-                            count: procedures.length,
-                            command: 'ats.showAllProcedures',
-                            commandArgs: currGroupName,
-                            iconName: currGroupIconName
-                        });
+                    case 1: {
+                        currGroupName = 'Event Subscriptions';
+                        break;
                     }
+                    case 2: {
+                        currGroupName = 'Integration Events';
+                        break;
+                    }
+                    case 3: {
+                        currGroupName = 'Business Events';
+                        break;
+                    }
+                }
+
+                let procedures = alObjectProcedures.procedures.filter(item => (item.groupName === currGroupName));
+                if (procedures.length > 0) {
+                    currGroupIconName = currGroupIconName || procedures[0].iconName;
+
+                    elements.push({
+                        type: currGroupName,
+                        count: procedures.length,
+                        command: 'ats.showAllProcedures',
+                        commandArgs: currGroupName,
+                        iconName: currGroupIconName
+                    });
                 }
             }
         }
