@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import { ALObject, ALObjectActions, ALObjectDataItems, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableFieldGroups, ALTableKeys } from './alObject';
+import * as alObjectExplorer from './alObjectExplorer';
+import { ALObject } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
 export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
@@ -54,60 +55,89 @@ export async function updateObjectInfoStatusBar(objectInfoStatusBarItem: vscode.
 
 function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.MarkdownString {
     const markdownTooltip = new vscode.MarkdownString();
-    markdownTooltip.appendMarkdown("### **AL Object Info (ATS)**\n\n");
+    markdownTooltip.appendMarkdown("### **AL Object Info (ATS)**");
     if (objectInfoText) {
-        markdownTooltip.appendMarkdown(`${objectInfoText}\n\n`);
+        markdownTooltip.appendText('\n');
+        markdownTooltip.appendMarkdown(`${objectInfoText}`);
     }
 
     if (alObject) {
         if (alObject.extendedObjectName) {
-            markdownTooltip.appendMarkdown(`extends ${alFileMgr.addQuotesIfNeeded(alObject.extendedObjectName)}\n\n`);
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Extends: ${alFileMgr.addQuotesIfNeeded(alObject.extendedObjectName)}`);
         }
 
         if (alObject.objectNamespace) {
-            markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}\n\n`);
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Namespace: ${alObject.objectNamespace}`);
         }
 
-        let alObjectDataItems: ALObjectDataItems;
-        alObjectDataItems = new ALObjectDataItems(alObject);
+        if (alObject.properties['caption']) {
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Caption: "${alObject.properties['caption']}"`);
+        }
 
-        let alObjectFields: ALObjectFields;
-        alObjectFields = new ALObjectFields(alObject);
+        if (alObject.isTable()) {
+            let tableType = alObject.properties['tabletype'] ? alObject.properties['tabletype'] : 'Normal';
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Table Type: ${tableType}`);
+        }
 
-        let alTableKeys: ALTableKeys;
-        alTableKeys = new ALTableKeys(alObject);
+        if (alObject.isPage()) {
+            if (alObject.properties['pagetype']) {
+                markdownTooltip.appendText('\n');
+                markdownTooltip.appendMarkdown(`Page Type: ${alObject.properties['pagetype']}`);
+            }
+            if (alObject.properties['sourcetable']) {
+                markdownTooltip.appendText('\n');
+                markdownTooltip.appendMarkdown(`Source Table: ${alObject.properties['sourcetable']}`);
+            }
+        }
+        if (alObject.isReport()) {
+            let reportType = 'Print';
+            if (alObject.properties['processingonly'] && (Boolean(alObject.properties['processingonly']) === true)) {
+                reportType = 'Processing Only';
+            }
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Report Type: ${reportType}`);
+        }
+        if (alObject.isCodeunit()) {
+            let codeunitType = '';
+            if (alObject.properties['subtype']) {
+                codeunitType = alObject.properties['subtype'];
+            }
+            else {
+                if (alObject.properties['singleinstance'] && (Boolean(alObject.properties['singleinstance']) === true)) {
+                    codeunitType = 'Single Instance';
+                }
+            }
+            if (codeunitType) {
+                markdownTooltip.appendText('\n');
+                markdownTooltip.appendMarkdown(`Codeunit Type: ${codeunitType}`);
+            }
 
-        let alTableFieldGroups: ALTableFieldGroups;
-        alTableFieldGroups = new ALTableFieldGroups(alObject);
+            if (alObject.properties['tableno']) {
+                markdownTooltip.appendText('\n');
+                markdownTooltip.appendMarkdown(`Source Table: ${alObject.properties['tableno']}`);
+            }
+        }
 
-        let alObjectProcedures: ALObjectProcedures;
-        alObjectProcedures = new ALObjectProcedures(alObject);
+        if (alObject.properties['description']) {
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Description: "${alObject.properties['description']}"`);
+        }
 
-        let alObjectRegions: ALObjectRegions;
-        alObjectRegions = new ALObjectRegions(alObject);
-
-        let alObjectActions: ALObjectActions;
-        alObjectActions = new ALObjectActions(alObject);
-
-        const counters = [
-            alObjectDataItems.elementsCount > 0 ? `Dataitems: ${alObjectDataItems.elementsCount}` : '',
-            alObjectFields.elementsCount > 0 ? `Fields: ${alObjectFields.elementsCount}` : '',
-            alTableKeys.elementsCount > 0 ? `Keys: ${alTableKeys.elementsCount}` : '',
-            alTableFieldGroups.elementsCount > 0 ? `Field Groups: ${alTableFieldGroups.elementsCount}` : '',
-            alObjectActions.actionsCount > 0 ? `Actions: ${alObjectActions.actionsCount}` : '',
-            alObjectProcedures.elementsCount > 0 ? `Procedures: ${alObjectProcedures.elementsCount}` : '',
-            alObjectRegions.elementsCount > 0 ? `Regions: ${alObjectRegions.elementsCount}` : ''
-        ]
-            .filter(Boolean)
-            .join(' | ');
-
-        if (counters.length > 0) {
-            markdownTooltip.appendMarkdown(`${counters}\n\n`);
+        let objectElements = alObjectExplorer.countObjectElements(alObject, true);
+        if (objectElements && (objectElements.length > 0)) {
+            const counters = objectElements.map(element => (`${element.type}: ${element.count}`));
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`${counters.join(' | ')}`);
         }
 
         if (alObject.objectFileName) {
             let filePath = vscode.workspace.asRelativePath(alObject.objectFileName);
-            markdownTooltip.appendMarkdown(`Path: ${filePath}\n\n`);
+            markdownTooltip.appendText('\n');
+            markdownTooltip.appendMarkdown(`Path: ${filePath}`);
         }
     }
 

@@ -68,6 +68,7 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     if (rebuildCache) {
         alObject = new ALObject(document);
         alObjectRegions = new ALObjectRegions(alObject);
+        currDocumentKey = makeDocumentKey(document);
     }
 
     let regionPath = regionMgr.findOpenRegionsPathByDocLine(alObjectRegions, currentLine);

@@ -12,6 +12,7 @@ export class ALObject {
     public objectNamespace?: string;
     public objectContentText?: string;
     public objectFileName?: string;
+    public properties: { [key: string]: string };
 
     constructor(document: vscode.TextDocument) {
         this.initObjectProperties();
@@ -37,6 +38,7 @@ export class ALObject {
         this.extendedObjectId = "";
         this.extendedObjectName = "";
         this.objectNamespace = "";
+        this.properties = {};
     }
 
     private loadObjectProperties(): any {
@@ -90,7 +92,6 @@ export class ALObject {
                 if (currObject === null) {
                     vscode.window.showErrorMessage(`File '${this.objectFileName}' does not have valid object name. Maybe it got double quotes (") in the object name?`);
                     return null;
-
                 }
 
                 this.objectType = currObject[1];
@@ -153,14 +154,19 @@ export class ALObject {
         if (match && match[1]) {
             this.objectNamespace = match[1];
         }
-        this.objectType = this.objectType.trim().toString();
-        this.objectId = this.objectId.trim().toString();
-        this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
-        this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
-        this.extendedObjectId = this.extendedObjectId.trim().toString();
-        this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
 
-        if (!(alFileMgr.IsValidALObjectType(this.objectType))) {
+        this.objectType = this.objectType.trim().toString();
+        if (alFileMgr.IsValidALObjectType(this.objectType)) {
+            this.objectId = this.objectId.trim().toString();
+            this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
+            this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
+            this.extendedObjectId = this.extendedObjectId.trim().toString();
+            this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
+
+            let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
+            alFileMgr.findAllProperties(objectDefTxt, this.properties);
+        }
+        else {
             this.initObjectProperties();
             return null;
         }
@@ -368,6 +374,7 @@ export class ALObjectFields {
     public fields: {
         id?: number,
         name: string,
+        section: string,
         isfield: boolean,
         type?: string,
         pkIndex?: number,
@@ -416,6 +423,7 @@ export class ALObjectFields {
 
                 case (alObject.isReport() || alObject.isReportExt()): {
                     alFileMgr.findReportColumns(alObject, this);
+                    alFileMgr.findRequestPageFields(alObject, this);
                     break;
                 }
                 case (alObject.isQuery()): {
@@ -440,7 +448,15 @@ export class ALObjectProcedures {
     public objectName: string;
 
     public elementsCount: number;
-    public procedures: { scope?: string, name: string, sourceEvent?: string, iconName?: string, regionPath?: string, startLine: number }[];
+    public procedures: {
+        scope?: string,
+        name: string,
+        sourceEvent?: string,
+        groupName: string,
+        iconName?: string,
+        regionPath?: string,
+        startLine: number
+    }[];
 
     constructor(alObject: ALObject) {
         this.initObjectProperties();
@@ -463,6 +479,72 @@ export class ALObjectProcedures {
     private findElements(alObject: ALObject) {
         if (alObject) {
             alFileMgr.findObjectProcedures(alObject, this);
+        }
+    }
+}
+//#endregion AL Object Procedures
+
+//#region AL Object Triggers
+export class ALObjectTriggers {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public triggers: {
+        scope?: string,
+        name: string,
+        sortIndex: number,
+        groupIndex: number,
+        groupName: string,
+        iconName?: string,
+        startLine: number
+    }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findElements(alObject);
+        this.elementsCount = this.triggers ? this.triggers.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.triggers = [];
+    }
+
+    private findElements(alObject: ALObject) {
+
+        if (alObject) {
+            switch (true) {
+                case (alObject.isTable() || alObject.isTableExt()): {
+                    alFileMgr.findTableTriggers(alObject, this);
+                    break;
+                }
+                case (alObject.isPage() || alObject.isPageExt()): {
+                    alFileMgr.findPageTriggers(alObject, this);
+                    break;
+                }
+                case (alObject.isReport() || alObject.isReportExt()): {
+                    alFileMgr.findReportTriggers(alObject, this);
+                    break;
+                }
+                case (alObject.isQuery()): {
+                    alFileMgr.findQueryTriggers(alObject, this);
+                    break;
+                }
+
+                default: {
+                    alFileMgr.findObjectTriggers(alObject, this);
+                    break;
+                }
+            }
         }
     }
 }
