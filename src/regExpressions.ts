@@ -7,8 +7,10 @@ export const pragmaDirective = /^#pragma/i; //
 // Table
 export const tableTrigger = /^trigger\s+(OnInsert|OnModify|OnDelete|OnRename)\s*\(.*\)/i;
 export const tableField = /^field\( *(\d+) *; *("?[ a-zA-Z0-9._/&%\/()-]+"?) *; *([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)/i;
+export const tableExtField = /^modify\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *\)/i;
 export const tableFieldDefinition = /field\s*\(\s*(\d+)\s*;\s*([^;]+)\s*;\s*([^)]*)\)\s*\{([\s\S]+?)\}/gi;
-export const tableFieldTrigger = /^trigger\s+(OnValidate|OnLookup)\s*\(.*\)/i;
+export const tableExtFieldDefinition = /modify\s*\(\s*([^;]+)\s*\)\s*\{([\s\S]+?)\}/gi;
+export const tableFieldTrigger = /^trigger\s+(OnValidate|OnLookup|OnBeforeValidate|OnAfterValidate)\s*\(.*\)/i;
 export const tableKey = /^key\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-,]+ *)\)/i;
 export const tableKeyDefinition = /key\s*\(\s*([^;]+)\s*;\s*([^)]*)\)\s*\{([\s\S]*?)\}/gi;
 export const tableFieldGroupDefinition = /fieldgroup\s*\(\s*([^;]+)\s*;\s*([^)]*)\)\s*\{([\s\S]*?)\}/gi;

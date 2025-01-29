@@ -377,6 +377,7 @@ export class ALObjectFields {
         section: string,
         isfield: boolean,
         type?: string,
+        externalFieldExt?: boolean,
         pkIndex?: number,
         properties?: { [key: string]: string },
         sourceExpr?: string,

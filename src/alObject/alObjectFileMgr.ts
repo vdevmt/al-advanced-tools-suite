@@ -395,12 +395,45 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                                 section: 'fields',
                                 isfield: true,
                                 type: fieldType,
+                                externalFieldExt: false,
                                 pkIndex: pkIndex,
                                 properties: properties,
                                 iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
                                 level: 0,
                                 startLine: linePosition
                             });
+                        }
+                    }
+
+                    if (alObject.isTableExt()) {
+                        while ((match = regExpr.tableExtFieldDefinition.exec(codeSectionsInfo[0].content)) !== null) {
+                            const fieldName = match[1].trim();
+                            if (fieldName) {
+                                let normalizedFieldName = fieldName.replace(/^"|"$/g, '').toLowerCase();
+
+                                // Ricerca proprietà 
+                                const fieldBody = removeCommentedLines(match[2].trim());
+                                const properties: { [key: string]: string } = {};
+                                findAllProperties(fieldBody, properties);
+
+                                // Cerco la posizione dell'oggetto trovato
+                                const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
+                                let linePosition = objectLines.indexOf(searchText.toLowerCase());
+
+                                alTableFields.fields.push({
+                                    id: 0,
+                                    name: fieldName,
+                                    section: 'fields',
+                                    isfield: true,
+                                    type: '',
+                                    externalFieldExt: true,
+                                    pkIndex: 0,
+                                    properties: properties,
+                                    iconName: 'symbol-module',
+                                    level: 0,
+                                    startLine: linePosition
+                                });
+                            }
                         }
                     }
                 }
@@ -417,6 +450,23 @@ export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number
         fieldInfo.type = match[3].trim(); // Terzo gruppo: Tipo
 
         return true;
+    }
+
+    return false;
+}
+export function isTableExternalFieldDefinition(objectLines: string[], currPosition: number, fieldInfo: { id: number, name: string, type: string }): boolean {
+    if (objectLines[currPosition] && objectLines[currPosition + 1]) {
+        const currLineText = cleanObjectLineText(objectLines[currPosition].trim());
+        const nextLineText = cleanObjectLineText(objectLines[currPosition + 1].trim());
+
+        if (currLineText.endsWith('{') || nextLineText.startsWith('{')) {
+
+            const match = currLineText.match(regExpr.tableExtField);
+            if (match) {
+                fieldInfo.name = match[1].trim();
+                return true;
+            }
+        }
     }
 
     return false;
@@ -534,6 +584,7 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
                 const lines = alObject.objectContentText.split('\n');
                 let insideMultiLineComment: boolean;
                 let currFieldName: string;
+                let insideExtField: boolean;
 
                 lines.forEach((lineText, linePos) => {
                     lineText = cleanObjectLineText(lineText);
@@ -553,6 +604,7 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
                         if (currFieldName) {
                             if (lineText.includes("}")) {
                                 currFieldName = '';
+                                insideExtField = false;
                             }
                             if (currFieldName) {
                                 let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
@@ -562,8 +614,8 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
                                             scope: '',
                                             name: `${currFieldName} - ${triggerInfo.name}`,
                                             sortIndex: lineNumber,
-                                            groupIndex: 10,
-                                            groupName: 'Fields',
+                                            groupIndex: insideExtField ? 10 : 20,
+                                            groupName: insideExtField ? 'Extended Fields' : 'Fields',
                                             iconName: 'server-process',
                                             startLine: lineNumber
                                         });
@@ -575,23 +627,32 @@ export function findTableTriggers(alObject: ALObject, alObjectTriggers: ALObject
                             let fieldInfo: { id: number, name: string, type: string } = { id: 0, name: '', type: '' };
                             if (isTableFieldDefinition(lineText, fieldInfo)) {
                                 currFieldName = fieldInfo.name;
+                                insideExtField = false;
                             }
                             else {
-                                let triggerInfo: { name: string } = { name: '' };
-                                if (isTableTriggerDefinition(lineText, triggerInfo)) {
-                                    if (triggerInfo.name) {
-                                        alObjectTriggers.triggers.push({
-                                            scope: '',
-                                            name: triggerInfo.name,
-                                            sortIndex: lineNumber,
-                                            groupIndex: 0,
-                                            groupName: 'Table',
-                                            iconName: 'server-process',
-                                            startLine: lineNumber
-                                        });
+                                if (alObject.isTableExt()) {
+                                    if (isTableExternalFieldDefinition(lines, linePos, fieldInfo)) {
+                                        currFieldName = fieldInfo.name;
+                                        insideExtField = true;
                                     }
                                 }
                             }
+
+                            let triggerInfo: { name: string } = { name: '' };
+                            if (isTableTriggerDefinition(lineText, triggerInfo)) {
+                                if (triggerInfo.name) {
+                                    alObjectTriggers.triggers.push({
+                                        scope: '',
+                                        name: triggerInfo.name,
+                                        sortIndex: lineNumber,
+                                        groupIndex: 0,
+                                        groupName: 'Table',
+                                        iconName: 'server-process',
+                                        startLine: lineNumber
+                                    });
+                                }
+                            }
+
                         }
                     }
                 });

@@ -25,7 +25,9 @@ interface atsQuickPickItem extends vscode.QuickPickItem {
 }
 
 const cmdGoToLine = 'GoToLine';
+const cmdGoToLineOnSide = 'GoToLineOnSide';
 const cmdOpenFile = 'OpenFile';
+const cmdOpenFileOnSide = 'OpenFileOnSide';
 
 //#region AL Object Explorer
 export function countObjectElements(alObject: ALObject, useShortNames: boolean): ObjectElement[] {
@@ -312,6 +314,7 @@ export async function showObjectItems(items: atsQuickPickItem[], title: string, 
                 });
 
                 const groupItems = items.filter(item => (item.groupName === group.name));
+
                 groupItems.forEach(item => {
                     qpItems.push({
                         label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
@@ -321,17 +324,21 @@ export async function showObjectItems(items: atsQuickPickItem[], title: string, 
                         description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
                         detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : cmdGoToLine,
-                        commandArgs: item.command ? item.commandArgs : item.itemStartLine
+                        commandArgs: item.command ? item.commandArgs : item.itemStartLine,
+                        buttons: [{
+                            iconPath: new vscode.ThemeIcon("split-horizontal"),
+                            tooltip: "Open to the Side",
+                        }]
                     });
                 });
             });
 
-            showQuickPick(qpItems, title, enableSearchOnDescription, enableSearchOnDetails, selectedText);
+            await showQuickPick(qpItems, title, enableSearchOnDescription, enableSearchOnDetails, selectedText);
         }
     }
 }
 
-function showQuickPick(qpItems: atsQuickPickItem[],
+async function showQuickPick(qpItems: atsQuickPickItem[],
     title: string,
     enableSearchOnDescription: boolean,
     enableSearchOnDetails: boolean,
@@ -345,47 +352,103 @@ function showQuickPick(qpItems: atsQuickPickItem[],
     quickPick.matchOnDetail = enableSearchOnDetails;
     quickPick.value = initialValue;
 
-    quickPick.onDidAccept(() => {
+    quickPick.onDidAccept(async () => {
         const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
         if (selectedItem) {
-            if (selectedItem.command) {
+            await executeQuickPickItemCommand(selectedItem);
+        }
+        quickPick.hide();
+    });
+
+    quickPick.onDidTriggerItemButton(async (selected) => {
+        if (selected.button.tooltip === "Open to the Side") {
+            const selectedItem = selected.item as atsQuickPickItem;
+            if (selectedItem) {
                 switch (selectedItem.command) {
                     case cmdGoToLine: {
-                        let lineNumber: number = Number(selectedItem.commandArgs);
-                        if (lineNumber >= 0) {
-                            const editor = vscode.window.activeTextEditor;
-                            if (editor) {
-                                const position = new vscode.Position(lineNumber, 0);
-                                editor.selection = new vscode.Selection(position, position);
-                                editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
-                            }
-                        }
+                        selectedItem.command = cmdGoToLineOnSide;
                         break;
                     }
-
                     case cmdOpenFile: {
-                        if (selectedItem.commandArgs) {
-                            vscode.window.showTextDocument(selectedItem.commandArgs);
-                        }
-                        break;
-                    }
-
-                    default: {
-                        if (selectedItem.command) {
-                            vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
-                        }
-
+                        selectedItem.command = cmdOpenFileOnSide;
                         break;
                     }
                 }
+
+                // Esegui il comando per l'item selezionato
+                await executeQuickPickItemCommand(selectedItem);
             }
+            quickPick.hide();
         }
-        quickPick.hide();
     });
 
     quickPick.onDidHide(() => quickPick.dispose());
 
     quickPick.show();
+}
+
+async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
+    if (selectedItem) {
+        if (selectedItem.command) {
+            switch (selectedItem.command) {
+                case cmdGoToLine: {
+                    let lineNumber: number = Number(selectedItem.commandArgs);
+                    if (lineNumber >= 0) {
+                        const editor = vscode.window.activeTextEditor;
+                        if (editor) {
+                            const position = new vscode.Position(lineNumber, 0);
+                            editor.selection = new vscode.Selection(position, position);
+                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                        }
+                    }
+                    break;
+                }
+                case cmdGoToLineOnSide: {
+                    let lineNumber: number = Number(selectedItem.commandArgs);
+                    if (lineNumber >= 0) {
+                        // Nuovo editor laterale 
+                        await vscode.commands.executeCommand("workbench.action.splitEditorRight");
+
+                        const editor = vscode.window.activeTextEditor;
+                        if (editor) {
+                            const position = new vscode.Position(lineNumber, 0);
+                            editor.selection = new vscode.Selection(position, position);
+                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                        }
+                    }
+                    break;
+                }
+
+                case cmdOpenFile: {
+                    if (selectedItem.commandArgs) {
+                        vscode.window.showTextDocument(selectedItem.commandArgs);
+                    }
+                    break;
+                }
+
+                case cmdOpenFileOnSide: {
+                    if (selectedItem.commandArgs) {
+                        // Nuovo editor laterale 
+                        const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
+                        vscode.window.showTextDocument(document, {
+                            viewColumn: vscode.ViewColumn.Beside, // Split editor a destra
+                            preserveFocus: false,
+                            preview: false,
+                        });
+                    }
+                    break;
+                }
+
+                default: {
+                    if (selectedItem.command) {
+                        await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
 }
 //#endregion AL Object Explorer
 
@@ -432,8 +495,14 @@ export async function showAllFields(sectionFilter?: string) {
                         groupID = 1;
                         groupName = 'Fields';
 
+                        if (field.externalFieldExt) {
+                            groupID = 5;
+                            groupName = 'Extended Fields';
+                        }
+
                         description = field.type;
                         enableSearchOnDescription = false;
+
                         if (field.pkIndex > 0) {
                             groupID = 0;
                             groupName = 'Primary Key';
@@ -897,7 +966,7 @@ export async function showOpenALObjects() {
                 qpItems.push(...openFiles.filter(item => (item.groupName === group.name)));
             });
 
-            showQuickPick(qpItems, 'Select a file to open', true, true, '');
+            await showQuickPick(qpItems, 'Select a file to open', true, true, '');
         }
     }
 }
