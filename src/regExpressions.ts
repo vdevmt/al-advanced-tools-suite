@@ -18,6 +18,7 @@ export const tableFieldGroupDefinition = /fieldgroup\s*\(\s*([^;]+)\s*;\s*([^)]*
 // Page
 export const pageTrigger = /^trigger\s+(OnOpenPage|OnInit|OnAfterGetRecord|OnAfterGetCurrRecord|OnClosePage|OnQueryClosePage|OnInsertRecord|OnModifyRecord|OnDeleteRecord|OnClosePage|OnNewRecord|OnPageBackgroundTaskCompleted|OnPageBackgroundTaskError|OnFindRecord|OnNextRecord)\s*\(.*\)/i;
 export const pageField = /^field\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *; *([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)/i;
+export const pageExtField = /^modify\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *\)/i;
 export const pageFieldDefinition = /field\s*\(\s*([^;]+)\s*;\s*([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)\s*\{([\s\S]+?)\}/gi;
 export const pageFieldTrigger = /^trigger\s+(OnValidate|OnLookup|OnDrillDown|OnControlAddIn|OnAssistEdit|OnAfterLookup)\s*\(.*\)/i;
 export const pageFieldArea = /^area\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;

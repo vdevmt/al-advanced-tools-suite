@@ -750,6 +750,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                         name: fieldInfo.name,
                                         section: 'layout',
                                         isfield: true,
+                                        externalFieldExt: false,
                                         type: fieldInfo.sourceExpr,
                                         sourceExpr: fieldInfo.sourceExpr,
                                         properties: properties,
@@ -757,6 +758,29 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                         level: currentLevel > 0 ? 1 : 0,
                                         startLine: lineNumber,
                                     });
+                                }
+                                else {
+                                    if (alObject.isPageExt()) {
+                                        if (isPageExternalFieldDefinition(lines, linePos, fieldInfo)) {
+                                            // Ricerca proprietà 
+                                            const fieldBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
+                                            const properties: { [key: string]: string } = {};
+                                            findAllProperties(fieldBody, properties);
+
+                                            alPageFields.fields.push({
+                                                name: fieldInfo.name,
+                                                section: 'layout',
+                                                isfield: true,
+                                                externalFieldExt: true,
+                                                type: fieldInfo.sourceExpr,
+                                                sourceExpr: fieldInfo.sourceExpr,
+                                                properties: properties,
+                                                iconName: 'symbol-field',
+                                                level: currentLevel > 0 ? 1 : 0,
+                                                startLine: lineNumber,
+                                            });
+                                        }
+                                    }
                                 }
                             }
 
@@ -788,6 +812,23 @@ export function isPageFieldDefinition(lineText: string, fieldInfo: { name: strin
         fieldInfo.sourceExpr = match[2] || '';
 
         return true;
+    }
+
+    return false;
+}
+export function isPageExternalFieldDefinition(objectLines: string[], currPosition: number, fieldInfo: { name: string, sourceExpr: string }): boolean {
+    if (objectLines[currPosition] && objectLines[currPosition + 1]) {
+        const currLineText = cleanObjectLineText(objectLines[currPosition].trim());
+        const nextLineText = cleanObjectLineText(objectLines[currPosition + 1].trim());
+
+        if (currLineText.endsWith('{') || nextLineText.startsWith('{')) {
+
+            const match = currLineText.match(regExpr.pageExtField);
+            if (match) {
+                fieldInfo.name = match[1].trim();
+                return true;
+            }
+        }
     }
 
     return false;

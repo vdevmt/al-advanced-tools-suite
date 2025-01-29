@@ -337,119 +337,6 @@ export async function showObjectItems(items: atsQuickPickItem[], title: string, 
         }
     }
 }
-
-async function showQuickPick(qpItems: atsQuickPickItem[],
-    title: string,
-    enableSearchOnDescription: boolean,
-    enableSearchOnDetails: boolean,
-    initialValue: string
-) {
-    const quickPick = vscode.window.createQuickPick();
-    quickPick.items = qpItems;
-
-    quickPick.placeholder = `${title}`;
-    quickPick.matchOnDescription = enableSearchOnDescription;
-    quickPick.matchOnDetail = enableSearchOnDetails;
-    quickPick.value = initialValue;
-
-    quickPick.onDidAccept(async () => {
-        const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
-        if (selectedItem) {
-            await executeQuickPickItemCommand(selectedItem);
-        }
-        quickPick.hide();
-    });
-
-    quickPick.onDidTriggerItemButton(async (selected) => {
-        if (selected.button.tooltip === "Open to the Side") {
-            const selectedItem = selected.item as atsQuickPickItem;
-            if (selectedItem) {
-                switch (selectedItem.command) {
-                    case cmdGoToLine: {
-                        selectedItem.command = cmdGoToLineOnSide;
-                        break;
-                    }
-                    case cmdOpenFile: {
-                        selectedItem.command = cmdOpenFileOnSide;
-                        break;
-                    }
-                }
-
-                // Esegui il comando per l'item selezionato
-                await executeQuickPickItemCommand(selectedItem);
-            }
-            quickPick.hide();
-        }
-    });
-
-    quickPick.onDidHide(() => quickPick.dispose());
-
-    quickPick.show();
-}
-
-async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
-    if (selectedItem) {
-        if (selectedItem.command) {
-            switch (selectedItem.command) {
-                case cmdGoToLine: {
-                    let lineNumber: number = Number(selectedItem.commandArgs);
-                    if (lineNumber >= 0) {
-                        const editor = vscode.window.activeTextEditor;
-                        if (editor) {
-                            const position = new vscode.Position(lineNumber, 0);
-                            editor.selection = new vscode.Selection(position, position);
-                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
-                        }
-                    }
-                    break;
-                }
-                case cmdGoToLineOnSide: {
-                    let lineNumber: number = Number(selectedItem.commandArgs);
-                    if (lineNumber >= 0) {
-                        // Nuovo editor laterale 
-                        await vscode.commands.executeCommand("workbench.action.splitEditorRight");
-
-                        const editor = vscode.window.activeTextEditor;
-                        if (editor) {
-                            const position = new vscode.Position(lineNumber, 0);
-                            editor.selection = new vscode.Selection(position, position);
-                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
-                        }
-                    }
-                    break;
-                }
-
-                case cmdOpenFile: {
-                    if (selectedItem.commandArgs) {
-                        vscode.window.showTextDocument(selectedItem.commandArgs);
-                    }
-                    break;
-                }
-
-                case cmdOpenFileOnSide: {
-                    if (selectedItem.commandArgs) {
-                        // Nuovo editor laterale 
-                        const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
-                        vscode.window.showTextDocument(document, {
-                            viewColumn: vscode.ViewColumn.Beside, // Split editor a destra
-                            preserveFocus: false,
-                            preview: false,
-                        });
-                    }
-                    break;
-                }
-
-                default: {
-                    if (selectedItem.command) {
-                        await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
-                    }
-
-                    break;
-                }
-            }
-        }
-    }
-}
 //#endregion AL Object Explorer
 
 //#region AL Object Fields
@@ -492,12 +379,13 @@ export async function showAllFields(sectionFilter?: string) {
                             label = `[${field.id}]  ${field.name}`;
                         }
 
-                        groupID = 1;
-                        groupName = 'Fields';
-
                         if (field.externalFieldExt) {
-                            groupID = 5;
+                            groupID = 1;
                             groupName = 'Extended Fields';
+                        }
+                        else {
+                            groupID = 5;
+                            groupName = 'Fields';
                         }
 
                         description = field.type;
@@ -534,9 +422,15 @@ export async function showAllFields(sectionFilter?: string) {
 
                     if (alObject.isPage() || alObject.isPageExt()) {
                         if (!field.isfield) {
+                            groupID = 20;
                             groupName = `${field.type}(${field.name})`;
                         }
                         else {
+                            if (field.externalFieldExt) {
+                                groupID = 10;
+                                groupName = 'Extended Fields';
+                            }
+
                             field.level -= 1;
                             if (field.properties) {
                                 if ('caption' in field.properties) {
@@ -580,18 +474,20 @@ export async function showAllFields(sectionFilter?: string) {
                         }
                     }
 
-                    items.push({
-                        label: label,
-                        description: description,
-                        detail: detail,
-                        groupID: groupID,
-                        groupName: groupName,
-                        itemStartLine: field.startLine ? field.startLine : 0,
-                        itemEndLine: 0,
-                        level: field.level,
-                        sortIndex: field.startLine ? field.startLine : 0,
-                        iconName: field.iconName
-                    });
+                    if (field.isfield) {
+                        items.push({
+                            label: label,
+                            description: description,
+                            detail: detail,
+                            groupID: groupID,
+                            groupName: groupName,
+                            itemStartLine: field.startLine ? field.startLine : 0,
+                            itemEndLine: 0,
+                            level: field.level,
+                            sortIndex: field.startLine ? field.startLine : 0,
+                            iconName: field.iconName
+                        });
+                    }
                 }
 
                 showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);
@@ -940,7 +836,11 @@ export async function showOpenALObjects() {
                     sortIndex: 0,
                     sortKey: alObject.objectName,
                     command: cmdOpenFile,
-                    commandArgs: doc.uri
+                    commandArgs: doc.uri,
+                    buttons: [{
+                        iconPath: new vscode.ThemeIcon("split-horizontal"),
+                        tooltip: "Open to the Side",
+                    }]
                 });
             }
         } catch (err) {
@@ -1074,3 +974,124 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
     return originalText;
 }
 //#endregion Utilities
+
+//#region Quick Pick Functions
+async function showQuickPick(qpItems: atsQuickPickItem[],
+    title: string,
+    enableSearchOnDescription: boolean,
+    enableSearchOnDetails: boolean,
+    initialValue: string
+) {
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.items = qpItems;
+
+    quickPick.placeholder = `${title}`;
+    quickPick.matchOnDescription = enableSearchOnDescription;
+    quickPick.matchOnDetail = enableSearchOnDetails;
+    quickPick.value = initialValue;
+
+    quickPick.onDidAccept(async () => {
+        const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
+        if (selectedItem) {
+            await executeQuickPickItemCommand(selectedItem);
+        }
+        quickPick.hide();
+    });
+
+    quickPick.onDidTriggerItemButton(async (selected) => {
+        if (selected.button.tooltip === "Open to the Side") {
+            const selectedItem = selected.item as atsQuickPickItem;
+            if (selectedItem) {
+                switch (selectedItem.command) {
+                    case cmdGoToLine: {
+                        selectedItem.command = cmdGoToLineOnSide;
+                        break;
+                    }
+                    case cmdOpenFile: {
+                        selectedItem.command = cmdOpenFileOnSide;
+                        break;
+                    }
+                }
+
+                // Esegui il comando per l'item selezionato
+                await executeQuickPickItemCommand(selectedItem);
+            }
+            quickPick.hide();
+        }
+    });
+
+    quickPick.onDidHide(() => quickPick.dispose());
+
+    quickPick.show();
+}
+
+async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
+    if (selectedItem) {
+        if (selectedItem.command) {
+            switch (selectedItem.command) {
+                case cmdGoToLine: {
+                    let lineNumber: number = Number(selectedItem.commandArgs);
+                    if (lineNumber >= 0) {
+                        const editor = vscode.window.activeTextEditor;
+                        if (editor) {
+                            const position = new vscode.Position(lineNumber, 0);
+                            editor.selection = new vscode.Selection(position, position);
+                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                        }
+                    }
+                    break;
+                }
+                case cmdGoToLineOnSide: {
+                    let lineNumber: number = Number(selectedItem.commandArgs);
+                    if (lineNumber >= 0) {
+                        const editor = vscode.window.activeTextEditor;
+                        if (editor) {
+                            const currentPosition = editor.selection;
+
+                            const position = new vscode.Position(lineNumber, 0);
+                            editor.selection = new vscode.Selection(position, position);
+                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+
+                            // Nuovo editor laterale 
+                            await vscode.commands.executeCommand("workbench.action.splitEditorRight");
+
+                            // Ritorno alla posizione originale
+                            editor.selection = currentPosition;
+                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                        }
+                    }
+                    break;
+                }
+
+                case cmdOpenFile: {
+                    if (selectedItem.commandArgs) {
+                        vscode.window.showTextDocument(selectedItem.commandArgs);
+                    }
+                    break;
+                }
+
+                case cmdOpenFileOnSide: {
+                    if (selectedItem.commandArgs) {
+                        // Nuovo editor laterale 
+                        const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
+                        vscode.window.showTextDocument(document, {
+                            viewColumn: vscode.ViewColumn.Beside, // Split editor a destra
+                            preserveFocus: false,
+                            preview: false,
+                        });
+                    }
+                    break;
+                }
+
+                default: {
+                    if (selectedItem.command) {
+                        await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
+//#endregion Quick Pick Functions
