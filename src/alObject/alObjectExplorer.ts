@@ -352,19 +352,13 @@ function showQuickPick(qpItems: atsQuickPickItem[],
                 switch (selectedItem.command) {
                     case cmdGoToLine: {
                         let lineNumber: number = Number(selectedItem.commandArgs);
-                        if (lineNumber > 0) {
-                            const position = new vscode.Position(lineNumber, 0);
-                            const newSelection = new vscode.Selection(position, position);
-
+                        if (lineNumber >= 0) {
                             const editor = vscode.window.activeTextEditor;
-                            editor.selection = newSelection;
-                            //editor.revealRange(new vscode.Range(position, position));
-
-                            // Centra la riga nello schermo
-                            vscode.commands.executeCommand('revealLine', {
-                                lineNumber,
-                                at: 'center',
-                            });
+                            if (editor) {
+                                const position = new vscode.Position(lineNumber, 0);
+                                editor.selection = new vscode.Selection(position, position);
+                                editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                            }
                         }
                         break;
                     }
