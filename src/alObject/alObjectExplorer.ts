@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as regExpr from '../regExpressions';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers } from './alObject';
+import { group } from 'console';
 
 interface ObjectElement {
     type: string,
@@ -373,6 +374,7 @@ export async function showAllFields(sectionFilter?: string) {
                     let label = field.name;
                     let description = '';
                     let detail = '';
+                    let isValidEntry = true;
 
                     if (alObject.isTable() || alObject.isTableExt()) {
                         if (field.id > 0) {
@@ -424,6 +426,7 @@ export async function showAllFields(sectionFilter?: string) {
                         if (!field.isfield) {
                             groupID = 20;
                             groupName = `${field.type}(${field.name})`;
+                            isValidEntry = false;
                         }
                         else {
                             if (field.externalFieldExt) {
@@ -460,7 +463,12 @@ export async function showAllFields(sectionFilter?: string) {
                     }
 
                     if (alObject.isReport() || alObject.isReportExt()) {
+                        groupID = 10;
                         groupName = field.dataItem;
+                        if (field.section === 'requestpage') {
+                            groupID = 20;
+                        }
+
                         if (field.sourceExpr) {
                             description = field.sourceExpr;
                         }
@@ -474,7 +482,7 @@ export async function showAllFields(sectionFilter?: string) {
                         }
                     }
 
-                    if (field.isfield) {
+                    if (isValidEntry) {
                         items.push({
                             label: label,
                             description: description,

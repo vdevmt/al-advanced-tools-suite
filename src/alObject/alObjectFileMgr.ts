@@ -1070,6 +1070,7 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
                 const lines = alObject.objectContentText.split('\n');
                 let insideMultiLineComment: boolean;
                 let currFieldName: string;
+                let insideExtField: boolean;
 
                 lines.forEach((lineText, linePos) => {
                     lineText = cleanObjectLineText(lineText);
@@ -1089,6 +1090,7 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
                         if (currFieldName) {
                             if (lineText.includes("}")) {
                                 currFieldName = '';
+                                insideExtField = false;
                             }
                             if (currFieldName) {
                                 let triggerInfo: { name: string, scope: string } = { name: '', scope: '' };
@@ -1098,8 +1100,8 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
                                             scope: '',
                                             name: `${currFieldName} - ${triggerInfo.name}`,
                                             sortIndex: lineNumber,
-                                            groupIndex: 10,
-                                            groupName: 'Fields',
+                                            groupIndex: insideExtField ? 10 : 20,
+                                            groupName: insideExtField ? 'Extended Fields' : 'Fields',
                                             iconName: 'server-process',
                                             startLine: lineNumber
                                         });
@@ -1111,21 +1113,28 @@ export function findPageTriggers(alObject: ALObject, alObjectTriggers: ALObjectT
                             let fieldInfo: { name: string; sourceExpr: string } = { name: '', sourceExpr: '' };
                             if (isPageFieldDefinition(lineText, fieldInfo)) {
                                 currFieldName = fieldInfo.name;
+                                insideExtField = false;
                             }
                             else {
-                                let triggerInfo: { name: string } = { name: '' };
-                                if (isPageTriggerDefinition(lineText, triggerInfo)) {
-                                    if (triggerInfo.name) {
-                                        alObjectTriggers.triggers.push({
-                                            scope: '',
-                                            name: triggerInfo.name,
-                                            sortIndex: lineNumber,
-                                            groupIndex: 0,
-                                            groupName: 'Page',
-                                            iconName: 'server-process',
-                                            startLine: lineNumber
-                                        });
+                                if (alObject.isPageExt()) {
+                                    if (isPageExternalFieldDefinition(lines, linePos, fieldInfo)) {
+                                        currFieldName = fieldInfo.name;
+                                        insideExtField = true;
                                     }
+                                }
+                            }
+                            let triggerInfo: { name: string } = { name: '' };
+                            if (isPageTriggerDefinition(lineText, triggerInfo)) {
+                                if (triggerInfo.name) {
+                                    alObjectTriggers.triggers.push({
+                                        scope: '',
+                                        name: triggerInfo.name,
+                                        sortIndex: lineNumber,
+                                        groupIndex: 0,
+                                        groupName: 'Page',
+                                        iconName: 'server-process',
+                                        startLine: lineNumber
+                                    });
                                 }
                             }
                         }
