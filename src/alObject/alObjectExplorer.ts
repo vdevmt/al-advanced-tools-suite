@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as regExpr from '../regExpressions';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers } from './alObject';
-import { group } from 'console';
-import { documentHasRegion } from '../regions/regionMgr';
-
 interface ObjectElement {
     type: string,
     count: number,
@@ -47,27 +43,29 @@ export async function execALObjectExplorer(alObject?: ALObject) {
     if (alObject) {
         let objectElements = countObjectElements(alObject, false);
         if (objectElements && (objectElements.length > 0)) {
-            const picked = await vscode.window.showQuickPick(objectElements.map(element => ({
+            const qpItems: atsQuickPickItem[] = objectElements.map(element => ({
                 label: `$(${element.iconName}) ${element.type}: ${element.count}`,
                 description: '',
                 detail: '',
                 command: element.command,
                 commandArgs: element.commandArgs
-            })), {
-                placeHolder: `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-                matchOnDescription: false,
-                matchOnDetail: false,
-            });
+            }));
 
-            if (picked) {
-                if (picked.command) {
-                    if (Array.isArray(picked.commandArgs)) {
-                        vscode.commands.executeCommand(picked.command, ...picked.commandArgs);
-                    } else {
-                        vscode.commands.executeCommand(picked.command, picked.commandArgs);
-                    }
-                }
-            }
+            showQuickPick(qpItems,
+                `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
+                false,
+                false,
+                '');
+        }
+    }
+}
+
+async function execALObjectExplorerByUri(docUri: vscode.Uri) {
+    if (docUri) {
+        const document = await vscode.workspace.openTextDocument(docUri);
+        if (alFileMgr.isALObjectDocument(document)) {
+            const alObject: ALObject = new ALObject(document);
+            execALObjectExplorer(alObject);
         }
     }
 }
@@ -345,7 +343,7 @@ async function showObjectItems(alObject: ALObject, items: atsQuickPickItem[], ti
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
                         documentUri: alObject.objectFileUri,
                         buttons: [{
-                            iconPath: new vscode.ThemeIcon("split-horizontal"),
+                            iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
                             tooltip: "Open to the Side",
                         }]
                     });
@@ -939,7 +937,7 @@ export async function showOpenALObjects() {
                             tooltip: "AL Object Explorer",
                         },
                         {
-                            iconPath: new vscode.ThemeIcon("split-horizontal"),
+                            iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
                             tooltip: "Open to the Side",
                         }
                     ]
@@ -1187,6 +1185,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                             }
                         }
                     }
+
                     break;
                 }
                 case cmdGoToLineOnSide: {
@@ -1202,6 +1201,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                             });
                         }
                     }
+
                     break;
                 }
 
@@ -1209,6 +1209,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                     if (selectedItem.commandArgs) {
                         vscode.window.showTextDocument(selectedItem.commandArgs);
                     }
+
                     break;
                 }
 
@@ -1222,6 +1223,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                             preview: false,
                         });
                     }
+
                     break;
                 }
 
@@ -1231,11 +1233,17 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                         const alObject: ALObject = new ALObject(document);
                         execALObjectExplorer(alObject);
                     }
+
+                    break;
                 }
 
                 default: {
                     if (selectedItem.command) {
-                        await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
+                        if (Array.isArray(selectedItem.commandArgs)) {
+                            vscode.commands.executeCommand(selectedItem.command, ...selectedItem.commandArgs);
+                        } else {
+                            await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
+                        }
                     }
 
                     break;
