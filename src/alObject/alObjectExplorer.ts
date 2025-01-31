@@ -1171,7 +1171,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                         if (selectedItem.documentUri && (selectedItem.documentUri !== vscode.window.activeTextEditor.document.uri)) {
                             const position = new vscode.Position(lineNumber, 0);
                             await vscode.window.showTextDocument(selectedItem.documentUri, {
-                                viewColumn: vscode.ViewColumn.Beside,
+                                viewColumn: vscode.ViewColumn.Active,
                                 preserveFocus: false,
                                 selection: new vscode.Selection(position, position)
                             });
