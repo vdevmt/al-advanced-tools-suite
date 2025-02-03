@@ -333,15 +333,13 @@ async function showObjectItems(alObject: ALObject, items: atsQuickPickItem[], ti
 
                 groupItems.forEach(item => {
                     qpItems.push({
-                        label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
-                            (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
-                                (item.iconName) ? `$(${item.iconName}) ${item.label}` :
-                                    `${item.label}`,
+                        label: (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` : `${item.label}`,
                         description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
                         detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : cmdGoToLine,
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
                         documentUri: alObject.objectFileUri,
+                        iconPath: item.iconName ? new vscode.ThemeIcon(item.iconName) : null,
                         buttons: [{
                             iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
                             tooltip: "Open to the Side",
@@ -921,8 +919,7 @@ export async function showOpenALObjects() {
                 const isLocked = alFileMgr.isPreviewALObjectFile(documentUri);
 
                 openFiles.push({
-                    label: isLocked ? `$(${alObject.getDefaultIconName()}) $(lock-small) ${objectInfoText}` :
-                        `$(${alObject.getDefaultIconName()}) ${objectInfoText}`,
+                    label: isLocked ? `$(lock-small) ${objectInfoText}` : objectInfoText,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     groupID: objectGroupID(alObject, isCurrentEditor),
@@ -931,6 +928,7 @@ export async function showOpenALObjects() {
                     sortKey: alObject.objectName,
                     command: cmdOpenFile,
                     commandArgs: doc.uri,
+                    iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
                     buttons: [
                         {
                             iconPath: new vscode.ThemeIcon("symbol-misc"),
