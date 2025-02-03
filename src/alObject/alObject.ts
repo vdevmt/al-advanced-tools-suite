@@ -12,17 +12,20 @@ export class ALObject {
     public objectNamespace?: string;
     public objectContentText?: string;
     public objectFileName?: string;
+    public objectFileUri?: vscode.Uri;
     public properties: { [key: string]: string };
 
     constructor(document: vscode.TextDocument) {
         this.initObjectProperties();
         this.objectContentText = '';
         this.objectFileName = '';
+        this.objectFileUri = null;
 
         if (document) {
             if (alFileMgr.isALObjectDocument(document)) {
                 this.objectContentText = document.getText();
                 this.objectFileName = document.fileName;
+                this.objectFileUri = document.uri;
 
                 if (this.objectContentText) {
                     this.loadObjectProperties();
@@ -377,6 +380,7 @@ export class ALObjectFields {
         section: string,
         isfield: boolean,
         type?: string,
+        externalFieldExt?: boolean,
         pkIndex?: number,
         properties?: { [key: string]: string },
         sourceExpr?: string,

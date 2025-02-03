@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as regExpr from '../regExpressions';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers } from './alObject';
-
 interface ObjectElement {
     type: string,
     count: number,
@@ -20,14 +18,58 @@ interface atsQuickPickItem extends vscode.QuickPickItem {
     sortIndex?: number;
     sortKey?: string;
     level?: number;
+    documentUri?: vscode.Uri;
     command?: string;
     commandArgs?: any;
 }
 
 const cmdGoToLine = 'GoToLine';
+const cmdGoToLineOnSide = 'GoToLineOnSide';
 const cmdOpenFile = 'OpenFile';
+const cmdOpenFileOnSide = 'OpenFileOnSide';
+const cmdExecALObjectExplorer = 'ALObjectExplorer';
 
 //#region AL Object Explorer
+export async function execALObjectExplorer(alObject?: ALObject) {
+    if (!alObject) {
+        const editor = vscode.window.activeTextEditor;
+        const document = editor.document;
+
+        if (alFileMgr.isALObjectDocument(document)) {
+            alObject = new ALObject(document);
+        }
+    }
+
+    if (alObject) {
+        let objectElements = countObjectElements(alObject, false);
+        if (objectElements && (objectElements.length > 0)) {
+            const qpItems: atsQuickPickItem[] = objectElements.map(element => ({
+                label: `$(${element.iconName}) ${element.type}: ${element.count}`,
+                description: '',
+                detail: '',
+                command: element.command,
+                commandArgs: element.commandArgs
+            }));
+
+            showQuickPick(qpItems,
+                `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
+                false,
+                false,
+                '');
+        }
+    }
+}
+
+async function execALObjectExplorerByUri(docUri: vscode.Uri) {
+    if (docUri) {
+        const document = await vscode.workspace.openTextDocument(docUri);
+        if (alFileMgr.isALObjectDocument(document)) {
+            const alObject: ALObject = new ALObject(document);
+            execALObjectExplorer(alObject);
+        }
+    }
+}
+
 export function countObjectElements(alObject: ALObject, useShortNames: boolean): ObjectElement[] {
     let elements: ObjectElement[] = [];
 
@@ -41,6 +83,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         type: 'Dataitems',
                         count: alObjectDataItems.elementsCount,
                         command: 'ats.showAllDataItems',
+                        commandArgs: alObject.objectFileUri,
                         iconName: 'symbol-class'
                     });
                 }
@@ -63,7 +106,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                             type: 'Columns',
                             count: fieldsCount,
                             command: 'ats.showAllFields',
-                            commandArgs: 'dataset',
+                            commandArgs: [alObject.objectFileUri, 'dataset'],
                             iconName: 'symbol-field'
                         });
                     }
@@ -73,7 +116,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                             type: useShortNames ? 'Req. Page Fields' : 'Request Page Fields',
                             count: fieldsCount,
                             command: 'ats.showAllFields',
-                            commandArgs: 'requestpage',
+                            commandArgs: [alObject.objectFileUri, 'requestpage'],
                             iconName: 'gear'
                         });
                     }
@@ -88,6 +131,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         type: type,
                         count: alObjectFields.fieldsCount,
                         command: 'ats.showAllFields',
+                        commandArgs: alObject.objectFileUri,
                         iconName: 'symbol-field'
                     });
                 }
@@ -108,6 +152,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         type: 'Keys',
                         count: alTableKeys.elementsCount,
                         command: 'ats.showAllTableKeys',
+                        commandArgs: alObject.objectFileUri,
                         iconName: 'key'
                     });
                 }
@@ -128,6 +173,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         type: 'Field Groups',
                         count: alTableFieldGroups.elementsCount,
                         command: 'ats.showAllTableFieldGroups',
+                        commandArgs: alObject.objectFileUri,
                         iconName: 'group-by-ref-type'
                     });
                 }
@@ -148,6 +194,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         type: 'Page Actions',
                         count: alObjectActions.actionsCount,
                         command: 'ats.showAllActions',
+                        commandArgs: alObject.objectFileUri,
                         iconName: 'symbol-event'
                     });
                 }
@@ -167,6 +214,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                     type: 'Triggers',
                     count: alObjectTriggers.elementsCount,
                     command: 'ats.showAllTriggers',
+                    commandArgs: alObject.objectFileUri,
                     iconName: 'server-process'
                 });
             }
@@ -212,7 +260,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         type: currGroupName,
                         count: procedures.length,
                         command: 'ats.showAllProcedures',
-                        commandArgs: currGroupName,
+                        commandArgs: [alObject.objectFileUri, currGroupName],
                         iconName: currGroupIconName
                     });
                 }
@@ -232,6 +280,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                     type: 'Regions',
                     count: alObjectRegions.elementsCount,
                     command: 'ats.showAllRegions',
+                    commandArgs: alObject.objectFileUri,
                     iconName: 'symbol-number'
                 });
             }
@@ -244,38 +293,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
     return elements;
 }
 
-export async function execALObjectExplorer() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
-
-    if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document);
-
-        let objectElements = countObjectElements(alObject, false);
-        if (objectElements && (objectElements.length > 0)) {
-            const picked = await vscode.window.showQuickPick(objectElements.map(element => ({
-                label: `$(${element.iconName}) ${element.type}: ${element.count}`,
-                description: '',
-                detail: '',
-                command: element.command,
-                commandArgs: element.commandArgs
-            })), {
-                placeHolder: `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-                matchOnDescription: false,
-                matchOnDetail: false,
-            });
-
-            if (picked) {
-                if (picked.command) {
-                    vscode.commands.executeCommand(picked.command, picked.commandArgs);
-                }
-            }
-        }
-    }
-}
-
-export async function showObjectItems(items: atsQuickPickItem[], title: string, enableSearchOnDescription: boolean, enableSearchOnDetails: boolean) {
+async function showObjectItems(alObject: ALObject, items: atsQuickPickItem[], title: string, enableSearchOnDescription: boolean, enableSearchOnDetails: boolean) {
     if (items) {
         const editor = vscode.window.activeTextEditor;
 
@@ -312,94 +330,50 @@ export async function showObjectItems(items: atsQuickPickItem[], title: string, 
                 });
 
                 const groupItems = items.filter(item => (item.groupName === group.name));
+
                 groupItems.forEach(item => {
                     qpItems.push({
-                        label: ((item.level > 0) && (item.iconName)) ? `${'    '.repeat(item.level)}   $(${item.iconName}) ${item.label}` :
-                            (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` :
-                                (item.iconName) ? `$(${item.iconName}) ${item.label}` :
-                                    `${item.label}`,
+                        label: (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` : `${item.label}`,
                         description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
                         detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : cmdGoToLine,
-                        commandArgs: item.command ? item.commandArgs : item.itemStartLine
+                        commandArgs: item.command ? item.commandArgs : item.itemStartLine,
+                        documentUri: alObject.objectFileUri,
+                        iconPath: item.iconName ? new vscode.ThemeIcon(item.iconName) : null,
+                        buttons: [{
+                            iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
+                            tooltip: "Open to the Side",
+                        }]
                     });
                 });
             });
 
-            showQuickPick(qpItems, title, enableSearchOnDescription, enableSearchOnDetails, selectedText);
+            await showQuickPick(qpItems, title, enableSearchOnDescription, enableSearchOnDetails, selectedText);
         }
     }
-}
-
-function showQuickPick(qpItems: atsQuickPickItem[],
-    title: string,
-    enableSearchOnDescription: boolean,
-    enableSearchOnDetails: boolean,
-    initialValue: string
-) {
-    const quickPick = vscode.window.createQuickPick();
-    quickPick.items = qpItems;
-
-    quickPick.placeholder = `${title}`;
-    quickPick.matchOnDescription = enableSearchOnDescription;
-    quickPick.matchOnDetail = enableSearchOnDetails;
-    quickPick.value = initialValue;
-
-    quickPick.onDidAccept(() => {
-        const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
-        if (selectedItem) {
-            if (selectedItem.command) {
-                switch (selectedItem.command) {
-                    case cmdGoToLine: {
-                        let lineNumber: number = Number(selectedItem.commandArgs);
-                        if (lineNumber >= 0) {
-                            const editor = vscode.window.activeTextEditor;
-                            if (editor) {
-                                const position = new vscode.Position(lineNumber, 0);
-                                editor.selection = new vscode.Selection(position, position);
-                                editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
-                            }
-                        }
-                        break;
-                    }
-
-                    case cmdOpenFile: {
-                        if (selectedItem.commandArgs) {
-                            vscode.window.showTextDocument(selectedItem.commandArgs);
-                        }
-                        break;
-                    }
-
-                    default: {
-                        if (selectedItem.command) {
-                            vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
-                        }
-
-                        break;
-                    }
-                }
-            }
-        }
-        quickPick.hide();
-    });
-
-    quickPick.onDidHide(() => quickPick.dispose());
-
-    quickPick.show();
 }
 //#endregion AL Object Explorer
 
 //#region AL Object Fields
-export async function showAllFields(sectionFilter?: string) {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: string) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
 
-    let enableSearchOnDescription = true;
-    let enableSearchOnDetails = true;
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
+    }
+
+    if (alObject) {
+        let enableSearchOnDescription = true;
+        let enableSearchOnDetails = true;
 
         let alObjectFieldsFull: ALObjectFields;
         alObjectFieldsFull = new ALObjectFields(alObject);
@@ -423,17 +397,25 @@ export async function showAllFields(sectionFilter?: string) {
                     let label = field.name;
                     let description = '';
                     let detail = '';
+                    let isValidEntry = true;
 
                     if (alObject.isTable() || alObject.isTableExt()) {
                         if (field.id > 0) {
                             label = `[${field.id}]  ${field.name}`;
                         }
 
-                        groupID = 1;
-                        groupName = 'Fields';
+                        if (field.externalFieldExt) {
+                            groupID = 1;
+                            groupName = 'Extended Fields';
+                        }
+                        else {
+                            groupID = 5;
+                            groupName = 'Fields';
+                        }
 
                         description = field.type;
                         enableSearchOnDescription = false;
+
                         if (field.pkIndex > 0) {
                             groupID = 0;
                             groupName = 'Primary Key';
@@ -465,9 +447,16 @@ export async function showAllFields(sectionFilter?: string) {
 
                     if (alObject.isPage() || alObject.isPageExt()) {
                         if (!field.isfield) {
+                            groupID = 20;
                             groupName = `${field.type}(${field.name})`;
+                            isValidEntry = false;
                         }
                         else {
+                            if (field.externalFieldExt) {
+                                groupID = 10;
+                                groupName = 'Extended Fields';
+                            }
+
                             field.level -= 1;
                             if (field.properties) {
                                 if ('caption' in field.properties) {
@@ -497,7 +486,12 @@ export async function showAllFields(sectionFilter?: string) {
                     }
 
                     if (alObject.isReport() || alObject.isReportExt()) {
+                        groupID = 10;
                         groupName = field.dataItem;
+                        if (field.section === 'requestpage') {
+                            groupID = 20;
+                        }
+
                         if (field.sourceExpr) {
                             description = field.sourceExpr;
                         }
@@ -511,21 +505,23 @@ export async function showAllFields(sectionFilter?: string) {
                         }
                     }
 
-                    items.push({
-                        label: label,
-                        description: description,
-                        detail: detail,
-                        groupID: groupID,
-                        groupName: groupName,
-                        itemStartLine: field.startLine ? field.startLine : 0,
-                        itemEndLine: 0,
-                        level: field.level,
-                        sortIndex: field.startLine ? field.startLine : 0,
-                        iconName: field.iconName
-                    });
+                    if (isValidEntry) {
+                        items.push({
+                            label: label,
+                            description: description,
+                            detail: detail,
+                            groupID: groupID,
+                            groupName: groupName,
+                            itemStartLine: field.startLine ? field.startLine : 0,
+                            itemEndLine: 0,
+                            level: field.level,
+                            sortIndex: field.startLine ? field.startLine : 0,
+                            iconName: field.iconName
+                        });
+                    }
                 }
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);
                 return;
             }
         }
@@ -536,14 +532,23 @@ export async function showAllFields(sectionFilter?: string) {
 //#endregion AL Object Fields
 
 //#region AL Table Keys
-export async function showAllTableKeys() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
+    }
 
+    if (alObject) {
         let alTableKeys: ALTableKeys;
         alTableKeys = new ALTableKeys(alObject);
         if (alTableKeys.keys) {
@@ -561,7 +566,7 @@ export async function showAllTableKeys() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, true, false);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, true, false);
                 return;
             }
         }
@@ -572,14 +577,23 @@ export async function showAllTableKeys() {
 //#endregion AL Table Keys
 
 //#region AL Table Field Groups
-export async function showAllTableFieldGroups() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
+    }
 
+    if (alObject) {
         let alTableFieldGroups: ALTableFieldGroups;
         alTableFieldGroups = new ALTableFieldGroups(alObject);
         if (alTableFieldGroups.fieldgroups) {
@@ -597,7 +611,7 @@ export async function showAllTableFieldGroups() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, false, true);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, false, true);
                 return;
             }
         }
@@ -608,14 +622,22 @@ export async function showAllTableFieldGroups() {
 //#endregion AL Table Field Groups
 
 //#region AL Object Triggers
-export async function showAllTriggers() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllTriggers(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
-
+    }
+    if (alObject) {
         let alObjectTriggers: ALObjectTriggers;
         alObjectTriggers = new ALObjectTriggers(alObject);
 
@@ -634,7 +656,7 @@ export async function showAllTriggers() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Triggers`, false, true);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Triggers`, false, true);
                 return;
             }
         }
@@ -645,14 +667,22 @@ export async function showAllTriggers() {
 //#endregion AL Object Triggers
 
 //#region AL Object Procedures
-export async function showAllProcedures(groupFilter?: string) {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: string) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
-
+    }
+    if (alObject) {
         let alObjectProceduresFull: ALObjectProcedures;
         alObjectProceduresFull = new ALObjectProcedures(alObject);
 
@@ -717,7 +747,7 @@ export async function showAllProcedures(groupFilter?: string) {
 
                 if (items) {
                     let title = groupFilter || 'Procedures';
-                    showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: ${title}`, false, true);
+                    showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: ${title}`, false, true);
                     return;
                 }
             }
@@ -729,14 +759,23 @@ export async function showAllProcedures(groupFilter?: string) {
 //#endregion AL Object Procedures
 
 //#region AL Object Dataitems
-export async function showAllDataItems() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllDataItems(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
+    }
 
+    if (alObject) {
         let alObjectDataItems: ALObjectDataItems;
         alObjectDataItems = new ALObjectDataItems(alObject);
         if (alObjectDataItems.dataItems) {
@@ -754,7 +793,7 @@ export async function showAllDataItems() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`, true, false);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`, true, false);
                 return;
             }
         }
@@ -765,14 +804,23 @@ export async function showAllDataItems() {
 //#endregion AL Object Dataitems
 
 //#region AL Object Page Actions
-export async function showAllActions() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllActions(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
+    }
 
+    if (alObject) {
         let alObjectActions: ALObjectActions;
         alObjectActions = new ALObjectActions(alObject);
         if (alObjectActions.actions) {
@@ -791,7 +839,7 @@ export async function showAllActions() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`, true, true);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`, true, true);
                 return;
             }
         }
@@ -802,14 +850,23 @@ export async function showAllActions() {
 //#endregion AL Object Page Actions
 
 //#region AL Object Regions
-export async function showAllRegions() {
-    const editor = vscode.window.activeTextEditor;
-    const document = editor.document;
+export async function showAllRegions(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        let alObject: ALObject;
         alObject = new ALObject(document);
+    }
 
+    if (alObject) {
         let alObjectRegions: ALObjectRegions;
         alObjectRegions = new ALObjectRegions(alObject);
         if (alObjectRegions.regions) {
@@ -827,7 +884,7 @@ export async function showAllRegions() {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`, false, false);
+                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`, false, false);
                 return;
             }
         }
@@ -862,8 +919,7 @@ export async function showOpenALObjects() {
                 const isLocked = alFileMgr.isPreviewALObjectFile(documentUri);
 
                 openFiles.push({
-                    label: isLocked ? `$(${alObject.getDefaultIconName()}) $(lock-small) ${objectInfoText}` :
-                        `$(${alObject.getDefaultIconName()}) ${objectInfoText}`,
+                    label: isLocked ? `$(lock-small) ${objectInfoText}` : objectInfoText,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     groupID: objectGroupID(alObject, isCurrentEditor),
@@ -871,7 +927,18 @@ export async function showOpenALObjects() {
                     sortIndex: 0,
                     sortKey: alObject.objectName,
                     command: cmdOpenFile,
-                    commandArgs: doc.uri
+                    commandArgs: doc.uri,
+                    iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
+                    buttons: [
+                        {
+                            iconPath: new vscode.ThemeIcon("symbol-misc"),
+                            tooltip: "AL Object Explorer",
+                        },
+                        {
+                            iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
+                            tooltip: "Open to the Side",
+                        }
+                    ]
                 });
             }
         } catch (err) {
@@ -897,7 +964,7 @@ export async function showOpenALObjects() {
                 qpItems.push(...openFiles.filter(item => (item.groupName === group.name)));
             });
 
-            showQuickPick(qpItems, 'Select a file to open', true, true, '');
+            await showQuickPick(qpItems, 'Select a file to open', true, true, '');
         }
     }
 }
@@ -1005,3 +1072,182 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
     return originalText;
 }
 //#endregion Utilities
+
+//#region Quick Pick Functions
+async function showQuickPick(qpItems: atsQuickPickItem[],
+    title: string,
+    enableSearchOnDescription: boolean,
+    enableSearchOnDetails: boolean,
+    initialValue: string
+) {
+    const quickPick = vscode.window.createQuickPick();
+    quickPick.items = qpItems;
+
+    quickPick.placeholder = `${title}`;
+    quickPick.matchOnDescription = enableSearchOnDescription;
+    quickPick.matchOnDetail = enableSearchOnDetails;
+    quickPick.value = initialValue;
+
+    // Gestione ricerca parziale
+    /*
+        quickPick.onDidChangeValue((value) => {
+            quickPick.busy = true;
+            if (!value) {
+                quickPick.items = qpItems; // Ripristina tutti gli elementi se l'input è vuoto
+            } else {
+                // Crea la regex dinamicamente dai frammenti dell'input
+    
+                //.*doc.*\s*.*grou.*
+                const regex = new RegExp(
+                    value
+                        .trim()
+                        .split(/\s+/) // Divide l'input in frammenti
+                        .map(fragment => `(.*${fragment}.*)`) // Aggiunge il pattern per ciascun frammento
+                        .join('.*'), // Combina tutti i pattern in un'unica regex
+                    'i' // Case-insensitive
+                );
+    
+                quickPick.items = qpItems.filter(item => regex.test(item.label));
+                console.log(`${regex}: count: ${quickPick.items.length} `);
+            }
+            quickPick.busy = false;
+        });
+        */
+
+    // Gestione elemento selezionato        
+    quickPick.onDidAccept(async () => {
+        const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
+        if (selectedItem) {
+            await executeQuickPickItemCommand(selectedItem);
+        }
+        quickPick.hide();
+    });
+
+    // Gestione button dell'elemento selezionato
+    quickPick.onDidTriggerItemButton(async (selected) => {
+        const selectedItem = selected.item as atsQuickPickItem;
+        if (selectedItem) {
+            switch (selected.button.tooltip) {
+                case 'Open to the Side': {
+                    switch (selectedItem.command) {
+                        case cmdGoToLine: {
+                            selectedItem.command = cmdGoToLineOnSide;
+                            break;
+                        }
+                        case cmdOpenFile: {
+                            selectedItem.command = cmdOpenFileOnSide;
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+                case 'AL Object Explorer': {
+                    selectedItem.command = cmdExecALObjectExplorer;
+                    break;
+                }
+            }
+
+            // Esegui il comando per l'item selezionato
+            await executeQuickPickItemCommand(selectedItem);
+            quickPick.hide();
+        }
+    });
+
+    quickPick.onDidHide(() => quickPick.dispose());
+
+    quickPick.show();
+}
+
+async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
+    if (selectedItem) {
+        if (selectedItem.command) {
+            switch (selectedItem.command) {
+                case cmdGoToLine: {
+                    let lineNumber: number = Number(selectedItem.commandArgs);
+                    if (lineNumber >= 0) {
+                        if (selectedItem.documentUri && (selectedItem.documentUri !== vscode.window.activeTextEditor.document.uri)) {
+                            const position = new vscode.Position(lineNumber, 0);
+                            await vscode.window.showTextDocument(selectedItem.documentUri, {
+                                viewColumn: vscode.ViewColumn.Active,
+                                preserveFocus: false,
+                                selection: new vscode.Selection(position, position)
+                            });
+                        }
+                        else {
+                            const editor = vscode.window.activeTextEditor;
+                            if (editor) {
+                                const position = new vscode.Position(lineNumber, 0);
+                                editor.selection = new vscode.Selection(position, position);
+                                editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                            }
+                        }
+                    }
+
+                    break;
+                }
+                case cmdGoToLineOnSide: {
+                    let lineNumber: number = Number(selectedItem.commandArgs);
+                    if (lineNumber >= 0) {
+                        let docUri = selectedItem.documentUri || vscode.window.activeTextEditor.document.uri;
+                        if (docUri) {
+                            const position = new vscode.Position(lineNumber, 0);
+                            await vscode.window.showTextDocument(selectedItem.documentUri, {
+                                viewColumn: vscode.ViewColumn.Beside,
+                                preserveFocus: false,
+                                selection: new vscode.Selection(position, position)
+                            });
+                        }
+                    }
+
+                    break;
+                }
+
+                case cmdOpenFile: {
+                    if (selectedItem.commandArgs) {
+                        vscode.window.showTextDocument(selectedItem.commandArgs);
+                    }
+
+                    break;
+                }
+
+                case cmdOpenFileOnSide: {
+                    if (selectedItem.commandArgs) {
+                        // Nuovo editor laterale 
+                        const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
+                        vscode.window.showTextDocument(document, {
+                            viewColumn: vscode.ViewColumn.Beside, // Split editor a destra
+                            preserveFocus: false,
+                            preview: false,
+                        });
+                    }
+
+                    break;
+                }
+
+                case cmdExecALObjectExplorer: {
+                    if (selectedItem.commandArgs) {
+                        const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
+                        const alObject: ALObject = new ALObject(document);
+                        execALObjectExplorer(alObject);
+                    }
+
+                    break;
+                }
+
+                default: {
+                    if (selectedItem.command) {
+                        if (Array.isArray(selectedItem.commandArgs)) {
+                            vscode.commands.executeCommand(selectedItem.command, ...selectedItem.commandArgs);
+                        } else {
+                            await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
+//#endregion Quick Pick Functions

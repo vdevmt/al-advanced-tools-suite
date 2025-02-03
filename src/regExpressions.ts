@@ -7,8 +7,10 @@ export const pragmaDirective = /^#pragma/i; //
 // Table
 export const tableTrigger = /^trigger\s+(OnInsert|OnModify|OnDelete|OnRename)\s*\(.*\)/i;
 export const tableField = /^field\( *(\d+) *; *("?[ a-zA-Z0-9._/&%\/()-]+"?) *; *([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)/i;
+export const tableExtField = /^modify\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *\)/i;
 export const tableFieldDefinition = /field\s*\(\s*(\d+)\s*;\s*([^;]+)\s*;\s*([^)]*)\)\s*\{([\s\S]+?)\}/gi;
-export const tableFieldTrigger = /^trigger\s+(OnValidate|OnLookup)\s*\(.*\)/i;
+export const tableExtFieldDefinition = /modify\s*\(\s*([^;]+)\s*\)\s*\{([\s\S]+?)\}/gi;
+export const tableFieldTrigger = /^trigger\s+(OnValidate|OnLookup|OnBeforeValidate|OnAfterValidate)\s*\(.*\)/i;
 export const tableKey = /^key\( *"?([ a-zA-Z0-9._/&%\/()-]+)"? *; *([" a-zA-Z0-9._/&%\/()-,]+ *)\)/i;
 export const tableKeyDefinition = /key\s*\(\s*([^;]+)\s*;\s*([^)]*)\)\s*\{([\s\S]*?)\}/gi;
 export const tableFieldGroupDefinition = /fieldgroup\s*\(\s*([^;]+)\s*;\s*([^)]*)\)\s*\{([\s\S]*?)\}/gi;
@@ -16,8 +18,9 @@ export const tableFieldGroupDefinition = /fieldgroup\s*\(\s*([^;]+)\s*;\s*([^)]*
 // Page
 export const pageTrigger = /^trigger\s+(OnOpenPage|OnInit|OnAfterGetRecord|OnAfterGetCurrRecord|OnClosePage|OnQueryClosePage|OnInsertRecord|OnModifyRecord|OnDeleteRecord|OnClosePage|OnNewRecord|OnPageBackgroundTaskCompleted|OnPageBackgroundTaskError|OnFindRecord|OnNextRecord)\s*\(.*\)/i;
 export const pageField = /^field\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *; *([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)/i;
+export const pageExtField = /^modify\( *("?[ a-zA-Z0-9._/&%\/()-]+"?) *\)/i;
 export const pageFieldDefinition = /field\s*\(\s*([^;]+)\s*;\s*([" a-zA-Z0-9._/&%\/()-\[\]]+ *)\)\s*\{([\s\S]+?)\}/gi;
-export const pageFieldTrigger = /^trigger\s+(OnValidate|OnLookup|OnDrillDown|OnControlAddIn|OnAssistEdit|OnAfterLookup)\s*\(.*\)/i;
+export const pageFieldTrigger = /^trigger\s+(OnValidate|OnLookup|OnDrillDown|OnControlAddIn|OnAssistEdit|OnAfterLookup|OnBeforeValidate|OnAfterValidate|OnAfterAfterLookup)\s*\(.*\)/i;
 export const pageFieldArea = /^area\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageFieldGroup = /^(group|repeater|cuegroup|fixed|grid)\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
 export const pageFieldAnchor = /^(addafter|addbefore|addfirst|addlast)\("?([ a-zA-Z0-9._/&%\/()-]+)"?\)/i;
