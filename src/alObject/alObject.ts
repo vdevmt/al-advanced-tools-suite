@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as alRegionMgr from '../regions/regionMgr';
+import * as typeHelper from '../typeHelper';
 
 //#region AL Object Definition
 export class ALObject {
@@ -158,7 +158,7 @@ export class ALObject {
             this.objectNamespace = match[1];
         }
 
-        this.objectType = this.objectType.trim().toString();
+        this.objectType = typeHelper.objectTypeToPascalCase(this.objectType.trim());
         if (alFileMgr.IsValidALObjectType(this.objectType)) {
             this.objectId = this.objectId.trim().toString();
             this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
@@ -265,57 +265,6 @@ export class ALObject {
         }
 
         return false;
-    }
-
-    public objectTypeCamelCase(): string {
-        let output: string = this.objectType;
-
-        if (output) {
-            switch (this.objectType.toLowerCase()) {
-                case 'requestpage': {
-                    output = 'RequestPage';
-                    break;
-                }
-                case 'permissionset': {
-                    output = 'PermissionSet';
-                    break;
-                }
-                case 'pageextension': {
-                    output = 'PageExtension';
-                    break;
-                }
-                case 'tableextension': {
-                    output = 'TableExtension';
-                    break;
-                }
-                case 'reportextension': {
-                    output = 'ReportExtension';
-                    break;
-                }
-                case 'permissionsetextension': {
-                    output = 'PermissionSetExtension';
-                    break;
-                }
-                case 'enumextension': {
-                    output = 'EnumExtension';
-                    break;
-                }
-                case 'controladdin': {
-                    output = 'ControlAddin';
-                    break;
-                }
-                case 'pagecustomization': {
-                    output = 'PageCustomization';
-                    break;
-                }
-                default: {
-                    output = output.charAt(0).toUpperCase() + output.slice(1).toLowerCase();
-                    break;
-                }
-            }
-        }
-
-        return output;
     }
 
     public getDefaultIconName(): string {
@@ -806,6 +755,7 @@ export class ALObjectVariables {
         type: string,
         subtype?: string,
         value?: string,
+        isALObject: boolean,
         size?: number,
         scope: string,
         iconName?: string,
@@ -834,6 +784,118 @@ export class ALObjectVariables {
 
     private findElements(alObject: ALObject) {
         alFileMgr.findObjectVariables(alObject, this);
+    }
+
+    public getDefaultIconName(variableType: string): string {
+        if (variableType) {
+            switch (variableType.toLowerCase()) {
+                case 'Record'.toLowerCase(): {
+                    return 'database';
+                }
+                case 'RecordRef'.toLowerCase(): {
+                    return 'database';
+                }
+                case 'FieldRef'.toLowerCase(): {
+                    return 'database';
+                }
+                case 'Integer'.toLowerCase(): {
+                    return 'symbol-number';
+                }
+                case 'BigInteger'.toLowerCase(): {
+                    return 'symbol-number';
+                }
+                case 'Decimal'.toLowerCase(): {
+                    return 'symbol-number';
+                }
+                case 'Boolean'.toLowerCase(): {
+                    return 'symbol-boolean';
+                }
+                case 'Text'.toLowerCase(): {
+                    return 'symbol-string';
+                }
+                case 'BigText'.toLowerCase(): {
+                    return 'symbol-string';
+                }
+                case 'Code': {
+                    return 'symbol-string';
+                }
+                case 'Char': {
+                    return 'text-size';
+                }
+                case 'DotNet'.toLowerCase(): {
+                    return 'symbol-class';
+                }
+                case 'Label'.toLowerCase(): {
+                    return 'symbol-key';
+                }
+
+                case 'Array'.toLowerCase(): {
+                    return 'array';
+                }
+                case 'Dictionary'.toLowerCase(): {
+                    return 'array';
+                }
+                case 'List'.toLowerCase(): {
+                    return 'array';
+                }
+                case 'Date'.toLowerCase(): {
+                    return 'calendar';
+                }
+                case 'Time'.toLowerCase(): {
+                    return 'timeline-view-icon';
+                }
+                case 'Duration'.toLowerCase(): {
+                    return 'timeline-view-icon';
+                }
+                case 'Dialog'.toLowerCase(): {
+                    return 'layers';
+                }
+                case 'Guid'.toLowerCase(): {
+                    return 'json';
+                }
+
+                case 'HttpClient'.toLowerCase(): {
+                    return 'globe';
+                }
+                case 'HttpContent'.toLowerCase(): {
+                    return 'globe';
+                }
+                case 'HttpHeaders'.toLowerCase(): {
+                    return 'globe';
+                }
+                case 'HttpRequestMessage'.toLowerCase(): {
+                    return 'globe';
+                }
+                case 'HttpResponseMessage'.toLowerCase(): {
+                    return 'globe';
+                }
+
+                case 'JsonObject'.toLowerCase(): {
+                    return 'json';
+                }
+                case 'JsonArray'.toLowerCase(): {
+                    return 'json';
+                }
+                case 'JsonToken'.toLowerCase(): {
+                    return 'json';
+                }
+                case 'JsonValue'.toLowerCase(): {
+                    return 'json';
+                }
+
+                default: {
+                    if (typeHelper.isALObjectType(variableType)) {
+                        let tempALObject: ALObject;
+                        tempALObject = new ALObject(null);
+                        tempALObject.objectType = variableType;
+                        const objectIconName = tempALObject.getDefaultIconName();
+                        return objectIconName || 'symbol-misc';
+                    }
+
+                    return 'symbol-value';
+                }
+            }
+        }
     }
 }
 //#endregion AL Object Variables

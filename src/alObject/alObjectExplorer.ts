@@ -196,7 +196,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         count: alObjectActions.actionsCount,
                         command: 'ats.showAllActions',
                         commandArgs: alObject.objectFileUri,
-                        iconName: 'symbol-event'
+                        iconName: 'github-action'
                     });
                 }
             }
@@ -576,7 +576,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
             }
         }
 
-        vscode.window.showInformationMessage(`No fields found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No fields found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Fields
@@ -624,7 +624,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No keys found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No keys found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Table Keys
@@ -672,7 +672,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No field groups found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No field groups found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Table Field Groups
@@ -720,7 +720,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No triggers found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No triggers found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Triggers
@@ -815,7 +815,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
             }
         }
 
-        vscode.window.showInformationMessage(`No procedures found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No procedures found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Procedures
@@ -863,7 +863,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No dataitems found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No dataitems found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Dataitems
@@ -912,7 +912,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No actions found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No actions found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Page Actions
@@ -960,7 +960,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No regions found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Regions
@@ -1010,7 +1010,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No regions found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Variables
@@ -1045,7 +1045,7 @@ export async function showOpenALObjects() {
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     groupID: objectGroupID(alObject, isCurrentEditor),
-                    groupName: isCurrentEditor ? 'Current Editor' : alObject.objectTypeCamelCase(),
+                    groupName: isCurrentEditor ? 'Current Editor' : alObject.objectType,
                     sortIndex: 0,
                     sortKey: alObject.objectName,
                     command: cmdOpenFile,

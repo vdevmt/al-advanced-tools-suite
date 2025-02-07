@@ -208,7 +208,7 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 //#region Object Name tools
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
-        return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
+        return `${alObject.objectType} ${alObject.objectId} ${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
     }
 
     return '';
@@ -950,7 +950,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                             actionGroupRef: lastGroupName ? lastGroupName.name : '',
                                             isAction: true,
                                             properties: properties,
-                                            iconName: 'symbol-event',
+                                            iconName: 'github-action',
                                             startLine: lineNumber
                                         });
                                     }
@@ -1532,7 +1532,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                                             actionGroupRef: lastGroupName ? lastGroupName.name : '',
                                             isAction: true,
                                             properties: properties,
-                                            iconName: 'symbol-event',
+                                            iconName: 'github-action',
                                             startLine: lineNumber
                                         });
                                     }
@@ -2275,7 +2275,7 @@ export function findObjectActions(alObject: ALObject, alObjectActions: ALObjectA
                                 area: actionAreaInfo.name,
                                 actionGroupRef: '',
                                 isAction: true,
-                                iconName: 'symbol-event',
+                                iconName: 'github-action',
                                 startLine: lineNumber,
                                 level: 0,
                             });
@@ -2869,7 +2869,14 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                     }
 
                     if (insideGlobalVarSection) {
-                        let variableInfo: { name: string, type: string, subtype?: string, size?: number, value?: string } = { name: '', type: '', subtype: '', size: 0, value: '' };
+                        let variableInfo: {
+                            name: string,
+                            type: string,
+                            subtype?: string,
+                            size?: number,
+                            isALObject: boolean,
+                            value?: string
+                        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false };
                         if (isVariableDefinition(lineText, variableInfo)) {
                             if (variableInfo.name) {
                                 alObjectVariables.variables.push({
@@ -2878,11 +2885,12 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                                     subtype: variableInfo.subtype,
                                     value: variableInfo.value,
                                     size: variableInfo.size,
+                                    isALObject: variableInfo.isALObject,
                                     scope: 'global',
                                     linePosition: lineNumber,
                                     groupName: variableInfo.type,
                                     groupIndex: GetVariableGroupIndex(variableInfo.type),
-                                    iconName: (variableInfo.type.toLowerCase() === 'label') ? 'symbol-key' : 'symbol-value'
+                                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                                 });
                             }
                         }
@@ -2900,7 +2908,17 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
     }
 }
 
-function isVariableDefinition(lineText: string, variableInfo: { name: string, type: string, subtype?: string, size?: number, value?: string }): boolean {
+function isVariableDefinition(
+    lineText: string,
+    variableInfo: {
+        name: string,
+        type: string,
+        subtype?: string,
+        size?: number,
+        value?: string,
+        isALObject: boolean
+    }
+): boolean {
     if (lineText) {
         // Verifico se si tratta di una label
         const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
@@ -2908,6 +2926,7 @@ function isVariableDefinition(lineText: string, variableInfo: { name: string, ty
             variableInfo.name = match[1];
             variableInfo.type = 'Label';
             variableInfo.value = match[2];
+            variableInfo.isALObject = false;
         }
         if (variableInfo.name) {
             return true;
@@ -2922,6 +2941,7 @@ function isVariableDefinition(lineText: string, variableInfo: { name: string, ty
                     variableInfo.type = typeHelper.toPascalCase(match[2]);
                     variableInfo.subtype = typeHelper.addQuotesIfNeeded(match[3]);
                     variableInfo.size = Number(match[4]) || 0;
+                    variableInfo.isALObject = typeHelper.isALObjectType(variableInfo.type);
                 }
             });
 
