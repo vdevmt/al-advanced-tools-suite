@@ -989,8 +989,11 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
             if (alObjectVariables.elementsCount > 0) {
                 let items: atsQuickPickItem[] = alObjectVariables.variables.map(variable => ({
                     label: variable.name,
-                    description: variable.subtype ? `${variable.type} ${variable.subtype}` :
-                        variable.size ? `${variable.type}[${variable.size}]` : variable.type,
+                    description:
+                        (variable.subtype && variable.attributes) ? `${variable.type} ${variable.subtype} ${variable.attributes}` :
+                            variable.subtype ? `${variable.type} ${variable.subtype}` :
+                                variable.size ? `${variable.type}[${variable.size}]` :
+                                    variable.type,
                     detail: variable.value,
                     groupID: variable.groupIndex,
                     groupName: variable.groupName,

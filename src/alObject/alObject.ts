@@ -758,6 +758,7 @@ export class ALObjectVariables {
         isALObject: boolean,
         size?: number,
         scope: string,
+        attributes?: string,
         iconName?: string,
         linePosition: number,
         groupIndex: number,

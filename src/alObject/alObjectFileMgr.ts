@@ -2876,7 +2876,8 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                             size?: number,
                             isALObject: boolean,
                             value?: string,
-                        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false };
+                            attributes?: string
+                        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
                         if (isVariableDefinition(lineText, variableInfo)) {
                             if (variableInfo.name) {
                                 alObjectVariables.variables.push({
@@ -2885,10 +2886,11 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                                     subtype: variableInfo.subtype,
                                     value: variableInfo.value,
                                     size: variableInfo.size,
+                                    attributes: variableInfo.attributes,
                                     isALObject: variableInfo.isALObject,
                                     scope: 'global',
                                     linePosition: lineNumber,
-                                    groupName: getVariableGroupName(variableInfo.type),
+                                    groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
                                     groupIndex: getVariableGroupIndex(variableInfo.type),
                                     iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                                 });
@@ -2916,19 +2918,21 @@ function isVariableDefinition(
         subtype?: string,
         size?: number,
         value?: string,
-        isALObject: boolean
+        isALObject: boolean,
+        attributes?: string
     }
 ): boolean {
     if (lineText) {
 
         // Verifico se si tratta di una label
-        const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
-        for (const match of cleanedText.matchAll(regExpr.label)) {
+        //const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
+        for (const match of lineText.matchAll(regExpr.label)) {
             if (match && match.length > 1) {
                 variableInfo.name = match[1];
-                variableInfo.type = 'Label';
-                variableInfo.value = match[2];
+                variableInfo.type = typeHelper.toPascalCase(match[2]);
+                variableInfo.value = match[3];
                 variableInfo.isALObject = false;
+                variableInfo.attributes = '';
             }
         }
         if (variableInfo.name) {
@@ -2943,6 +2947,7 @@ function isVariableDefinition(
                 variableInfo.value = '';
                 variableInfo.subtype = match[3] ? `(${match[2]}) of [${match[3]}]` : match[4];
                 variableInfo.isALObject = false;
+                variableInfo.attributes = '';
             }
         }
 
@@ -2958,6 +2963,7 @@ function isVariableDefinition(
                 variableInfo.value = '';
                 variableInfo.subtype = match[4] ? `of [${match[4]}]` : match[4];
                 variableInfo.isALObject = false;
+                variableInfo.attributes = '';
             }
         }
 
@@ -2975,6 +2981,7 @@ function isVariableDefinition(
                     variableInfo.subtype = typeHelper.addQuotesIfNeeded(match[3]);
                     variableInfo.size = Number(match[4]) || 0;
                     variableInfo.isALObject = typeHelper.isALObjectType(variableInfo.type);
+                    variableInfo.attributes = (match[5]) ? typeHelper.toPascalCase(match[5]) : '';
                 }
             });
 
@@ -2985,7 +2992,7 @@ function isVariableDefinition(
     return false;
 }
 
-function getVariableGroupName(type: string): string {
+function getVariableGroupName(type: string, attributes: string): string {
     switch (type.toLowerCase()) {
         case 'HttpClient'.toLowerCase(): {
             return 'HttpRequest';
@@ -3005,19 +3012,22 @@ function getVariableGroupName(type: string): string {
 
 
         case 'JsonObject'.toLowerCase(): {
-            return 'json';
+            return 'Json';
         }
         case 'JsonArray'.toLowerCase(): {
-            return 'json';
+            return 'Json';
         }
         case 'JsonToken'.toLowerCase(): {
-            return 'json';
+            return 'Json';
         }
         case 'JsonValue'.toLowerCase(): {
-            return 'json';
+            return 'Json';
         }
     }
 
+    if (attributes) {
+        return `${type} ${attributes}`;
+    }
     return type;
 }
 
