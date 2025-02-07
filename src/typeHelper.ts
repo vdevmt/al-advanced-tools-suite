@@ -79,6 +79,7 @@ export function isALObjectType(text: string): boolean {
             'TableExtension',
             'Enum',
             'EnumExtension',
+            'Interface',
             'Profile',
             'ProfileExtension',
             'PermissionSet',
@@ -88,6 +89,7 @@ export function isALObjectType(text: string): boolean {
             'RecordRef',
             'FieldRef',
             'KeyRef'];
+
         return alObjectTypeList.some(value => text.toLowerCase().includes(value.toLowerCase()));
     }
 

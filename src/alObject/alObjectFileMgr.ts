@@ -2920,6 +2920,7 @@ function isVariableDefinition(
     }
 ): boolean {
     if (lineText) {
+
         // Verifico se si tratta di una label
         const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
         for (const match of cleanedText.matchAll(regExpr.label)) {

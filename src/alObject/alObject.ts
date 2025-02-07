@@ -816,10 +816,10 @@ export class ALObjectVariables {
                 case 'BigText'.toLowerCase(): {
                     return 'symbol-string';
                 }
-                case 'Code': {
+                case 'Code'.toLowerCase(): {
                     return 'symbol-string';
                 }
-                case 'Char': {
+                case 'Char'.toLowerCase(): {
                     return 'text-size';
                 }
                 case 'DotNet'.toLowerCase(): {
