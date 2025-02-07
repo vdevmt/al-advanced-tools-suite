@@ -2923,11 +2923,43 @@ function isVariableDefinition(
         // Verifico se si tratta di una label
         const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
         for (const match of cleanedText.matchAll(regExpr.label)) {
-            variableInfo.name = match[1];
-            variableInfo.type = 'Label';
-            variableInfo.value = match[2];
-            variableInfo.isALObject = false;
+            if (match && match.length > 1) {
+                variableInfo.name = match[1];
+                variableInfo.type = 'Label';
+                variableInfo.value = match[2];
+                variableInfo.isALObject = false;
+            }
         }
+        if (variableInfo.name) {
+            return true;
+        }
+
+        // Verifico se si tratta di Array
+        for (const match of lineText.matchAll(regExpr.array)) {
+            if (match && match.length > 1) {
+                variableInfo.name = match[1];
+                variableInfo.type = 'Array';
+                variableInfo.value = '';
+                variableInfo.subtype = match[3] ? `(${match[2]}) of [${match[3]}]` : match[4];
+                variableInfo.isALObject = false;
+            }
+        }
+
+        if (variableInfo.name) {
+            return true;
+        }
+
+        // Verifico se si tratta di List o Dictionary
+        for (const match of lineText.matchAll(regExpr.listDictionary)) {
+            if (match && match.length > 1) {
+                variableInfo.name = match[1];
+                variableInfo.type = typeHelper.toPascalCase(match[2]);
+                variableInfo.value = '';
+                variableInfo.subtype = match[4] ? `of [${match[4]}]` : match[4];
+                variableInfo.isALObject = false;
+            }
+        }
+
         if (variableInfo.name) {
             return true;
         }
