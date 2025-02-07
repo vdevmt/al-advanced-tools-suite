@@ -2875,7 +2875,7 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                             subtype?: string,
                             size?: number,
                             isALObject: boolean,
-                            value?: string
+                            value?: string,
                         } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false };
                         if (isVariableDefinition(lineText, variableInfo)) {
                             if (variableInfo.name) {
@@ -2888,8 +2888,8 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                                     isALObject: variableInfo.isALObject,
                                     scope: 'global',
                                     linePosition: lineNumber,
-                                    groupName: variableInfo.type,
-                                    groupIndex: GetVariableGroupIndex(variableInfo.type),
+                                    groupName: getVariableGroupName(variableInfo.type),
+                                    groupIndex: getVariableGroupIndex(variableInfo.type),
                                     iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                                 });
                             }
@@ -2985,7 +2985,43 @@ function isVariableDefinition(
     return false;
 }
 
-function GetVariableGroupIndex(type: string): number {
+function getVariableGroupName(type: string): string {
+    switch (type.toLowerCase()) {
+        case 'HttpClient'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpContent'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpHeaders'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpRequestMessage'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpResponseMessage'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+
+
+        case 'JsonObject'.toLowerCase(): {
+            return 'json';
+        }
+        case 'JsonArray'.toLowerCase(): {
+            return 'json';
+        }
+        case 'JsonToken'.toLowerCase(): {
+            return 'json';
+        }
+        case 'JsonValue'.toLowerCase(): {
+            return 'json';
+        }
+    }
+
+    return type;
+}
+
+function getVariableGroupIndex(type: string): number {
     switch (type.toLowerCase()) {
         case 'record': {
             return 1;

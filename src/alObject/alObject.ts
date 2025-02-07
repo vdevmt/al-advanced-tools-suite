@@ -798,6 +798,9 @@ export class ALObjectVariables {
                 case 'FieldRef'.toLowerCase(): {
                     return 'database';
                 }
+                case 'KeyRef'.toLowerCase(): {
+                    return 'key';
+                }
                 case 'Integer'.toLowerCase(): {
                     return 'symbol-number';
                 }
