@@ -793,3 +793,47 @@ export class ALTableFieldGroups {
     }
 }
 //#endregion AL Table Field Groups
+
+//#region AL Object Variables
+export class ALObjectVariables {
+    public objectType: string;
+    public objectId: string;
+    public objectName: string;
+
+    public elementsCount: number;
+    public variables: {
+        name: string,
+        type: string,
+        subtype?: string,
+        value?: string,
+        size?: number,
+        scope: string,
+        iconName?: string,
+        linePosition: number,
+        groupIndex: number,
+        groupName: string,
+    }[];
+
+    constructor(alObject: ALObject) {
+        this.initObjectProperties();
+        this.objectType = alObject.objectType;
+        this.objectId = alObject.objectId;
+        this.objectName = alObject.objectName;
+
+        this.findElements(alObject);
+        this.elementsCount = this.variables ? this.variables.length : 0;
+    }
+
+    private initObjectProperties() {
+        this.objectType = "";
+        this.objectId = "";
+        this.objectName = "";
+        this.elementsCount = 0;
+        this.variables = [];
+    }
+
+    private findElements(alObject: ALObject) {
+        alFileMgr.findObjectVariables(alObject, this);
+    }
+}
+//#endregion AL Object Variables

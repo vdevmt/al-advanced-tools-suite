@@ -118,6 +118,11 @@
         "category": "ATS AL Object Explorer"
       },
       {
+        "command": "ats.showAllGlobalVariables",
+        "title": "Show all global variables",
+        "category": "ATS AL Object Explorer"
+      },
+      {
         "command": "ats.showAllActions",
         "title": "Show all page actions",
         "category": "ATS AL Object Explorer"

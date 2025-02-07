@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers } from './alObject';
+import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers, ALObjectVariables } from './alObject';
 interface ObjectElement {
     type: string,
     count: number,
@@ -53,6 +53,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 
             showQuickPick(qpItems,
                 `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
+                '',
                 false,
                 false,
                 '');
@@ -290,10 +291,35 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
         console.log(`No regions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
     }
 
+    try {
+        let alObjectVariables: ALObjectVariables;
+        alObjectVariables = new ALObjectVariables(alObject);
+        if (alObjectVariables) {
+            if (alObjectVariables.elementsCount > 0) {
+                elements.push({
+                    type: useShortNames ? 'Globals' : 'Global Variables',
+                    count: alObjectVariables.elementsCount,
+                    command: 'ats.showAllGlobalVariables',
+                    commandArgs: alObject.objectFileUri,
+                    iconName: 'symbol-value'
+                });
+            }
+        }
+    }
+    catch {
+        console.log(`No global variables found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+    }
+
     return elements;
 }
 
-async function showObjectItems(alObject: ALObject, items: atsQuickPickItem[], title: string, enableSearchOnDescription: boolean, enableSearchOnDetails: boolean) {
+async function showObjectItems(alObject: ALObject,
+    items: atsQuickPickItem[],
+    title: string,
+    enableSearchOnDescription: boolean,
+    enableSearchOnDetails: boolean,
+    sortingMethod: number
+) {
     if (items) {
         const editor = vscode.window.activeTextEditor;
 
@@ -331,9 +357,23 @@ async function showObjectItems(alObject: ALObject, items: atsQuickPickItem[], ti
 
                 const groupItems = items.filter(item => (item.groupName === group.name));
 
+                switch (sortingMethod) {
+                    case 1: {
+                        // Sort by Index
+                        groupItems.sort((a, b) => a.sortIndex - b.sortIndex);
+                        break;
+                    }
+
+                    case 2: {
+                        // Sort by Key
+                        groupItems.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+                        break;
+                    }
+                }
+
                 groupItems.forEach(item => {
                     qpItems.push({
-                        label: (item.level > 0) ? `${'    '.repeat(item.level)} ${item.label}` : `${item.label}`,
+                        label: (item.level > 0) ? `${'....'.repeat(item.level)} ${item.label}` : `${item.label}`,
                         description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
                         detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : cmdGoToLine,
@@ -348,7 +388,12 @@ async function showObjectItems(alObject: ALObject, items: atsQuickPickItem[], ti
                 });
             });
 
-            await showQuickPick(qpItems, title, enableSearchOnDescription, enableSearchOnDetails, selectedText);
+            await showQuickPick(qpItems,
+                title,
+                'Type to search symbols',
+                enableSearchOnDescription,
+                enableSearchOnDetails,
+                selectedText);
         }
     }
 }
@@ -515,13 +560,18 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
                             itemStartLine: field.startLine ? field.startLine : 0,
                             itemEndLine: 0,
                             level: field.level,
-                            sortIndex: field.startLine ? field.startLine : 0,
+                            sortIndex: (field.id && field.id > 0) ? field.id : field.startLine ? field.startLine : 0,
                             iconName: field.iconName
                         });
                     }
                 }
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`, enableSearchOnDescription, enableSearchOnDetails);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`,
+                    enableSearchOnDescription,
+                    enableSearchOnDetails,
+                    1);
                 return;
             }
         }
@@ -566,7 +616,10 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, true, false);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`,
+                    true, false, 1);
                 return;
             }
         }
@@ -611,7 +664,10 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`, false, true);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Field Groups`,
+                    false, true, 1);
                 return;
             }
         }
@@ -656,7 +712,10 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Triggers`, false, true);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Triggers`,
+                    false, true, 1);
                 return;
             }
         }
@@ -747,7 +806,10 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
 
                 if (items) {
                     let title = groupFilter || 'Procedures';
-                    showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: ${title}`, false, true);
+                    showObjectItems(alObject,
+                        items,
+                        `${alFileMgr.makeALObjectDescriptionText(alObject)}: ${title}`,
+                        false, true, 1);
                     return;
                 }
             }
@@ -793,7 +855,10 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`, true, false);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`,
+                    true, false, 1);
                 return;
             }
         }
@@ -839,7 +904,10 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`, true, true);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`,
+                    true, true, 1);
                 return;
             }
         }
@@ -884,7 +952,10 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
                     iconName: item.iconName
                 }));
 
-                showObjectItems(alObject, items, `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`, false, false);
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`,
+                    false, false, 1);
                 return;
             }
         }
@@ -893,6 +964,57 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
     }
 }
 //#endregion AL Object Regions
+
+//#region AL Object Variables
+export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document);
+    }
+
+    if (alObject) {
+        let alObjectVariables: ALObjectVariables;
+        alObjectVariables = new ALObjectVariables(alObject);
+        if (alObjectVariables.variables) {
+            if (alObjectVariables.elementsCount > 0) {
+                let items: atsQuickPickItem[] = alObjectVariables.variables.map(variable => ({
+                    label: variable.name,
+                    description: variable.subtype ? `${variable.type} ${variable.subtype}` :
+                        variable.size ? `${variable.type}[${variable.size}]` : variable.type,
+                    detail: variable.value,
+                    groupID: variable.groupIndex,
+                    groupName: variable.groupName,
+                    sortKey: variable.name,
+                    itemStartLine: variable.linePosition ? variable.linePosition : 0,
+                    itemEndLine: 0,
+                    sortIndex: variable.linePosition ? variable.linePosition : 0,
+                    level: 0,
+                    iconName: variable.iconName
+                }));
+
+                showObjectItems(alObject,
+                    items,
+                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Global Variables`,
+                    false, false, 2);
+                return;
+            }
+        }
+
+        vscode.window.showInformationMessage(`No regions found in ${alObject.objectTypeCamelCase()} ${alObject.objectName}`);
+    }
+}
+//#endregion AL Object Variables
+
 
 //#region Open AL Objects
 export async function showOpenALObjects() {
@@ -964,7 +1086,7 @@ export async function showOpenALObjects() {
                 qpItems.push(...openFiles.filter(item => (item.groupName === group.name)));
             });
 
-            await showQuickPick(qpItems, 'Select a file to open', true, true, '');
+            await showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '');
         }
     }
 }
@@ -1076,6 +1198,7 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
 //#region Quick Pick Functions
 async function showQuickPick(qpItems: atsQuickPickItem[],
     title: string,
+    placeholder: string,
     enableSearchOnDescription: boolean,
     enableSearchOnDetails: boolean,
     initialValue: string
@@ -1083,36 +1206,11 @@ async function showQuickPick(qpItems: atsQuickPickItem[],
     const quickPick = vscode.window.createQuickPick();
     quickPick.items = qpItems;
 
-    quickPick.placeholder = `${title}`;
+    quickPick.title = title;
+    quickPick.placeholder = placeholder;
     quickPick.matchOnDescription = enableSearchOnDescription;
     quickPick.matchOnDetail = enableSearchOnDetails;
     quickPick.value = initialValue;
-
-    // Gestione ricerca parziale
-    /*
-        quickPick.onDidChangeValue((value) => {
-            quickPick.busy = true;
-            if (!value) {
-                quickPick.items = qpItems; // Ripristina tutti gli elementi se l'input è vuoto
-            } else {
-                // Crea la regex dinamicamente dai frammenti dell'input
-    
-                //.*doc.*\s*.*grou.*
-                const regex = new RegExp(
-                    value
-                        .trim()
-                        .split(/\s+/) // Divide l'input in frammenti
-                        .map(fragment => `(.*${fragment}.*)`) // Aggiunge il pattern per ciascun frammento
-                        .join('.*'), // Combina tutti i pattern in un'unica regex
-                    'i' // Case-insensitive
-                );
-    
-                quickPick.items = qpItems.filter(item => regex.test(item.label));
-                console.log(`${regex}: count: ${quickPick.items.length} `);
-            }
-            quickPick.busy = false;
-        });
-        */
 
     // Gestione elemento selezionato        
     quickPick.onDidAccept(async () => {

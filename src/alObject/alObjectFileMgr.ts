@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import * as alRegionMgr from '../regions/regionMgr';
-import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers } from './alObject';
+import * as typeHelper from '../typeHelper';
+import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
 
 //#region AL Object file tools
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
@@ -207,26 +208,12 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 //#region Object Name tools
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
-        return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+        return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
     }
 
     return '';
 }
 
-export function addQuotesIfNeeded(text: string): string {
-    if (text) {
-        if (!text.startsWith('"')) {
-            const specialChars = /[ #&%\\\/()$;,]/;
-
-            // Verifica se il testo contiene spazi o caratteri speciali
-            if (/\s/.test(text) || specialChars.test(text)) {
-                return `"${text}"`;
-            }
-        }
-    }
-
-    return text;
-}
 //#endregion Object Name tools
 
 //#region Object Structure Mgt.
@@ -2833,6 +2820,143 @@ export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectR
 }
 //#endregion Regions
 
+//#region Variables
+
+export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObjectVariables) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            const lines = alObject.objectContentText.split('\n');
+            let insideMultiLineComment: boolean;
+            let insideGlobalVarSection = false;
+            let insideProcedureOrTrigger = false;
+
+            lines.forEach((lineText, linePos) => {
+                lineText = cleanObjectLineText(lineText);
+                const lineNumber = linePos;
+
+                // Verifica inizio-fine commento multi-riga
+                if (isMultiLineCommentStart(lineText)) {
+                    insideMultiLineComment = true;
+                }
+                if (isMultiLineCommentEnd(lineText)) {
+                    insideMultiLineComment = false;
+                }
+
+                // Verifico se la riga è commentata
+                const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                if (!commentedLine) {
+                    // Controlla se siamo in una sezione "procedure" o "trigger"
+                    if (/^(local|internal)?\s*(procedure|trigger)\b/.test(lineText)) {
+                        insideProcedureOrTrigger = true;
+                        insideGlobalVarSection = false;
+                        return;
+                    }
+
+                    // Se troviamo un "begin" usciamo dalla sezione locale
+                    if (/^begin\b/.test(lineText)) {
+                        insideProcedureOrTrigger = false;
+                        return;
+                    }
+                    // Controlla se siamo in una sezione "var" globale
+                    if (/^var\s*$/.test(lineText) && !insideProcedureOrTrigger) {
+                        insideGlobalVarSection = true;
+                        return;
+                    }
+                    // Controlla se siamo usciti dalla sezione globale
+                    if (/^(procedure|trigger|begin)\b/.test(lineText)) {
+                        insideGlobalVarSection = false;
+                        return;
+                    }
+
+                    if (insideGlobalVarSection) {
+                        let variableInfo: { name: string, type: string, subtype?: string, size?: number, value?: string } = { name: '', type: '', subtype: '', size: 0, value: '' };
+                        if (isVariableDefinition(lineText, variableInfo)) {
+                            if (variableInfo.name) {
+                                alObjectVariables.variables.push({
+                                    name: variableInfo.name,
+                                    type: variableInfo.type,
+                                    subtype: variableInfo.subtype,
+                                    value: variableInfo.value,
+                                    size: variableInfo.size,
+                                    scope: 'global',
+                                    linePosition: lineNumber,
+                                    groupName: variableInfo.type,
+                                    groupIndex: GetVariableGroupIndex(variableInfo.type),
+                                    iconName: (variableInfo.type.toLowerCase() === 'label') ? 'symbol-key' : 'symbol-value'
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (alObjectVariables.variables) {
+                if (alObjectVariables.variables.length > 0) {
+                    // Order by StartLine
+                    alObjectVariables.variables.sort((a, b) => a.linePosition - b.linePosition);
+                }
+            }
+        }
+    }
+}
+
+function isVariableDefinition(lineText: string, variableInfo: { name: string, type: string, subtype?: string, size?: number, value?: string }): boolean {
+    if (lineText) {
+        // Verifico se si tratta di una label
+        const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
+        for (const match of cleanedText.matchAll(regExpr.label)) {
+            variableInfo.name = match[1];
+            variableInfo.type = 'Label';
+            variableInfo.value = match[2];
+        }
+        if (variableInfo.name) {
+            return true;
+        }
+
+        // Altre variabili
+        const matches = Array.from(lineText.matchAll(regExpr.variable));
+        if (matches) {
+            matches.forEach((match) => {
+                if (match[1]) {
+                    variableInfo.name = match[1];
+                    variableInfo.type = typeHelper.toPascalCase(match[2]);
+                    variableInfo.subtype = typeHelper.addQuotesIfNeeded(match[3]);
+                    variableInfo.size = Number(match[4]) || 0;
+                }
+            });
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function GetVariableGroupIndex(type: string): number {
+    switch (type.toLowerCase()) {
+        case 'record': {
+            return 1;
+        }
+        case 'page': {
+            return 3;
+        }
+        case 'report': {
+            return 4;
+        }
+        case 'codeunit': {
+            return 5;
+        }
+        case 'enum': {
+            return 6;
+        }
+        case 'label': {
+            return 10;
+        }
+    }
+
+    return 8;
+}
+//#endregion Variables
 
 //#region Comments on Code
 function removeCommentedLines(objectFileContent: string): string {

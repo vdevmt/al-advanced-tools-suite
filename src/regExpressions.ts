@@ -56,6 +56,10 @@ export const integrationEventDef = /^\s*\[IntegrationEvent\(/i;
 export const businessEventDef = /^\s*\[BusinessEvent\(/i;
 export const eventSubscriber = /^\[EventSubscriber\(\s*ObjectType::([^,]+),\s*([^:]+::"?[^,]+"?|[0-9]+),\s*'([^']+)',\s*'(.*?)',\s*(true|false),\s*(true|false)\s*\)\]/i;
 
+// Variables
+export const variable = /^\s*(\w+):\s*(\w+)(?:\s+"([^"]+)")?(?:\[(\d+)\])?;/gm;
+export const label = /^\s*(\w+):\s*Label\s+'((?:''|[^'\\]|\\.)*)';/gim;
+
 // Object Properties
 export const objectProperties = /(\w+)\s*=\s*([^;]+);/g;
 

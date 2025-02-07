@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alObjectExplorer from './alObjectExplorer';
+import * as typeHelper from '../typeHelper';
 import { ALObject } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
@@ -64,7 +65,7 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
     if (alObject) {
         if (alObject.extendedObjectName) {
             markdownTooltip.appendText('\n');
-            markdownTooltip.appendMarkdown(`Extends: ${alFileMgr.addQuotesIfNeeded(alObject.extendedObjectName)}`);
+            markdownTooltip.appendMarkdown(`Extends: ${typeHelper.addQuotesIfNeeded(alObject.extendedObjectName)}`);
         }
 
         if (alObject.objectNamespace) {
