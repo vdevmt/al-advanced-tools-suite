@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import * as alRegionMgr from '../regions/regionMgr';
-import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers } from './alObject';
+import * as typeHelper from '../typeHelper';
+import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
 
 //#region AL Object file tools
 export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
@@ -207,26 +208,12 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 //#region Object Name tools
 export function makeALObjectDescriptionText(alObject: ALObject) {
     if (alObject) {
-        return `${alObject.objectTypeCamelCase()} ${alObject.objectId} ${addQuotesIfNeeded(alObject.objectName)}`;
+        return `${alObject.objectType} ${alObject.objectId} ${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
     }
 
     return '';
 }
 
-export function addQuotesIfNeeded(text: string): string {
-    if (text) {
-        if (!text.startsWith('"')) {
-            const specialChars = /[ #&%\\\/()$;,]/;
-
-            // Verifica se il testo contiene spazi o caratteri speciali
-            if (/\s/.test(text) || specialChars.test(text)) {
-                return `"${text}"`;
-            }
-        }
-    }
-
-    return text;
-}
 //#endregion Object Name tools
 
 //#region Object Structure Mgt.
@@ -963,7 +950,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                             actionGroupRef: lastGroupName ? lastGroupName.name : '',
                                             isAction: true,
                                             properties: properties,
-                                            iconName: 'symbol-event',
+                                            iconName: 'github-action',
                                             startLine: lineNumber
                                         });
                                     }
@@ -1545,7 +1532,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                                             actionGroupRef: lastGroupName ? lastGroupName.name : '',
                                             isAction: true,
                                             properties: properties,
-                                            iconName: 'symbol-event',
+                                            iconName: 'github-action',
                                             startLine: lineNumber
                                         });
                                     }
@@ -2288,7 +2275,7 @@ export function findObjectActions(alObject: ALObject, alObjectActions: ALObjectA
                                 area: actionAreaInfo.name,
                                 actionGroupRef: '',
                                 isAction: true,
-                                iconName: 'symbol-event',
+                                iconName: 'github-action',
                                 startLine: lineNumber,
                                 level: 0,
                             });
@@ -2833,6 +2820,242 @@ export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectR
 }
 //#endregion Regions
 
+//#region Variables
+
+export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObjectVariables) {
+    if (alObject) {
+        if (alObject.objectContentText) {
+            const lines = alObject.objectContentText.split('\n');
+            let insideMultiLineComment: boolean;
+            let insideGlobalVarSection = false;
+            let insideProcedureOrTrigger = false;
+
+            lines.forEach((lineText, linePos) => {
+                lineText = cleanObjectLineText(lineText);
+                const lineNumber = linePos;
+
+                // Verifica inizio-fine commento multi-riga
+                if (isMultiLineCommentStart(lineText)) {
+                    insideMultiLineComment = true;
+                }
+                if (isMultiLineCommentEnd(lineText)) {
+                    insideMultiLineComment = false;
+                }
+
+                // Verifico se la riga è commentata
+                const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
+                if (!commentedLine) {
+                    // Controlla se siamo in una sezione "procedure" o "trigger"
+                    if (/^(local|internal)?\s*(procedure|trigger)\b/.test(lineText)) {
+                        insideProcedureOrTrigger = true;
+                        insideGlobalVarSection = false;
+                        return;
+                    }
+
+                    // Se troviamo un "begin" usciamo dalla sezione locale
+                    if (/^begin\b/.test(lineText)) {
+                        insideProcedureOrTrigger = false;
+                        return;
+                    }
+                    // Controlla se siamo in una sezione "var" globale
+                    if (/^var\s*$/.test(lineText) && !insideProcedureOrTrigger) {
+                        insideGlobalVarSection = true;
+                        return;
+                    }
+                    // Controlla se siamo usciti dalla sezione globale
+                    if (/^(procedure|trigger|begin)\b/.test(lineText)) {
+                        insideGlobalVarSection = false;
+                        return;
+                    }
+
+                    if (insideGlobalVarSection) {
+                        let variableInfo: {
+                            name: string,
+                            type: string,
+                            subtype?: string,
+                            size?: number,
+                            isALObject: boolean,
+                            value?: string,
+                            attributes?: string
+                        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
+                        if (isVariableDefinition(lineText, variableInfo)) {
+                            if (variableInfo.name) {
+                                alObjectVariables.variables.push({
+                                    name: variableInfo.name,
+                                    type: variableInfo.type,
+                                    subtype: variableInfo.subtype,
+                                    value: variableInfo.value,
+                                    size: variableInfo.size,
+                                    attributes: variableInfo.attributes,
+                                    isALObject: variableInfo.isALObject,
+                                    scope: 'global',
+                                    linePosition: lineNumber,
+                                    groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
+                                    groupIndex: getVariableGroupIndex(variableInfo.type),
+                                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (alObjectVariables.variables) {
+                if (alObjectVariables.variables.length > 0) {
+                    // Order by StartLine
+                    alObjectVariables.variables.sort((a, b) => a.linePosition - b.linePosition);
+                }
+            }
+        }
+    }
+}
+
+function isVariableDefinition(
+    lineText: string,
+    variableInfo: {
+        name: string,
+        type: string,
+        subtype?: string,
+        size?: number,
+        value?: string,
+        isALObject: boolean,
+        attributes?: string
+    }
+): boolean {
+    if (lineText) {
+
+        // Verifico se si tratta di una label
+        //const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
+        for (const match of lineText.matchAll(regExpr.label)) {
+            if (match && match.length > 1) {
+                variableInfo.name = match[1];
+                variableInfo.type = typeHelper.toPascalCase(match[2]);
+                variableInfo.value = match[3];
+                variableInfo.isALObject = false;
+                variableInfo.attributes = '';
+            }
+        }
+        if (variableInfo.name) {
+            return true;
+        }
+
+        // Verifico se si tratta di Array
+        for (const match of lineText.matchAll(regExpr.array)) {
+            if (match && match.length > 1) {
+                variableInfo.name = match[1];
+                variableInfo.type = 'Array';
+                variableInfo.value = '';
+                variableInfo.subtype = match[3] ? `(${match[2]}) of [${match[3]}]` : match[4];
+                variableInfo.isALObject = false;
+                variableInfo.attributes = '';
+            }
+        }
+
+        if (variableInfo.name) {
+            return true;
+        }
+
+        // Verifico se si tratta di List o Dictionary
+        for (const match of lineText.matchAll(regExpr.listDictionary)) {
+            if (match && match.length > 1) {
+                variableInfo.name = match[1];
+                variableInfo.type = typeHelper.toPascalCase(match[2]);
+                variableInfo.value = '';
+                variableInfo.subtype = match[4] ? `of [${match[4]}]` : match[4];
+                variableInfo.isALObject = false;
+                variableInfo.attributes = '';
+            }
+        }
+
+        if (variableInfo.name) {
+            return true;
+        }
+
+        // Altre variabili
+        const matches = Array.from(lineText.matchAll(regExpr.variable));
+        if (matches) {
+            matches.forEach((match) => {
+                if (match[1]) {
+                    variableInfo.name = match[1];
+                    variableInfo.type = typeHelper.toPascalCase(match[2]);
+                    variableInfo.subtype = typeHelper.addQuotesIfNeeded(match[3]);
+                    variableInfo.size = Number(match[4]) || 0;
+                    variableInfo.isALObject = typeHelper.isALObjectType(variableInfo.type);
+                    variableInfo.attributes = (match[5]) ? typeHelper.toPascalCase(match[5]) : '';
+                }
+            });
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function getVariableGroupName(type: string, attributes: string): string {
+    switch (type.toLowerCase()) {
+        case 'HttpClient'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpContent'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpHeaders'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpRequestMessage'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+        case 'HttpResponseMessage'.toLowerCase(): {
+            return 'HttpRequest';
+        }
+
+
+        case 'JsonObject'.toLowerCase(): {
+            return 'Json';
+        }
+        case 'JsonArray'.toLowerCase(): {
+            return 'Json';
+        }
+        case 'JsonToken'.toLowerCase(): {
+            return 'Json';
+        }
+        case 'JsonValue'.toLowerCase(): {
+            return 'Json';
+        }
+    }
+
+    if (attributes) {
+        return `${type} ${attributes}`;
+    }
+    return type;
+}
+
+function getVariableGroupIndex(type: string): number {
+    switch (type.toLowerCase()) {
+        case 'record': {
+            return 1;
+        }
+        case 'page': {
+            return 3;
+        }
+        case 'report': {
+            return 4;
+        }
+        case 'codeunit': {
+            return 5;
+        }
+        case 'enum': {
+            return 6;
+        }
+        case 'label': {
+            return 10;
+        }
+    }
+
+    return 8;
+}
+//#endregion Variables
 
 //#region Comments on Code
 function removeCommentedLines(objectFileContent: string): string {

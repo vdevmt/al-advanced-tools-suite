@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.3.28]
+- New Command `ATS: Show all global variables`: Show and search all global variables on AL Objects 
+- AL Object Explorer enhancements and optimizations
+
 ## [1.3.24]
 - New Command `ATS: Show all Triggers`: Show and search all triggers of the current AL Object (Object, fields, dataitem, etc.)
 - AL Object Explorer enhancements and optimizations

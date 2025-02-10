@@ -27,6 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alObjectExplorer.showAllActions));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllDataItems', alObjectExplorer.showAllDataItems));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllRegions', alObjectExplorer.showAllRegions));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllGlobalVariables', alObjectExplorer.showAllGlobalVariables));
     //#endregion AL Objects Explorer
 
     //#region Run Business Central       
