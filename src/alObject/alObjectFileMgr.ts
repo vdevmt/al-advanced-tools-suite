@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
-import * as alRegionMgr from '../regions/regionMgr';
+import * as alRegionMgr from './alObjectRegionMgr';
 import * as typeHelper from '../typeHelper';
 import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
 

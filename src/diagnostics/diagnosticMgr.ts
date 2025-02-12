@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
-import * as namespaceMgr from '../namespaces/namespaceMgr';
+import * as namespaceMgr from '../alObject/alObjectNamespaceMgr';
 
 export const DIAGNOSTIC_CODE = {
     NAMESPACE: {
