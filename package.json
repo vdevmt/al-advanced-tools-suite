@@ -132,6 +132,11 @@
         "command": "ats.showAllActions",
         "title": "Show all page actions",
         "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.copySelectionAsEventSubscriber",
+        "title": "Copy as Event Subscriber",
+        "category": "ATS"
       }
     ],
     "snippets": [
@@ -148,6 +153,28 @@
         "path": "./snippets/alRegion.json"
       }
     ],
+    "submenus": [
+      {
+        "id": "ats.specialCopy",
+        "label": "Special Copy (ATS)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "ats.specialCopy",
+          "group": "9_cutcopypaste"
+        }
+      ],
+      "ats.specialCopy": [
+        {
+          "command": "ats.copySelectionAsEventSubscriber",
+          "group": "9_cutcopypaste",
+          "when": "editorTextFocus && resourceLangId == al",
+          "title": "Event Subscriber"
+        }
+      ]
+    },
     "configuration": [
       {
         "title": "Advanced Tools Suite for AL Language (ATS)",
@@ -215,7 +242,7 @@
           },
           "ATS.ObjectInfoOnStatusBar": {
             "type": "string",
-            "default": "Hide",
+            "default": "Show on Left",
             "enum": [
               "Hide",
               "Show on Left",

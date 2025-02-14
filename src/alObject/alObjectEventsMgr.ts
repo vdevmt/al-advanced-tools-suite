@@ -16,22 +16,11 @@ export class EventIntegrationCodeActionProvider implements vscode.CodeActionProv
     ): vscode.CodeAction[] | undefined {
         try {
             if (alFileMgr.isALObjectDocument(document)) {
-                let alObject: ALObject;
-                alObject = new ALObject(document);
-                if (alObject) {
-                    let currentLinePos = range.start.line;
-                    let currentLineText = document.lineAt(currentLinePos).text;
-
-                    let isValidLine: boolean = regExpr.integrationEventDef.test(currentLineText.trim());
-                    if (!isValidLine) {
-                        if (regExpr.procedure.test(currentLineText.trim())) {
-                            currentLinePos -= 1;
-                            currentLineText = document.lineAt(currentLinePos).text;
-                            isValidLine = regExpr.integrationEventDef.test(currentLineText.trim());
-                        }
-                    }
-                    if (isValidLine) {
-                        const fullText = this.getFullBlockText(document, currentLinePos);
+                let alObject = new ALObject(document);
+                if (alObject && alObject.objectName) {
+                    let startPosition = findEventDefinitionStartPosByCurrentLine(document, range.start.line);
+                    if (startPosition > 0) {
+                        const fullText = getFullEventDeclaration(document, startPosition);
 
                         const codeAction = new vscode.CodeAction(
                             'Copy as event subscriber (ATS)',
@@ -54,29 +43,93 @@ export class EventIntegrationCodeActionProvider implements vscode.CodeActionProv
             return undefined;
         }
     }
-
-    private getFullBlockText(document: vscode.TextDocument, startLine: number): string {
-        let blockText = document.lineAt(startLine).text;
-
-        // Scendi verso il basso per trovare le righe successive
-        for (let i = startLine + 1; i < document.lineCount; i++) {
-            const line = document.lineAt(i).text;
-            blockText += '\n' + line;
-
-            if (line.trim().endsWith(')') || line.trim() === 'begin') {
-                break; // Fine del blocco
-            }
-        }
-
-        return blockText;
-    }
 }
 
-export async function copyAsEventSubscriber(alObject: ALObject, integrationEvent: string) {
-    const subscriberCode = createEventSubscriberText(alObject, integrationEvent);
+function findEventDefinitionStartPosByCurrentLine(document: vscode.TextDocument, currentLine: number): number {
+    let startPosition = -1;
 
+    if (document && (currentLine > 0)) {
+        if (alFileMgr.isALObjectDocument(document)) {
+            let alObject = new ALObject(document);
+            if (alObject && alObject.objectName) {
+                let currentLineText = document.lineAt(currentLine).text;
+
+                if (regExpr.integrationEventDef.test(currentLineText.trim())) {
+                    startPosition = currentLine;
+                }
+                else {
+                    if (currentLine > 0) {
+                        if (regExpr.procedure.test(currentLineText.trim())) {
+                            currentLineText = document.lineAt(currentLine - 1).text;
+                            if (regExpr.integrationEventDef.test(currentLineText.trim())) {
+                                startPosition = currentLine - 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return startPosition;
+}
+
+export function copySelectionAsEventSubscriber() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+    let currentLine = -1;
+
+    if (editor.selections) {
+        editor.selections.forEach(selection => {
+            if (currentLine < 0) {
+                if (selection.start.line > 0) {
+                    currentLine = selection.start.line;
+                }
+            }
+        });
+    }
+
+    if (currentLine < 0) {
+        currentLine = editor.selection.active.line;
+    }
+
+    const eventStartPos = findEventDefinitionStartPosByCurrentLine(document, currentLine);
+    if (eventStartPos < 0) {
+        vscode.window.showErrorMessage('No event definitions found in the current selection');
+        return;
+    }
+
+    const alObject = new ALObject(document);
+    const fullText = getFullEventDeclaration(document, eventStartPos);
+    copyAsEventSubscriber(alObject, fullText);
+}
+
+function getFullEventDeclaration(document: vscode.TextDocument, startLine: number): string {
+    let blockText = document.lineAt(startLine).text;
+
+    // Scendi verso il basso per trovare le righe successive
+    for (let i = startLine + 1; i < document.lineCount; i++) {
+        const line = document.lineAt(i).text;
+        blockText += '\n' + line;
+
+        if (line.trim().endsWith(')') || line.trim() === 'begin') {
+            break; // Fine del blocco
+        }
+    }
+
+    return blockText;
+}
+
+export async function copyAsEventSubscriber(alObject: ALObject, integrationEventText: string) {
+    const integrationEventTextLines = integrationEventText.split('\n');
+    if (!regExpr.integrationEventDef.test(integrationEventTextLines[0].trim())) {
+        vscode.window.showErrorMessage('No event definitions found in the current selection');
+        return;
+    }
+
+    const subscriberCode = createEventSubscriberText(alObject, integrationEventText);
     if (!subscriberCode) {
-        vscode.window.showErrorMessage('Failed to create Event Subscriber code');
+        vscode.window.showErrorMessage('No event definitions found in the current selection');
         return;
     }
 

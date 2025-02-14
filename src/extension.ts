@@ -6,8 +6,8 @@ import * as regionStatusBar from './alObject/alObjectRegionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
 import * as namespaceMgr from './alObject/alObjectNamespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
+import *  as eventsMgr from './alObject/alObjectEventsMgr';
 import { EventIntegrationCodeActionProvider } from './alObject/alObjectEventsMgr';
-import *  as codeActionProvider from './alObject/alObjectEventsMgr';
 import { ALObject } from './alObject/alObject';
 
 let regionPathSBDebounceTimeout = null;
@@ -20,6 +20,27 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion launch.json tools
 
     //#region AL Objects Explorer
+    setObjectTypeContext(null);
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
+        setObjectTypeContext(editor);
+    }));
+
+    function setObjectTypeContext(editor: vscode.TextEditor) {
+        if (!editor) {
+            editor = vscode.window.activeTextEditor;
+        }
+
+        vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
+        vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+        if (editor && editor.document) {
+            const alObject = new ALObject(editor.document);
+            if (alObject.objectType) {
+                vscode.commands.executeCommand('setContext', 'ats.isAlObject', true);
+                vscode.commands.executeCommand('setContext', 'ats.alObjectType', alObject.objectType);
+            }
+        }
+    }
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.ALObjectExplorer', alObjectExplorer.execALObjectExplorer));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alObjectExplorer.showOpenALObjects));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alObjectExplorer.showAllFields));
@@ -121,7 +142,9 @@ export function activate(context: vscode.ExtensionContext) {
     }
     //#endregion Region Status Bar
 
-    //#region Code Action Providers
+    //#region Integration Events
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventSubscriber', eventsMgr.copySelectionAsEventSubscriber));
+
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(
             { language: 'al', scheme: 'file' },
@@ -135,12 +158,12 @@ export function activate(context: vscode.ExtensionContext) {
     const generateSubscriberCommand = vscode.commands.registerCommand(
         'ats.copyAsEventSubscriber',
         (alObject: ALObject, integrationEvent: string) => {
-            codeActionProvider.copyAsEventSubscriber(alObject, integrationEvent);
+            eventsMgr.copyAsEventSubscriber(alObject, integrationEvent);
         }
     );
 
     context.subscriptions.push(generateSubscriberCommand);
-    //#endregion Code Action Providers
+    //#endregion Integration Events
 }
 
 export function deactivate() { }
