@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import * as regExpr from '../regExpressions';
-import * as alFileMgr from './alObjectFileMgr';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as typeHelper from '../typeHelper';
 
-import { ALObject } from './alObject';
+import { ALObject } from '../alObject/alObject';
 
+//#region AL Events Tools
 export class EventIntegrationCodeActionProvider implements vscode.CodeActionProvider {
     static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
@@ -77,23 +78,24 @@ function findEventDefinitionStartPosByCurrentLine(document: vscode.TextDocument,
 export function copySelectionAsEventSubscriber() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
-    let currentLine = -1;
+    let eventStartPos = -1;
 
     if (editor.selections) {
         editor.selections.forEach(selection => {
-            if (currentLine < 0) {
+            if (eventStartPos < 0) {
                 if (selection.start.line > 0) {
-                    currentLine = selection.start.line;
+                    for (let i = selection.start.line; i <= selection.end.line; i++) {
+                        let currentLineText = document.lineAt(i).text.trim();
+                        if (regExpr.integrationEventDef.test(currentLineText)) {
+                            eventStartPos = i;
+                            i = selection.end.line + 1;
+                        }
+                    }
                 }
             }
         });
     }
 
-    if (currentLine < 0) {
-        currentLine = editor.selection.active.line;
-    }
-
-    const eventStartPos = findEventDefinitionStartPosByCurrentLine(document, currentLine);
     if (eventStartPos < 0) {
         vscode.window.showErrorMessage('No event definitions found in the current selection');
         return;
@@ -174,4 +176,5 @@ function createEventSubscriberText(alObject: ALObject, intEventText: string): st
     }
 
     return null;
+    //#endregion AL Events Tools
 }

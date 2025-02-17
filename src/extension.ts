@@ -6,8 +6,8 @@ import * as regionStatusBar from './alObject/alObjectRegionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
 import * as namespaceMgr from './alObject/alObjectNamespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
-import *  as eventsMgr from './alObject/alObjectEventsMgr';
-import { EventIntegrationCodeActionProvider } from './alObject/alObjectEventsMgr';
+import *  as specialCopyFunct from './tools/specialCopyFunctions';
+import { EventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
 import { ALObject } from './alObject/alObject';
 
 let regionPathSBDebounceTimeout = null;
@@ -143,7 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion Region Status Bar
 
     //#region Integration Events
-    context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventSubscriber', eventsMgr.copySelectionAsEventSubscriber));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventSubscriber', specialCopyFunct.copySelectionAsEventSubscriber));
 
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(
@@ -158,7 +158,7 @@ export function activate(context: vscode.ExtensionContext) {
     const generateSubscriberCommand = vscode.commands.registerCommand(
         'ats.copyAsEventSubscriber',
         (alObject: ALObject, integrationEvent: string) => {
-            eventsMgr.copyAsEventSubscriber(alObject, integrationEvent);
+            specialCopyFunct.copyAsEventSubscriber(alObject, integrationEvent);
         }
     );
 
