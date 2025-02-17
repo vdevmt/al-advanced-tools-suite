@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ALObjectRegions } from '../alObject/alObject';
+import { ALObjectRegions } from './alObject';
 
 interface RegionInfo {
     name: string;

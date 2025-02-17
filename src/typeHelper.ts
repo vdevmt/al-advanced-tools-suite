@@ -2,9 +2,9 @@
 export function toPascalCase(text: string): string {
     if (text) {
         return text
-            .replace(/([-_ ]+)([a-z])/g, (_, __, letter) => letter.toUpperCase()) // Uppercase after separators
-            .replace(/^[a-z]/, letter => letter.toUpperCase())                   // Uppercase first letter
-            .replace(/[-_ ]+/g, '');                                             // Remove separators
+            .replace(/([-_. ]+)([a-z])/g, (_, __, letter) => letter.toUpperCase())      // Uppercase after separators
+            .replace(/^[a-z]/, letter => letter.toUpperCase())                          // Uppercase first letter
+            .replace(/[-_.,;/&%\/() ]+/g, '');                                              // Remove separators and special characters
     }
 
     return text;
