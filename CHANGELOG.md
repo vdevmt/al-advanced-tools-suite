@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.3.30]
+- New feature: `Copy as Event Subscriber:`: Quickly create event subscribers for AL Objects
+
 ## [1.3.28]
 - New Command `ATS: Show all global variables`: Show and search all global variables on AL Objects 
 - AL Object Explorer enhancements and optimizations
