@@ -58,6 +58,14 @@ These features are concluded at this moment:
 <br />
 <img src="./images/OpenALObjects.png" alt="ATS: open objects">
 
+## Special Copy
+
+* Copy as Event Subscriber
+<br />
+<img src="./images/CopyAsEventSubscriber.gif" alt="ATS: Copy as Event Subscriber">
+
+
+
 ## launch.json manager
 Store all launch.json files in a local or shared folder and select which one to use for the current project.<br />
 With these features you can easily share launchers with your colleagues:
