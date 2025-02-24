@@ -2504,13 +2504,13 @@ export function isProcedureDefinition(alObject: ALObject, lineText: string, proc
 
 //#region Integration Events
 export function isIntegrationEventDeclaration(lineText: string): boolean {
-    if (regExpr.integrationEventDef.test(lineText.trim())) {
+    if (regExpr.integrationEvent.test(lineText.trim())) {
         return true;
     }
     return false;
 }
 export function isBusinessEventDeclaration(lineText: string): boolean {
-    if (regExpr.businessEventDef.test(lineText.trim())) {
+    if (regExpr.businessEvent.test(lineText.trim())) {
         return true;
     }
     return false;

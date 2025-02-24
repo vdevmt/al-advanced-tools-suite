@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.3.32]
+- New feature: `Copy as Event Subscriber:`: Quickly create event subscribers for table and page fields 
+
 ## [1.3.30]
 - New feature: `Copy as Event Subscriber:`: Quickly create event subscribers for AL Objects
 

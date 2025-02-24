@@ -19,7 +19,7 @@ export class EventIntegrationCodeActionProvider implements vscode.CodeActionProv
             if (alFileMgr.isALObjectDocument(document)) {
                 let alObject = new ALObject(document);
                 if (alObject && alObject.objectName) {
-                    let startPosition = findEventDefinitionStartPosByCurrentLine(document, range.start.line);
+                    let startPosition = findCodeActionsStartPosByCurrentLine(document, range.start.line);
                     if (startPosition > 0) {
                         const fullText = getFullEventDeclaration(document, startPosition);
 
@@ -46,24 +46,37 @@ export class EventIntegrationCodeActionProvider implements vscode.CodeActionProv
     }
 }
 
-function findEventDefinitionStartPosByCurrentLine(document: vscode.TextDocument, currentLine: number): number {
+function findCodeActionsStartPosByCurrentLine(document: vscode.TextDocument, currentLine: number): number {
     let startPosition = -1;
 
     if (document && (currentLine > 0)) {
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject = new ALObject(document);
             if (alObject && alObject.objectName) {
-                let currentLineText = document.lineAt(currentLine).text;
+                let currentLineText = document.lineAt(currentLine).text.trim();
 
-                if (regExpr.integrationEventDef.test(currentLineText.trim())) {
-                    startPosition = currentLine;
+                if (alObject.isTable() || alObject.isTableExt()) {
+                    if (regExpr.tableField.test(currentLineText)) {
+                        startPosition = currentLine;
+                    }
                 }
-                else {
-                    if (currentLine > 0) {
-                        if (regExpr.procedure.test(currentLineText.trim())) {
-                            currentLineText = document.lineAt(currentLine - 1).text;
-                            if (regExpr.integrationEventDef.test(currentLineText.trim())) {
-                                startPosition = currentLine - 1;
+                if (alObject.isPage() || alObject.isPageExt()) {
+                    if (regExpr.pageField.test(currentLineText)) {
+                        startPosition = currentLine;
+                    }
+                }
+
+                if (startPosition < 0) {
+                    if (regExpr.integrationEvent.test(currentLineText)) {
+                        startPosition = currentLine;
+                    }
+                    else {
+                        if (currentLine > 0) {
+                            if (regExpr.procedure.test(currentLineText)) {
+                                currentLineText = document.lineAt(currentLine - 1).text.trim();
+                                if (regExpr.integrationEvent.test(currentLineText)) {
+                                    startPosition = currentLine - 1;
+                                }
                             }
                         }
                     }
@@ -80,15 +93,46 @@ export function copySelectionAsEventSubscriber() {
     const document = editor.document;
     let eventStartPos = -1;
 
+    const alObject = new ALObject(document);
+
     if (editor.selections) {
         editor.selections.forEach(selection => {
             if (eventStartPos < 0) {
                 if (selection.start.line > 0) {
                     for (let i = selection.start.line; i <= selection.end.line; i++) {
                         let currentLineText = document.lineAt(i).text.trim();
-                        if (regExpr.integrationEventDef.test(currentLineText)) {
-                            eventStartPos = i;
+
+                        switch (true) {
+                            case (regExpr.integrationEvent.test(currentLineText)): {
+                                eventStartPos = i;
+                                break;
+                            }
+
+                            case (regExpr.tableField.test(currentLineText)): {
+                                if (alObject.isTable() || alObject.isTableExt()) {
+                                    eventStartPos = i;
+                                    break;
+                                }
+                            }
+
+                            case (regExpr.pageField.test(currentLineText)): {
+                                if (alObject.isPage() || alObject.isPageExt()) {
+                                    eventStartPos = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (eventStartPos > 0) {
                             i = selection.end.line + 1;
+                        }
+                    }
+
+                    if (eventStartPos < 0) {
+                        if (selection.start.line === selection.end.line) {
+                            if (alObject.isTable() || alObject.isTableExt()) {
+                                eventStartPos = 0;
+                            }
                         }
                     }
                 }
@@ -101,9 +145,13 @@ export function copySelectionAsEventSubscriber() {
         return;
     }
 
-    const alObject = new ALObject(document);
-    const fullText = getFullEventDeclaration(document, eventStartPos);
-    copyAsEventSubscriber(alObject, fullText);
+    if (eventStartPos > 0) {
+        const fullText = getFullEventDeclaration(document, eventStartPos);
+        copyAsEventSubscriber(alObject, fullText);
+    }
+    else {
+        copyAsEventSubscriber(alObject, '');
+    }
 }
 
 function getFullEventDeclaration(document: vscode.TextDocument, startLine: number): string {
@@ -114,7 +162,7 @@ function getFullEventDeclaration(document: vscode.TextDocument, startLine: numbe
         const line = document.lineAt(i).text;
         blockText += '\n' + line;
 
-        if (line.trim().endsWith(')') || line.trim() === 'begin') {
+        if (line.trim().endsWith(')') || line.trim() === 'begin' || line.trim() === '{') {
             break; // Fine del blocco
         }
     }
@@ -122,14 +170,42 @@ function getFullEventDeclaration(document: vscode.TextDocument, startLine: numbe
     return blockText;
 }
 
-export async function copyAsEventSubscriber(alObject: ALObject, integrationEventText: string) {
-    const integrationEventTextLines = integrationEventText.split('\n');
-    if (!regExpr.integrationEventDef.test(integrationEventTextLines[0].trim())) {
+export async function copyAsEventSubscriber(alObject: ALObject, sourceText: string) {
+    const sourceTextLines = sourceText.split('\n');
+    let scope = '';
+
+    switch (true) {
+        case (regExpr.integrationEvent.test(sourceTextLines[0].trim())): {
+            scope = 'integration event';
+            break;
+        }
+
+        case (regExpr.tableField.test(sourceTextLines[0].trim())): {
+            if (alObject.isTable() || alObject.isTableExt()) {
+                scope = 'table field';
+                break;
+            }
+        }
+        case (regExpr.pageField.test(sourceTextLines[0].trim())): {
+            if (alObject.isPage() || alObject.isPageExt()) {
+                scope = 'page field';
+                break;
+            }
+        }
+    }
+
+    if (scope === '') {
+        if (alObject.isTable() || alObject.isTableExt()) {
+            scope = 'table';
+        }
+    }
+
+    if (scope === '') {
         vscode.window.showErrorMessage('No event definitions found in the current selection');
         return;
     }
 
-    const subscriberCode = createEventSubscriberText(alObject, integrationEventText);
+    const subscriberCode = createEventSubscriberText(alObject, sourceText, scope);
     if (!subscriberCode) {
         vscode.window.showErrorMessage('No event definitions found in the current selection');
         return;
@@ -144,35 +220,92 @@ export async function copyAsEventSubscriber(alObject: ALObject, integrationEvent
 }
 
 
-function createEventSubscriberText(alObject: ALObject, intEventText: string): string {
+function createEventSubscriberText(alObject: ALObject, sourceText: string, scope: string): string {
     let objectType2 = alObject.objectType;
     if (alObject.isTable()) {
         objectType2 = 'Database';
     }
-    const regex = /\[(IntegrationEvent\(([^)]+)\))\]\s*(local|internal|)\s*procedure\s+(\w+)\(([^)]*)\)/i;
-    const match = intEventText.match(regex);
 
-    if (match) {
-        const integrationEventParams = match[2]; // Parametri di definizione IntegrationEvent (es. false, false)
-        const eventName = match[4];
-        let parameters = match[5];
+    sourceText = sourceText.trim();
+    const sourceTextLines = sourceText.split('\n');
+    const sourceObjectName = typeHelper.addQuotesIfNeeded(alObject.objectName);
 
-        if (integrationEventParams.split(',')[0].toLowerCase() === 'true') {
-            if (parameters) {
-                parameters += '; ';
+    if (scope === '' || scope === 'integration event') {
+        const match = sourceText.match(regExpr.integrationEventDefinition);
+
+        if (match) {
+            const integrationEventParams = match[2]; // Parametri di definizione IntegrationEvent (es. false, false)
+            const eventName = match[4];
+            let parameters = match[5];
+
+            if (integrationEventParams.split(',')[0].toLowerCase() === 'true') {
+                if (parameters) {
+                    parameters += '; ';
+                }
+                parameters += `var sender: ${alObject.objectType} ${sourceObjectName}`;
             }
-            parameters += `var sender: ${alObject.objectType} ${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
+
+            let eventSubscrText = `[EventSubscriber(ObjectType::${alObject.objectType}`;
+            eventSubscrText += `, ${objectType2}::${sourceObjectName}`;
+            eventSubscrText += `, '${eventName}', '', false, false)]\n`;
+
+            eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_${eventName}(${parameters})`;
+            eventSubscrText += 'begin\n\n';
+            eventSubscrText += 'end;';
+
+            return eventSubscrText;
         }
+    }
+    if (scope === 'table') {
+        let eventSubscrText = `[EventSubscriber(ObjectType::${alObject.objectType}`;
+        eventSubscrText += `, ${objectType2}::${sourceObjectName}`;
+        eventSubscrText += `, 'OnAfterModifyEvent', '}', false, false)]\n`;
 
-        let eventSubscriber = `[EventSubscriber(ObjectType::${alObject.objectType}`;
-        eventSubscriber += `, ${objectType2}::${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
-        eventSubscriber += `, '${eventName}', '', false, false)]\n`;
+        eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_OnAfterModifyEvent(var Rec: Record ${sourceObjectName}; var xRec: Record ${sourceObjectName})\n`;
+        eventSubscrText += 'begin\n\n';
+        eventSubscrText += 'end;';
 
-        eventSubscriber += `local procedure ${typeHelper.toPascalCase(alObject.objectName)}_${eventName}(${parameters})`;
-        eventSubscriber += 'begin\n\n';
-        eventSubscriber += 'end;';
+        return eventSubscrText;
+    }
+    if (scope === 'table field') {
+        const match = sourceTextLines[0].match(regExpr.tableField);
+        if (match) {
+            const fieldName = match[2];
 
-        return eventSubscriber;
+            let eventSubscrText = `[EventSubscriber(ObjectType::${alObject.objectType}`;
+            eventSubscrText += `, ${objectType2}::${sourceObjectName}`;
+            eventSubscrText += `, 'OnAfterValidateEvent', '${typeHelper.removeQuotes(fieldName)}', false, false)]\n`;
+
+            eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_${typeHelper.toPascalCase(fieldName)}_OnAfterValidateEvent(var Rec: Record ${sourceObjectName}; var xRec: Record ${sourceObjectName})\n`;
+            eventSubscrText += 'begin\n\n';
+            eventSubscrText += 'end;';
+
+            return eventSubscrText;
+
+        }
+    }
+    if (scope === 'page field') {
+        const match = sourceTextLines[0].match(regExpr.pageField);
+        if (match) {
+            const fieldName = match[1];
+            let sourceTableName = typeHelper.addQuotesIfNeeded(alObject.sourceTableName);
+
+            let eventSubscrText = `[EventSubscriber(ObjectType::${alObject.objectType}`;
+            eventSubscrText += `, ${objectType2}::${sourceObjectName}`;
+            eventSubscrText += `, 'OnAfterValidateEvent', '${typeHelper.removeQuotes(fieldName)}', false, false)]\n`;
+
+            if (sourceTableName) {
+                eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_${typeHelper.toPascalCase(fieldName)}_OnAfterValidateEvent(var Rec: Record ${sourceTableName}; var xRec: Record ${sourceTableName})\n`;
+            }
+            else {
+                eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_${typeHelper.toPascalCase(fieldName)}_OnAfterValidateEvent()\n`;
+            }
+            eventSubscrText += 'begin\n\n';
+            eventSubscrText += 'end;';
+
+            return eventSubscrText;
+
+        }
     }
 
     return null;

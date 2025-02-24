@@ -157,8 +157,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     const generateSubscriberCommand = vscode.commands.registerCommand(
         'ats.copyAsEventSubscriber',
-        (alObject: ALObject, integrationEvent: string) => {
-            specialCopyFunct.copyAsEventSubscriber(alObject, integrationEvent);
+        (alObject: ALObject, sourceText: string) => {
+            specialCopyFunct.copyAsEventSubscriber(alObject, sourceText);
         }
     );
 

@@ -7,6 +7,7 @@ export class ALObject {
     public objectType: string;
     public objectId: string;
     public objectName: string;
+    public sourceTableName: string;
     public extendedObjectName?: string;
     public extendedObjectId?: string;
     public objectNamespace?: string;
@@ -38,6 +39,7 @@ export class ALObject {
         this.objectType = "";
         this.objectId = "";
         this.objectName = "";
+        this.sourceTableName = "";
         this.extendedObjectId = "";
         this.extendedObjectName = "";
         this.objectNamespace = "";
@@ -168,6 +170,12 @@ export class ALObject {
 
             let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
             alFileMgr.findAllProperties(objectDefTxt, this.properties);
+
+            if (this.isPage()) {
+                if (this.properties['sourcetable']) {
+                    this.sourceTableName = this.properties['sourcetable'];
+                }
+            }
         }
         else {
             this.initObjectProperties();
