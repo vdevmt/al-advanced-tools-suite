@@ -3,9 +3,9 @@ import * as regExpr from '../regExpressions';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as typeHelper from '../typeHelper';
 
-import { ALObject } from '../alObject/alObject';
+import { ALObject, ALObjectFields } from '../alObject/alObject';
 
-//#region AL Events Tools
+//#region Integration Events
 export class EventIntegrationCodeActionProvider implements vscode.CodeActionProvider {
     static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
@@ -309,5 +309,240 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
     }
 
     return null;
-    //#endregion AL Events Tools
 }
+//#endregion Integration Events
+
+//#region Table Fields
+export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFields?: Boolean) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = typeHelper.toPascalCase(alObject.objectName);
+
+        statementText = `${recVariableName}.Init();\n`;
+
+        if (alObject.isTable()) {
+            let pkFields = alTableFields.fields
+                .filter(item => item.pkIndex > 0)
+                .sort((a, b) => a.pkIndex - b.pkIndex);
+
+            pkFields.forEach(field => {
+                if (validateFields) {
+                    statementText += `${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(field.name)}, ${typeHelper.toPascalCase(field.name)});\n`;
+                }
+                else {
+                    statementText += `${recVariableName}.${typeHelper.addQuotesIfNeeded(field.name)} := ${typeHelper.toPascalCase(field.name)};\n`;
+                }
+            });
+
+            if (validateFields) {
+                statementText += `${recVariableName}.Insert(true);\n`;
+            }
+            statementText += `\n`;
+        }
+
+        let fields = alTableFields.fields
+            .filter(item => item.pkIndex === 0)
+            .sort((a, b) => a.id - b.id);
+
+        fields.forEach(field => {
+            let isValidField = true;
+            if (field.properties['fieldclass']) {
+                if (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                    isValidField = false;
+                }
+            }
+
+            if (isValidField) {
+                if (validateFields) {
+                    statementText += `${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(field.name)}, ${typeHelper.toPascalCase(field.name)});\n`;
+                }
+                else {
+                    statementText += `${recVariableName}.${typeHelper.addQuotesIfNeeded(field.name)} := ${typeHelper.toPascalCase(field.name)};\n`;
+                }
+            }
+        });
+
+        if (validateFields) {
+            statementText += `${recVariableName}.Modify(true);\n`;
+        }
+        else {
+            statementText += `${recVariableName}.Insert(false);\n`;
+        }
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The Record Insert statement is ready to paste!`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to create Record Insert statement: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
+    }
+
+}
+
+export function copyRecordInsertStatementWithValidation(docUri?: vscode.Uri) {
+    copyRecordInsertStatement(docUri, true);
+}
+
+export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFields?: Boolean) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = typeHelper.toPascalCase(alObject.objectName);
+
+        statementText = `if ${recVariableName}.Get(`;
+
+        if (alObject.isTable()) {
+            let pkFields = alTableFields.fields
+                .filter(item => item.pkIndex > 0)
+                .sort((a, b) => a.pkIndex - b.pkIndex);
+
+            let isFirstElement = true;
+            pkFields.forEach(field => {
+                if (!isFirstElement) {
+                    statementText += ', ';
+                }
+
+                statementText += typeHelper.toPascalCase(field.name);
+                isFirstElement = false;
+            });
+        }
+
+        statementText += ') then begin';
+        statementText += `\n`;
+
+        let fields = alTableFields.fields
+            .filter(item => item.pkIndex === 0)
+            .sort((a, b) => a.id - b.id);
+
+        fields.forEach(field => {
+            let isValidField = true;
+            if (field.properties['fieldclass']) {
+                if (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                    isValidField = false;
+                }
+            }
+
+            if (isValidField) {
+                if (validateFields) {
+                    statementText += `  ${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(field.name)}, ${typeHelper.toPascalCase(field.name)});\n`;
+                }
+                else {
+                    statementText += `  ${recVariableName}.${typeHelper.addQuotesIfNeeded(field.name)} := ${typeHelper.toPascalCase(field.name)};\n`;
+                }
+            }
+        });
+
+        if (validateFields) {
+            statementText += `  ${recVariableName}.Modify(true);\n`;
+        }
+        else {
+            statementText += `  ${recVariableName}.Modify(false);\n`;
+        }
+        statementText += 'end;';
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The Record Modify statement is ready to paste!`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to create Record Modify statement: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
+    }
+}
+
+export function copyRecordModifyStatementWithValidation(docUri?: vscode.Uri) {
+    copyRecordModifyStatement(docUri, true);
+}
+
+export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = typeHelper.toPascalCase(alObject.objectName);
+
+        statementText = `if ${recVariableName}.Get(`;
+
+        if (alObject.isTable()) {
+            let pkFields = alTableFields.fields
+                .filter(item => item.pkIndex > 0)
+                .sort((a, b) => a.pkIndex - b.pkIndex);
+
+            let isFirstElement = true;
+            pkFields.forEach(field => {
+                if (!isFirstElement) {
+                    statementText += ', ';
+                }
+
+                statementText += typeHelper.toPascalCase(field.name);
+                isFirstElement = false;
+            });
+        }
+
+        statementText += ') then begin';
+        statementText += `\n`;
+        statementText += `  ${recVariableName}.Delete(true);\n`;
+        statementText += 'end;';
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The Record Delete statement is ready to paste!`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to create Record Delete statement: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
+    }
+}
+//#endregion Table Fields
