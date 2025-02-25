@@ -367,12 +367,7 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
         });
 
         if (validateFields) {
-            if (alObject.isTable()) {
-                statementText += `${recVariableName}.Modify(true);\n`;
-            }
-            else {
-                statementText += `${recVariableName}.Insert(true);\n`;
-            }
+            statementText += alObject.isTable() ? `${recVariableName}.Modify(true);\n` : `${recVariableName}.Insert(true);\n`;
         }
         else {
             statementText += `${recVariableName}.Insert(false);\n`;
