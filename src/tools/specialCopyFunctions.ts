@@ -495,12 +495,7 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
             }
         });
 
-        if (validateFields) {
-            statementText += `  ${recVariableName}.Modify(true);\n`;
-        }
-        else {
-            statementText += `  ${recVariableName}.Modify(false);\n`;
-        }
+        statementText += validateFields ? `  ${recVariableName}.Modify(true);\n` : `  ${recVariableName}.Modify(false);\n`;
         statementText += 'end;';
     }
 
