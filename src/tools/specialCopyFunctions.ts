@@ -332,45 +332,47 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
-        statementText = `${recVariableName}.Init();\n`;
+        if (recVariableName) {
+            statementText = `${recVariableName}.Init();\n`;
 
-        if (alObject.isTable()) {
-            let pkFields = alTableFields.fields
-                .filter(item => item.pkIndex > 0)
-                .sort((a, b) => a.pkIndex - b.pkIndex);
+            if (alObject.isTable()) {
+                let pkFields = alTableFields.fields
+                    .filter(item => item.pkIndex > 0)
+                    .sort((a, b) => a.pkIndex - b.pkIndex);
 
-            pkFields.forEach(field => {
-                statementText += `${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
+                pkFields.forEach(field => {
+                    statementText += `${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
+                });
+
+                if (validateFields) {
+                    statementText += `${recVariableName}.Insert(true);\n`;
+                }
+                statementText += `\n`;
+            }
+
+            let fields = alTableFields.fields
+                .filter(item => item.pkIndex === 0)
+                .sort((a, b) => a.id - b.id);
+
+            fields.forEach(field => {
+                let isValidField = true;
+                if (field.properties['fieldclass']) {
+                    if (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        isValidField = false;
+                    }
+                }
+
+                if (isValidField) {
+                    statementText += `${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
+                }
             });
 
             if (validateFields) {
-                statementText += `${recVariableName}.Insert(true);\n`;
+                statementText += alObject.isTable() ? `${recVariableName}.Modify(true);\n` : `${recVariableName}.Insert(true);\n`;
             }
-            statementText += `\n`;
-        }
-
-        let fields = alTableFields.fields
-            .filter(item => item.pkIndex === 0)
-            .sort((a, b) => a.id - b.id);
-
-        fields.forEach(field => {
-            let isValidField = true;
-            if (field.properties['fieldclass']) {
-                if (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
-                    isValidField = false;
-                }
+            else {
+                statementText += `${recVariableName}.Insert(false);\n`;
             }
-
-            if (isValidField) {
-                statementText += `${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
-            }
-        });
-
-        if (validateFields) {
-            statementText += alObject.isTable() ? `${recVariableName}.Modify(true);\n` : `${recVariableName}.Insert(true);\n`;
-        }
-        else {
-            statementText += `${recVariableName}.Insert(false);\n`;
         }
     }
 
@@ -416,14 +418,14 @@ function createFieldAssignmentStatement(recVariableName: string, fieldName: stri
 
 async function askRecordVariableName(defaultName: string): Promise<string> {
     const userInput = await vscode.window.showInputBox({
-        prompt: 'Type your record variable name',
-        placeHolder: `Type your record variable name or leave blank to use the default name`,
+        prompt: 'Type the record variable name',
+        placeHolder: '',
         value: defaultName,
         validateInput: (value) => {
-            // Opzionale: aggiungi una funzione per validare l'input
             if (value.trim().length > 50) {
                 return 'Value too long';
             }
+
             return null; // Nessun errore
         }
     });
@@ -432,7 +434,7 @@ async function askRecordVariableName(defaultName: string): Promise<string> {
         return userInput;
     }
 
-    return defaultName;
+    return '';
 }
 //#endregion Record insert statement
 
@@ -456,46 +458,48 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
-        statementText = `if ${recVariableName}.Get(`;
+        if (recVariableName) {
+            statementText = `if ${recVariableName}.Get(`;
 
-        if (alObject.isTable()) {
-            let pkFields = alTableFields.fields
-                .filter(item => item.pkIndex > 0)
-                .sort((a, b) => a.pkIndex - b.pkIndex);
+            if (alObject.isTable()) {
+                let pkFields = alTableFields.fields
+                    .filter(item => item.pkIndex > 0)
+                    .sort((a, b) => a.pkIndex - b.pkIndex);
 
-            let isFirstElement = true;
-            pkFields.forEach(field => {
-                if (!isFirstElement) {
-                    statementText += ', ';
+                let isFirstElement = true;
+                pkFields.forEach(field => {
+                    if (!isFirstElement) {
+                        statementText += ', ';
+                    }
+
+                    statementText += typeHelper.toPascalCase(field.name);
+                    isFirstElement = false;
+                });
+            }
+
+            statementText += ') then begin';
+            statementText += `\n`;
+
+            let fields = alTableFields.fields
+                .filter(item => item.pkIndex === 0)
+                .sort((a, b) => a.id - b.id);
+
+            fields.forEach(field => {
+                let isValidField = true;
+                if (field.properties['fieldclass']) {
+                    if (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        isValidField = false;
+                    }
                 }
 
-                statementText += typeHelper.toPascalCase(field.name);
-                isFirstElement = false;
+                if (isValidField) {
+                    statementText += `  ${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
+                }
             });
+
+            statementText += validateFields ? `  ${recVariableName}.Modify(true);\n` : `  ${recVariableName}.Modify(false);\n`;
+            statementText += 'end;';
         }
-
-        statementText += ') then begin';
-        statementText += `\n`;
-
-        let fields = alTableFields.fields
-            .filter(item => item.pkIndex === 0)
-            .sort((a, b) => a.id - b.id);
-
-        fields.forEach(field => {
-            let isValidField = true;
-            if (field.properties['fieldclass']) {
-                if (['flowfield', 'flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
-                    isValidField = false;
-                }
-            }
-
-            if (isValidField) {
-                statementText += `  ${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
-            }
-        });
-
-        statementText += validateFields ? `  ${recVariableName}.Modify(true);\n` : `  ${recVariableName}.Modify(false);\n`;
-        statementText += 'end;';
     }
 
     if (statementText) {
@@ -536,28 +540,30 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
-        statementText = `if ${recVariableName}.Get(`;
+        if (recVariableName) {
+            statementText = `if ${recVariableName}.Get(`;
 
-        if (alObject.isTable()) {
-            let pkFields = alTableFields.fields
-                .filter(item => item.pkIndex > 0)
-                .sort((a, b) => a.pkIndex - b.pkIndex);
+            if (alObject.isTable()) {
+                let pkFields = alTableFields.fields
+                    .filter(item => item.pkIndex > 0)
+                    .sort((a, b) => a.pkIndex - b.pkIndex);
 
-            let isFirstElement = true;
-            pkFields.forEach(field => {
-                if (!isFirstElement) {
-                    statementText += ', ';
-                }
+                let isFirstElement = true;
+                pkFields.forEach(field => {
+                    if (!isFirstElement) {
+                        statementText += ', ';
+                    }
 
-                statementText += typeHelper.toPascalCase(field.name);
-                isFirstElement = false;
-            });
+                    statementText += typeHelper.toPascalCase(field.name);
+                    isFirstElement = false;
+                });
+            }
+
+            statementText += ') then begin';
+            statementText += `\n`;
+            statementText += `  ${recVariableName}.Delete(true);\n`;
+            statementText += 'end;';
         }
-
-        statementText += ') then begin';
-        statementText += `\n`;
-        statementText += `  ${recVariableName}.Delete(true);\n`;
-        statementText += 'end;';
     }
 
     if (statementText) {
