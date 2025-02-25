@@ -340,12 +340,7 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
                 .sort((a, b) => a.pkIndex - b.pkIndex);
 
             pkFields.forEach(field => {
-                if (validateFields) {
-                    statementText += `${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(field.name)}, ${typeHelper.toPascalCase(field.name)});\n`;
-                }
-                else {
-                    statementText += `${recVariableName}.${typeHelper.addQuotesIfNeeded(field.name)} := ${typeHelper.toPascalCase(field.name)};\n`;
-                }
+                statementText += `${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
             });
 
             if (validateFields) {
@@ -422,8 +417,9 @@ function createFieldAssignmentStatement(recVariableName: string, fieldName: stri
 
 async function askRecordVariableName(defaultName: string): Promise<string> {
     const userInput = await vscode.window.showInputBox({
-        prompt: 'Record variable name',
-        placeHolder: `Type record variable name or leave blank for default (${defaultName})`,
+        prompt: 'Type your record variable name',
+        placeHolder: `Type your record variable name or leave blank to use the default name`,
+        value: defaultName,
         validateInput: (value) => {
             // Opzionale: aggiungi una funzione per validare l'input
             if (value.trim().length > 50) {
