@@ -383,9 +383,8 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
         }
     }
     else {
-        vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
+        vscode.window.showErrorMessage(`Failed to create Record Insert statement for the current table`);
     }
-
 }
 
 export function copyRecordInsertStatementWithValidation(docUri?: vscode.Uri) {
@@ -508,7 +507,7 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
         }
     }
     else {
-        vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
+        vscode.window.showErrorMessage(`Failed to create Record Modify statement for the current table`);
     }
 }
 
@@ -570,7 +569,7 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
         }
     }
     else {
-        vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
+        vscode.window.showErrorMessage(`Failed to create Record Delete statement for the current table`);
     }
 }
 //#endregion Record delete statement
