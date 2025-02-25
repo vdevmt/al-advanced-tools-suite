@@ -312,8 +312,8 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
 }
 //#endregion Integration Events
 
-//#region Table Fields
-export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFields?: Boolean) {
+//#region Record insert statement
+export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFields?: boolean) {
     let document: vscode.TextDocument;
 
     if (docUri) {
@@ -330,7 +330,7 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
 
     if (alObject.isTable() || alObject.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
-        const recVariableName = typeHelper.toPascalCase(alObject.objectName);
+        const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
         statementText = `${recVariableName}.Init();\n`;
 
@@ -367,12 +367,7 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
             }
 
             if (isValidField) {
-                if (validateFields) {
-                    statementText += `${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(field.name)}, ${typeHelper.toPascalCase(field.name)});\n`;
-                }
-                else {
-                    statementText += `${recVariableName}.${typeHelper.addQuotesIfNeeded(field.name)} := ${typeHelper.toPascalCase(field.name)};\n`;
-                }
+                statementText += `${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
             }
         });
 
@@ -402,7 +397,52 @@ export function copyRecordInsertStatementWithValidation(docUri?: vscode.Uri) {
     copyRecordInsertStatement(docUri, true);
 }
 
-export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFields?: Boolean) {
+function createFieldAssignmentStatement(recVariableName: string, fieldName: string, fieldType: string, withValidate: boolean): string {
+    let statementText = '';
+
+    let fieldValue = fieldType;
+    if (fieldValue.toLowerCase().startsWith('enum ')) {
+        fieldValue = fieldValue.replace(/Enum\s+"(.*?)"/gi, 'Enum::"$1"');
+    }
+    else {
+        fieldValue = fieldValue.replace('[', '_');
+        fieldValue = fieldValue.replace(']', '');
+        fieldValue = typeHelper.toPascalCase(fieldValue);
+    }
+
+    if (withValidate) {
+        statementText += `${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(fieldName)}, ${fieldValue});`;
+    }
+    else {
+        statementText += `${recVariableName}.${typeHelper.addQuotesIfNeeded(fieldName)} := ${fieldValue};`;
+    }
+
+    return statementText;
+}
+
+async function askRecordVariableName(defaultName: string): Promise<string> {
+    const userInput = await vscode.window.showInputBox({
+        prompt: 'Record variable name',
+        placeHolder: `Type record variable name or leave blank for default (${defaultName})`,
+        validateInput: (value) => {
+            // Opzionale: aggiungi una funzione per validare l'input
+            if (value.trim().length > 50) {
+                return 'Value too long';
+            }
+            return null; // Nessun errore
+        }
+    });
+
+    if (userInput) {
+        return userInput;
+    }
+
+    return defaultName;
+}
+//#endregion Record insert statement
+
+//#region Record modify statement
+export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFields?: boolean) {
     let document: vscode.TextDocument;
 
     if (docUri) {
@@ -419,7 +459,7 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
 
     if (alObject.isTable() || alObject.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
-        const recVariableName = typeHelper.toPascalCase(alObject.objectName);
+        const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
         statementText = `if ${recVariableName}.Get(`;
 
@@ -455,12 +495,7 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
             }
 
             if (isValidField) {
-                if (validateFields) {
-                    statementText += `  ${recVariableName}.Validate(${typeHelper.addQuotesIfNeeded(field.name)}, ${typeHelper.toPascalCase(field.name)});\n`;
-                }
-                else {
-                    statementText += `  ${recVariableName}.${typeHelper.addQuotesIfNeeded(field.name)} := ${typeHelper.toPascalCase(field.name)};\n`;
-                }
+                statementText += `  ${createFieldAssignmentStatement(recVariableName, field.name, field.type, validateFields)}\n`;
             }
         });
 
@@ -489,7 +524,9 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
 export function copyRecordModifyStatementWithValidation(docUri?: vscode.Uri) {
     copyRecordModifyStatement(docUri, true);
 }
+//#endregion Record modify statement
 
+//#region Record delete statement
 export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
     let document: vscode.TextDocument;
 
@@ -507,7 +544,7 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
 
     if (alObject.isTable() || alObject.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
-        const recVariableName = typeHelper.toPascalCase(alObject.objectName);
+        const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
         statementText = `if ${recVariableName}.Get(`;
 
@@ -545,4 +582,4 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
         vscode.window.showErrorMessage(`Unable to retrieve list of fields for the current table`);
     }
 }
-//#endregion Table Fields
+//#endregion Record delete statement
