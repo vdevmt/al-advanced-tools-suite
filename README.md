@@ -62,7 +62,7 @@ These features are concluded at this moment:
 ## Special Copy
 <img src="./images/SpecialCopy.png" alt="ATS: Special copy">
 
-* Copy as Insert/Modify/Delete statement (only for table type objects)
+* Copy as Record Insert/Modify/Delete statements
 <br />
 <img src="./images/CopyAsInsertStatement.gif" alt="ATS: Copy as Insert statement">
 
