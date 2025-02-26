@@ -5,7 +5,7 @@
     - `Copy as Record Insert statement`: Quickly create Insert statements for AL tables
     - `Copy as Record Modify statement`: Quickly create Modify statements for AL tables
     - `Copy as Record Delete statement`: Quickly create Delete statements for AL tables
-- `Copy as Event Subscriber:` enhancements: Create event subscribers also for table and page fields 
+- `Copy as Event Subscriber:` enhancements: Create event subscribers also from table and page fields 
 
 ## [1.3.30]
 - New feature: `Copy as Event Subscriber:`: Quickly create event subscribers for AL Objects
