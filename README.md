@@ -70,6 +70,8 @@ These features are concluded at this moment:
 <br />
 <img src="./images/CopyAsEventSubscriber.gif" alt="ATS: Copy as Event Subscriber">
 
+<img src="./images/CopyAsEventSubscriber_Field.gif" alt="ATS: Copy Field as Event Subscriber">
+
 
 ## launch.json manager
 Store all launch.json files in a local or shared folder and select which one to use for the current project.<br />

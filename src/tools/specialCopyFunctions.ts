@@ -259,7 +259,7 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
     if (scope === 'table') {
         let eventSubscrText = `[EventSubscriber(ObjectType::${alObject.objectType}`;
         eventSubscrText += `, ${objectType2}::${sourceObjectName}`;
-        eventSubscrText += `, 'OnAfterModifyEvent', '}', false, false)]\n`;
+        eventSubscrText += `, 'OnAfterModifyEvent', '', false, false)]\n`;
 
         eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_OnAfterModifyEvent(var Rec: Record ${sourceObjectName}; var xRec: Record ${sourceObjectName})\n`;
         eventSubscrText += 'begin\n\n';
