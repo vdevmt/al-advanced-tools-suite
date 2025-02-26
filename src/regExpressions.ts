@@ -52,8 +52,9 @@ export const codeunitTrigger = /^trigger\s+(OnRun|OnInstallAppPerCompany|OnInsta
 
 // Procedure
 export const procedure = /^(local|internal)?\s*procedure\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?\(/i;
-export const integrationEventDef = /^\s*\[IntegrationEvent\(/i;
-export const businessEventDef = /^\s*\[BusinessEvent\(/i;
+export const integrationEvent = /^\s*\[IntegrationEvent\(/i;
+export const integrationEventDefinition = /\[(IntegrationEvent\(([^)]+)\))\]\s*(local|internal|)\s*procedure\s+(\w+)\(([^)]*)\)/i;
+export const businessEvent = /^\s*\[BusinessEvent\(/i;
 export const eventSubscriber = /^\[EventSubscriber\(\s*ObjectType::([^,]+),\s*([^:]+::"?[^,]+"?|[0-9]+),\s*'([^']+)',\s*'(.*?)',\s*(true|false),\s*(true|false)\s*\)\]/i;
 
 // Variables

@@ -89,9 +89,9 @@ function makeTooltip(alObject: ALObject, objectInfoText: string): vscode.Markdow
                 markdownTooltip.appendText('\n');
                 markdownTooltip.appendMarkdown(`Page Type: ${alObject.properties['pagetype']}`);
             }
-            if (alObject.properties['sourcetable']) {
+            if (alObject.sourceTableName) {
                 markdownTooltip.appendText('\n');
-                markdownTooltip.appendMarkdown(`Source Table: ${alObject.properties['sourcetable']}`);
+                markdownTooltip.appendMarkdown(`Source Table: ${typeHelper.addQuotesIfNeeded(alObject.sourceTableName)}`);
             }
         }
         if (alObject.isReport()) {

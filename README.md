@@ -58,12 +58,19 @@ These features are concluded at this moment:
 <br />
 <img src="./images/OpenALObjects.png" alt="ATS: open objects">
 
+
 ## Special Copy
+<img src="./images/SpecialCopy.png" alt="ATS: Special copy">
+
+* Copy as Record Insert/Modify/Delete statements
+<br />
+<img src="./images/CopyAsInsertStatement.gif" alt="ATS: Copy as Insert statement">
 
 * Copy as Event Subscriber
 <br />
 <img src="./images/CopyAsEventSubscriber.gif" alt="ATS: Copy as Event Subscriber">
 
+<img src="./images/CopyAsEventSubscriber_Field.gif" alt="ATS: Copy Field as Event Subscriber">
 
 
 ## launch.json manager

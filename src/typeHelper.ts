@@ -4,7 +4,7 @@ export function toPascalCase(text: string): string {
         return text
             .replace(/([-_. ]+)([a-z])/g, (_, __, letter) => letter.toUpperCase())      // Uppercase after separators
             .replace(/^[a-z]/, letter => letter.toUpperCase())                          // Uppercase first letter
-            .replace(/[-_.,;/&%\/() ]+/g, '');                                              // Remove separators and special characters
+            .replace(/[-_.,;/&%\/()/" ]+/g, '');                                        // Remove separators and special characters
     }
 
     return text;
@@ -23,6 +23,10 @@ export function addQuotesIfNeeded(text: string): string {
     }
 
     return text;
+}
+
+export function removeQuotes(text: string): string {
+    return text.replace(/"/g, '');
 }
 //#endregion String
 
