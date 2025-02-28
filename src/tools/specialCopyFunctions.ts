@@ -130,7 +130,7 @@ export function copySelectionAsEventSubscriber() {
 
                     if (eventStartPos < 0) {
                         if (selection.start.line === selection.end.line) {
-                            if (alObject.isTable() || alObject.isTableExt()) {
+                            if (isValidObjectTypeForSubscription(alObject)) {
                                 eventStartPos = 0;
                             }
                         }
@@ -152,6 +152,24 @@ export function copySelectionAsEventSubscriber() {
     else {
         copyAsEventSubscriber(alObject, '');
     }
+}
+
+function isValidObjectTypeForSubscription(alObject: ALObject): boolean {
+    if (alObject) {
+        if (alObject.isTable() ||
+            alObject.isTableExt() ||
+            alObject.isCodeunit() ||
+            alObject.isPage() ||
+            alObject.isPageExt() ||
+            alObject.isQuery() ||
+            alObject.isReport() ||
+            alObject.isReportExt() ||
+            alObject.isXmlPort()
+        ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function getFullEventDeclaration(document: vscode.TextDocument, startLine: number): string {
@@ -195,8 +213,8 @@ export async function copyAsEventSubscriber(alObject: ALObject, sourceText: stri
     }
 
     if (scope === '') {
-        if (alObject.isTable() || alObject.isTableExt()) {
-            scope = 'table';
+        if (isValidObjectTypeForSubscription(alObject)) {
+            scope = 'object';
         }
     }
 
@@ -256,12 +274,27 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
             return eventSubscrText;
         }
     }
-    if (scope === 'table') {
+    if (scope === 'object') {
+        let defaultEventName = 'EventName';
+        let defaultElementName = 'ElementName';
+        let defaultArgs = '';
+        if (alObject.isTable() || alObject.isTableExt()) {
+            defaultEventName = 'OnAfterModifyEvent';
+            defaultElementName = '';
+            defaultArgs = `var Rec: Record ${sourceObjectName}; var xRec: Record ${sourceObjectName}`;
+        }
+
+        if (alObject.isCodeunit()) {
+            defaultElementName = '';
+        }
+
         let eventSubscrText = `[EventSubscriber(ObjectType::${alObject.objectType}`;
         eventSubscrText += `, ${objectType2}::${sourceObjectName}`;
-        eventSubscrText += `, 'OnAfterModifyEvent', '', false, false)]\n`;
+        eventSubscrText += `, '${defaultEventName}', '${defaultElementName}', false, false)]\n`;
 
-        eventSubscrText += `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_OnAfterModifyEvent(var Rec: Record ${sourceObjectName}; var xRec: Record ${sourceObjectName})\n`;
+        eventSubscrText += defaultElementName ?
+            `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_${defaultElementName}_${defaultEventName}(${defaultArgs})\n` :
+            `local procedure ${typeHelper.toPascalCase(sourceObjectName)}_${defaultEventName}(${defaultArgs})\n`;
         eventSubscrText += 'begin\n\n';
         eventSubscrText += 'end;';
 
@@ -304,7 +337,6 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
             eventSubscrText += 'end;';
 
             return eventSubscrText;
-
         }
     }
 
