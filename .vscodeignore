@@ -18,5 +18,7 @@ vsc-extension-quickstart.md
 jsconfig.json
 tsconfig.json
 
-
+node_modules/**
+out/**
+**/esbuild.js
 
