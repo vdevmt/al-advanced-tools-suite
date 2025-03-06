@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.4.0]
+- Performance enhancements
+
 ## [1.3.33]
 - New features: 
     - `Copy as Record Insert statement`: Quickly create Insert statements for AL tables
