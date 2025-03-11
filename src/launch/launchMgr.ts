@@ -145,7 +145,7 @@ export async function runBusinessCentral() {
     selectAndRunBusinessCentral(false);
 }
 
-export function changerStartupObjectAndRunBusinessCentral() {
+export function changeStartupObjectAndRunBusinessCentral() {
     const editor = vscode.window.activeTextEditor;
 
     if (alFileMgr.isALObjectDocument(editor.document)) {

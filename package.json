@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -40,9 +40,18 @@
       {
         "language": "al",
         "command": "ats.copyAsEventSubscriber"
+      },
+      {
+        "language": "al",
+        "command": "ats.setNamespaceByFilePath"
       }
     ],
     "commands": [
+      {
+        "command": "ats.alPackageNewAppVersion",
+        "title": "AL Package new app version",
+        "category": "ATS"
+      },
       {
         "command": "ats.importLaunchFile",
         "title": "Import 'launch.json'",
@@ -64,7 +73,7 @@
         "category": "ATS"
       },
       {
-        "command": "ats.changerStartupObjectAndRunBusinessCentral",
+        "command": "ats.changeStartupObjectAndRunBusinessCentral",
         "title": "Change default startup object and run Business Central",
         "category": "ATS"
       },
@@ -328,7 +337,7 @@
         "key": "ctrl+f6"
       },
       {
-        "command": "ats.changerStartupObjectAndRunBusinessCentral",
+        "command": "ats.changeStartupObjectAndRunBusinessCentral",
         "key": "ctrl+shift+f6"
       }
     ]
@@ -360,5 +369,8 @@
     "typescript": "^5.6.3",
     "jsonc-parser": "^3.3.1"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "extensionDependencies": [
+    "ms-dynamics-smb.al"
+  ]
 }

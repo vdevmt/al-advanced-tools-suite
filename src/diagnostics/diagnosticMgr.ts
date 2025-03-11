@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as namespaceMgr from '../alObject/alObjectNamespaceMgr';
 
+//#region Diagnostics
 export const DIAGNOSTIC_CODE = {
     NAMESPACE: {
         UNEXPECTED: "ATS100",
@@ -35,7 +36,7 @@ export function CreateDiagnostic(range: vscode.Range, code: string, message: str
 }
 
 
-export function subscribeToDocumentChanges(context: vscode.ExtensionContext, atsDiagnostics: vscode.DiagnosticCollection) {
+export async function subscribeToDocumentChanges(context: vscode.ExtensionContext, atsDiagnostics: vscode.DiagnosticCollection) {
     if (diagnosticRulesEnabled()) {
         if (vscode.window.activeTextEditor) {
             refreshDiagnostics(vscode.window.activeTextEditor.document, atsDiagnostics);
@@ -59,14 +60,12 @@ export function subscribeToDocumentChanges(context: vscode.ExtensionContext, ats
     }
 }
 
-function refreshDiagnostics(document: vscode.TextDocument, atsDiagnostics: vscode.DiagnosticCollection) {
-    const diagnostics: vscode.Diagnostic[] = [];
+async function refreshDiagnostics(document: vscode.TextDocument, atsDiagnostics: vscode.DiagnosticCollection) {
+    atsDiagnostics.delete(document.uri);
 
     if (alFileMgr.isALObjectDocument(document)) {
         namespaceMgr.ValidateObjectNamespace(document, atsDiagnostics);
     }
-
-    atsDiagnostics.set(document.uri, diagnostics);
 }
 
 export async function ValidateAllFiles(collection: vscode.DiagnosticCollection) {
@@ -80,3 +79,5 @@ export async function ValidateAllFiles(collection: vscode.DiagnosticCollection) 
         }
     }
 }
+
+//#endregion Diagnostics
