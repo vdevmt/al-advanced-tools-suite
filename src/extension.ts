@@ -16,7 +16,7 @@ let regionPathSBDebounceTimeout = null;
 
 export function activate(context: vscode.ExtensionContext) {
     //#region app.json tools
-    context.subscriptions.push(vscode.commands.registerCommand('ats.alPackageNewAppVersion', appInfo.packageNewVersion));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.alPackageNewVersion', appInfo.packageNewVersion));
     //#endregion app.json tools
 
     //#region launch.json tools
@@ -70,6 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion Region tools
 
     //#region Namespace tools
+    context.subscriptions.push(vscode.commands.registerCommand('ats.setObjectNamespace', namespaceMgr.setObjectNamespace));
     context.subscriptions.push(vscode.commands.registerCommand('ats.setNamespaceByFilePath', namespaceMgr.setNamespaceByFilePath));
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider(), " "));
 
@@ -92,13 +93,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Scansiona tutti i file AL nel workspace all'avvio
     diagnosticMgr.ValidateAllFiles(diagnosticCollection);
-
-    // Elimina warnings dopo eliminazione del file
-    context.subscriptions.push(vscode.workspace.onDidDeleteFiles((e) => {
-        e.files.forEach(file => {
-            diagnosticCollection.delete(file);
-        })
-    }));
     //#endregion Diagnostic Rules
 
     //#region AL Object Info Status Bar

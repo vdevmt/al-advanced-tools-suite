@@ -32,24 +32,28 @@
   "license": "MIT",
   "activationEvents": [
     "onLanguage:al",
-    "workspaceContains:/.objidconfig"
+    "workspaceContains:**/*.al"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "codeActions": [
       {
         "language": "al",
-        "command": "ats.copyAsEventSubscriber"
+        "kind": "quickfix",
+        "title": "Copy as Event Subscriber",
+        "command": "ats.copySelectionAsEventSubscriber"
       },
       {
         "language": "al",
-        "command": "ats.setNamespaceByFilePath"
+        "kind": "quickfix",
+        "title": "Set object namespace",
+        "command": "ats.setObjectNamespace"
       }
     ],
     "commands": [
       {
-        "command": "ats.alPackageNewAppVersion",
-        "title": "AL Package new app version",
+        "command": "ats.alPackageNewVersion",
+        "title": "AL Package new version",
         "category": "ATS"
       },
       {
@@ -339,6 +343,10 @@
       {
         "command": "ats.changeStartupObjectAndRunBusinessCentral",
         "key": "ctrl+shift+f6"
+      },
+      {
+        "command": "ats.alPackageNewVersion",
+        "key": "ctrl+shift+v"
       }
     ]
   },

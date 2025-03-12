@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as jsonc from 'jsonc-parser';
 import * as externalTools from './externalTools';
 
 export async function packageNewVersion() {
@@ -31,8 +30,13 @@ async function increaseAppVersion(): Promise<Boolean> {
     }
 
     // Find current version
-    let jsonErrors: any[] = [];
-    const appInfo = jsonc.parse(fileContent, jsonErrors, { allowTrailingComma: true });
+    let appInfo: any;
+    try {
+        appInfo = JSON.parse(fileContent);
+    } catch (error) {
+        vscode.window.showErrorMessage('Invalid JSON format in app.json file.');
+        return;
+    }
 
     const currentVersion = appInfo.version;
     if (!currentVersion || !/^\d+\.\d+\.\d+\.\d+$/.test(currentVersion)) {
@@ -78,22 +82,12 @@ async function increaseAppVersion(): Promise<Boolean> {
     if (newVersion) {
         if (newVersion !== currentVersion) {
             // Update the version in JSON content
-            const edits = jsonc.modify(fileContent, ['version'], newVersion, {
-                formattingOptions: {
-                    insertSpaces: true,
-                    tabSize: 4,
-                },
-            });
-
-            // Apply the edits to the original file content
-            const updatedContent = jsonc.applyEdits(fileContent, edits);
-
+            appInfo.version = newVersion;
             try {
-                fs.writeFileSync(filePath, updatedContent, 'utf8');
+                fs.writeFileSync(filePath, JSON.stringify(appInfo, null, 4), 'utf8');
                 vscode.window.showInformationMessage(`Version updated to ${newVersion}`);
             } catch (error) {
                 vscode.window.showErrorMessage(`Failed to write app.json file: ${error}`);
-                return false;
             }
         }
 

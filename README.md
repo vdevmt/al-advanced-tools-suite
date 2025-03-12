@@ -13,6 +13,12 @@ If you want to support my work:
 # Features
 These features are concluded at this moment:
 
+## AL Package new version
+Automate the versioning process for your Business Central apps with the command `ATS: AL Package new version` 
+
+<br />
+<img src="./images/ALPackageNewVersion.png" alt="AL Package new version">
+
 ## AL Object Explorer
 * Info and statistics of the current AL Object in status bar
 <br />
