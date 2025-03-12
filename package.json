@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.4.2",
+  "version": "1.4.4",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -338,15 +338,18 @@
     "keybindings": [
       {
         "command": "ats.runBusinessCentral",
-        "key": "ctrl+f6"
+        "key": "ctrl+f6",
+        "when": "atsExtensionActive"
       },
       {
         "command": "ats.changeStartupObjectAndRunBusinessCentral",
-        "key": "ctrl+shift+f6"
+        "key": "ctrl+shift+f6",
+        "when": "atsExtensionActive"
       },
       {
         "command": "ats.alPackageNewVersion",
-        "key": "ctrl+shift+v"
+        "key": "ctrl+shift+v",
+        "when": "atsExtensionActive"
       }
     ]
   },
