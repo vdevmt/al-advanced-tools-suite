@@ -15,6 +15,10 @@ import { ALObject } from './alObject/alObject';
 let regionPathSBDebounceTimeout = null;
 
 export function activate(context: vscode.ExtensionContext) {
+    //#region extension status
+    vscode.commands.executeCommand('setContext', 'atsExtensionActive', true);
+    //#endregion extension status
+
     //#region app.json tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.alPackageNewVersion', appInfo.packageNewVersion));
     //#endregion app.json tools
@@ -188,4 +192,9 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion Special Copy
 }
 
-export function deactivate() { }
+export function deactivate() {
+    vscode.commands.executeCommand('setContext', 'atsExtensionActive', false);
+
+    vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
+    vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+}
