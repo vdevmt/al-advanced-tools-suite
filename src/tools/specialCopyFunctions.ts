@@ -6,7 +6,7 @@ import * as typeHelper from '../typeHelper';
 import { ALObject, ALObjectFields } from '../alObject/alObject';
 
 //#region Integration Events
-export class EventIntegrationCodeActionProvider implements vscode.CodeActionProvider {
+export class AtsEventIntegrationCodeActionProvider implements vscode.CodeActionProvider {
     static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
     provideCodeActions(

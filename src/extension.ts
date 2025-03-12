@@ -7,12 +7,18 @@ import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
 import * as namespaceMgr from './alObject/alObjectNamespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 import *  as specialCopyFunct from './tools/specialCopyFunctions';
-import { EventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
+import *  as appInfo from './tools/appInfo';
+import { AtsEventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
+import { AtsNameSpaceDiagnosticsCodeActionProvider } from './alObject/alObjectNamespaceMgr';
 import { ALObject } from './alObject/alObject';
 
 let regionPathSBDebounceTimeout = null;
 
 export function activate(context: vscode.ExtensionContext) {
+    //#region app.json tools
+    context.subscriptions.push(vscode.commands.registerCommand('ats.alPackageNewVersion', appInfo.packageNewVersion));
+    //#endregion app.json tools
+
     //#region launch.json tools
     context.subscriptions.push(vscode.commands.registerCommand('ats.importLaunchFile', launchMgr.importLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportLaunchFile', launchMgr.exportLaunchFile));
@@ -56,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     //#region Run Business Central       
     context.subscriptions.push(vscode.commands.registerCommand('ats.runBusinessCentral', launchMgr.runBusinessCentral));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.changerStartupObjectAndRunBusinessCentral', launchMgr.changerStartupObjectAndRunBusinessCentral));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.changeStartupObjectAndRunBusinessCentral', launchMgr.changeStartupObjectAndRunBusinessCentral));
     //#endregion Run Business Central
 
     //#region Region tools
@@ -64,8 +70,19 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion Region tools
 
     //#region Namespace tools
+    context.subscriptions.push(vscode.commands.registerCommand('ats.setObjectNamespace', namespaceMgr.setObjectNamespace));
     context.subscriptions.push(vscode.commands.registerCommand('ats.setNamespaceByFilePath', namespaceMgr.setNamespaceByFilePath));
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider('al', new namespaceMgr.NamespaceCompletionProvider(), " "));
+
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            { language: 'al', scheme: 'file' },
+            new AtsNameSpaceDiagnosticsCodeActionProvider(),
+            {
+                providedCodeActionKinds: AtsNameSpaceDiagnosticsCodeActionProvider.providedCodeActionKinds,
+            }
+        )
+    );
     //#endregion Namespace tools
 
     //#region Diagnostic Rules
@@ -153,9 +170,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(
             { language: 'al', scheme: 'file' },
-            new EventIntegrationCodeActionProvider(),
+            new AtsEventIntegrationCodeActionProvider(),
             {
-                providedCodeActionKinds: EventIntegrationCodeActionProvider.providedCodeActionKinds,
+                providedCodeActionKinds: AtsEventIntegrationCodeActionProvider.providedCodeActionKinds,
             }
         )
     );

@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.4.2]
+- New command: `ATS: AL Package new version`: Automate the versioning process for your Business Central apps
+
 ## [1.4.0]
 - Performance enhancements
 

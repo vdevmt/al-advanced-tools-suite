@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.4.0",
+  "version": "1.4.2",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -32,17 +32,30 @@
   "license": "MIT",
   "activationEvents": [
     "onLanguage:al",
-    "workspaceContains:/.objidconfig"
+    "workspaceContains:**/*.al"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "codeActions": [
       {
         "language": "al",
-        "command": "ats.copyAsEventSubscriber"
+        "kind": "quickfix",
+        "title": "Copy as Event Subscriber",
+        "command": "ats.copySelectionAsEventSubscriber"
+      },
+      {
+        "language": "al",
+        "kind": "quickfix",
+        "title": "Set object namespace",
+        "command": "ats.setObjectNamespace"
       }
     ],
     "commands": [
+      {
+        "command": "ats.alPackageNewVersion",
+        "title": "AL Package new version",
+        "category": "ATS"
+      },
       {
         "command": "ats.importLaunchFile",
         "title": "Import 'launch.json'",
@@ -64,7 +77,7 @@
         "category": "ATS"
       },
       {
-        "command": "ats.changerStartupObjectAndRunBusinessCentral",
+        "command": "ats.changeStartupObjectAndRunBusinessCentral",
         "title": "Change default startup object and run Business Central",
         "category": "ATS"
       },
@@ -328,8 +341,12 @@
         "key": "ctrl+f6"
       },
       {
-        "command": "ats.changerStartupObjectAndRunBusinessCentral",
+        "command": "ats.changeStartupObjectAndRunBusinessCentral",
         "key": "ctrl+shift+f6"
+      },
+      {
+        "command": "ats.alPackageNewVersion",
+        "key": "ctrl+shift+v"
       }
     ]
   },
@@ -360,5 +377,8 @@
     "typescript": "^5.6.3",
     "jsonc-parser": "^3.3.1"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "extensionDependencies": [
+    "ms-dynamics-smb.al"
+  ]
 }
