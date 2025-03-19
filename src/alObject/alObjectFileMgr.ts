@@ -297,7 +297,7 @@ export function extractElementDefinitionFromObjectText(objectText: string, start
                     // Nel caso di Codeunit, ad esempio, non esistono sezioni di dettaglio aperte con {
                     // quindi mi fermo in presenza di una procedure o altro
                     const resultNormalized = result.replace(/\r?\n|\r/g, " ").trim();
-                    const childStartRegex = /\s*(procedure|local procedure|internal procedure|begin|#region|\[)\s*$/i;
+                    const childStartRegex = /\s*(procedure|local procedure|internal procedure|protected procedure|begin|#region|\[)\s*$/i;
                     if (childStartRegex.test(resultNormalized)) {
                         break;
                     }
@@ -2443,9 +2443,10 @@ export function findObjectProcedures(alObject: ALObject, alObjectProcedures: ALO
                                 let symbol = (insideIntegrationEventDecl || insideBusinessEventDecl) ? 'symbol-event' :
                                     insideEventSubscription ? 'plug' :
                                         procedureInfo.scope === 'global' ? 'symbol-function' :
-                                            procedureInfo.scope === 'local' ? 'shield' :
-                                                procedureInfo.scope === 'internal' ? 'symbol-variable' :
-                                                    'symbol-function';
+                                            procedureInfo.scope === 'protected' ? 'symbol-function' :
+                                                procedureInfo.scope === 'local' ? 'shield' :
+                                                    procedureInfo.scope === 'internal' ? 'symbol-variable' :
+                                                        'symbol-function';
 
                                 if (procedureInfo.name) {
                                     const lineRegionPath = alRegionMgr.findOpenRegionsPathByDocLine(alObjectRegions, lineNumber);
@@ -2846,7 +2847,7 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                 const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
                 if (!commentedLine) {
                     // Controlla se siamo in una sezione "procedure" o "trigger"
-                    if (/^(local|internal)?\s*(procedure|trigger)\b/.test(lineText)) {
+                    if (/^(local|internal|protected)?\s*(procedure|trigger)\b/.test(lineText)) {
                         insideProcedureOrTrigger = true;
                         insideGlobalVarSection = false;
                         return;
@@ -2862,6 +2863,15 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
                         insideGlobalVarSection = true;
                         return;
                     }
+
+                    if (!insideGlobalVarSection) {
+                        // Controlla se siamo in una sezione "protected var" globale
+                        if (/^protected var\s*$/.test(lineText) && !insideProcedureOrTrigger) {
+                            insideGlobalVarSection = true;
+                            return;
+                        }
+                    }
+
                     // Controlla se siamo usciti dalla sezione globale
                     if (/^(procedure|trigger|begin)\b/.test(lineText)) {
                         insideGlobalVarSection = false;

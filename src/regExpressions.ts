@@ -51,7 +51,7 @@ export const queryColumnDefinition = /(column|filter)\s*\(\s*([^;]+)\s*;\s*([^;]
 export const codeunitTrigger = /^trigger\s+(OnRun|OnInstallAppPerCompany|OnInstallAppPerDatabase)\s*\(.*\)/i;
 
 // Procedure
-export const procedure = /^(local|internal)?\s*procedure\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?\(/i;
+export const procedure = /^(local|internal|protected)?\s*procedure\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?\(/i;
 export const integrationEvent = /^\s*\[IntegrationEvent\(/i;
 export const integrationEventDefinition = /\[(IntegrationEvent\(([^)]+)\))\]\s*(local|internal|)\s*procedure\s+(\w+)\(([^)]*)\)/i;
 export const businessEvent = /^\s*\[BusinessEvent\(/i;

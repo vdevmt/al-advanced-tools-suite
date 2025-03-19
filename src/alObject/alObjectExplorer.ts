@@ -1013,7 +1013,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
             }
         }
 
-        vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
+        vscode.window.showInformationMessage(`No global variables found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
 //#endregion AL Object Variables
