@@ -168,8 +168,15 @@ export class ALObject {
             this.extendedObjectId = this.extendedObjectId.trim().toString();
             this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
 
-            let objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
-            alFileMgr.findAllProperties(objectDefTxt, this.properties);
+            let objectDefTxt = '';
+            if (["permissionset", "permissionsetextension", "profile", "controladdin"].includes(this.objectType.toLowerCase())) {
+                objectDefTxt = objectTxt;
+            }
+            else {
+                objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
+            }
+
+            alFileMgr.findObjectProperties(this.objectType, objectDefTxt, this.properties);
 
             if (this.isPage()) {
                 if (this.properties['sourcetable']) {
@@ -270,6 +277,13 @@ export class ALObject {
     public isEntitlement(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'entitlement');
+        }
+
+        return false;
+    }
+    public isPermissionSet(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'permissionset');
         }
 
         return false;

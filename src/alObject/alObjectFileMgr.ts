@@ -370,7 +370,7 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                             // Ricerca proprietà 
                             const fieldBody = removeCommentedLines(match[4].trim());
                             const properties: { [key: string]: string } = {};
-                            findAllProperties(fieldBody, properties);
+                            findSymbolProperties(fieldBody, properties);
 
                             // Cerco la posizione dell'oggetto trovato
                             const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
@@ -401,7 +401,7 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                                 // Ricerca proprietà 
                                 const fieldBody = removeCommentedLines(match[2].trim());
                                 const properties: { [key: string]: string } = {};
-                                findAllProperties(fieldBody, properties);
+                                findSymbolProperties(fieldBody, properties);
 
                                 // Cerco la posizione dell'oggetto trovato
                                 const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
@@ -493,7 +493,7 @@ export function findTableKeys(alObject: ALObject, alTableKeys: ALTableKeys) {
                             // Ricerca proprietà 
                             const keyBody = match[3].trim();
                             const properties: { [key: string]: string } = {};
-                            findAllProperties(keyBody, properties);
+                            findSymbolProperties(keyBody, properties);
 
                             alTableKeys.keys.push({
                                 name: keyName,
@@ -710,7 +710,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                     if (currentLevel === 0) {
                                         const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(fieldGroupBody, properties);
+                                        findSymbolProperties(fieldGroupBody, properties);
 
                                         alPageFields.fields.push({
                                             name: fieldGroupInfo.name,
@@ -731,7 +731,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                     // Ricerca proprietà 
                                     const fieldBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                     const properties: { [key: string]: string } = {};
-                                    findAllProperties(fieldBody, properties);
+                                    findSymbolProperties(fieldBody, properties);
 
                                     alPageFields.fields.push({
                                         name: fieldInfo.name,
@@ -752,7 +752,7 @@ export function findPageFields(alObject: ALObject, alPageFields: ALObjectFields)
                                             // Ricerca proprietà 
                                             const fieldBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                             const properties: { [key: string]: string } = {};
-                                            findAllProperties(fieldBody, properties);
+                                            findSymbolProperties(fieldBody, properties);
 
                                             alPageFields.fields.push({
                                                 name: fieldInfo.name,
@@ -914,7 +914,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
 
                                         const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(actionGroupBody, properties);
+                                        findSymbolProperties(actionGroupBody, properties);
 
                                         alPageActions.actions.push({
                                             kind: 'group',
@@ -939,7 +939,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                         // Ricerca proprietà 
                                         const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(actionBody, properties);
+                                        findSymbolProperties(actionBody, properties);
 
                                         alPageActions.actions.push({
                                             kind: 'action',
@@ -1206,7 +1206,7 @@ export function findReportDataitems(alObject: ALObject, alReportDataitems: ALObj
                                                     let elementDefinition = regExpr.reportDataitemDefinition.exec(lastEntry.fullText);
                                                     if (elementDefinition) {
                                                         let elementDefinitionText = elementDefinition[0];
-                                                        findAllProperties(elementDefinitionText, properties);
+                                                        findSymbolProperties(elementDefinitionText, properties);
                                                     }
                                                 }
                                                 // Aggiungo il l'elemento alla lista
@@ -1295,7 +1295,7 @@ export function findReportColumns(alObject: ALObject, alReportColumns: ALObjectF
                             // Ricerca proprietà 
                             const fieldBody = match[3].trim();
                             const properties: { [key: string]: string } = {};
-                            findAllProperties(fieldBody, properties);
+                            findSymbolProperties(fieldBody, properties);
 
                             // Cerco la posizione dell'oggetto trovato
                             const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
@@ -1382,7 +1382,7 @@ export function findRequestPageFields(alObject: ALObject, alReqPageFields: ALObj
                                         if (currentLevel === 0) {
                                             const fieldGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                             const properties: { [key: string]: string } = {};
-                                            findAllProperties(fieldGroupBody, properties);
+                                            findSymbolProperties(fieldGroupBody, properties);
 
                                             alReqPageFields.fields.push({
                                                 name: fieldGroupInfo.name,
@@ -1404,7 +1404,7 @@ export function findRequestPageFields(alObject: ALObject, alReqPageFields: ALObj
                                         // Ricerca proprietà 
                                         const fieldBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(fieldBody, properties);
+                                        findSymbolProperties(fieldBody, properties);
 
                                         alReqPageFields.fields.push({
                                             name: fieldInfo.name,
@@ -1496,7 +1496,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
 
                                         const actionGroupBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(actionGroupBody, properties);
+                                        findSymbolProperties(actionGroupBody, properties);
 
                                         alPageActions.actions.push({
                                             kind: 'group',
@@ -1521,7 +1521,7 @@ export function findRequestPageActions(alObject: ALObject, alPageActions: ALObje
                                         // Ricerca proprietà 
                                         const actionBody = extractElementDefinitionFromObjectTextArray(lines, linePos, false);
                                         const properties: { [key: string]: string } = {};
-                                        findAllProperties(actionBody, properties);
+                                        findSymbolProperties(actionBody, properties);
 
                                         alPageActions.actions.push({
                                             kind: 'action',
@@ -1863,7 +1863,7 @@ export function findQueryDataitems(alObject: ALObject, alQueryDataitems: ALObjec
                                                     let elementDefinition = regExpr.queryDataitemDefinition.exec(lastEntry.fullText);
                                                     if (elementDefinition) {
                                                         let elementDefinitionText = elementDefinition[0];
-                                                        findAllProperties(elementDefinitionText, properties);
+                                                        findSymbolProperties(elementDefinitionText, properties);
                                                     }
                                                 }
                                                 // Aggiungo il l'elemento alla lista
@@ -1952,7 +1952,7 @@ export function findQueryColumns(alObject: ALObject, alQueryColumns: ALObjectFie
                             // Ricerca proprietà 
                             const fieldBody = match[4].trim();
                             const properties: { [key: string]: string } = {};
-                            findAllProperties(fieldBody, properties);
+                            findSymbolProperties(fieldBody, properties);
 
                             // Cerco la posizione dell'oggetto trovato
                             const searchText = match[0].split('\n')[0].replace('\r', '');  // Rimuove il carriage return \r
@@ -2703,11 +2703,35 @@ export function isFieldTriggerDefinition(alObject: ALObject, lineText: string, t
 //#endregion Triggers
 
 //#region Element Properties
-export function findAllProperties(elementDefinitionText: string, properties: { [key: string]: string }) {
+export function findObjectProperties(objectType: string, objectDefinitionText: string, properties: { [key: string]: string }) {
     const propertiesRegex = regExpr.objectProperties;
 
     let propMatch: RegExpExecArray | null;
-    let singleLineDefText = elementDefinitionText.replace(/[\n\r]/g, '');  // Definizione su singola riga senza \n e \r
+    let singleLineDefText = objectDefinitionText.replace(/[\n\r]/g, '');  // Definizione su singola riga senza \n e \r
+    singleLineDefText = singleLineDefText.replace(/\s+/g, ' '); // Riduco il numero di spazi tra una stringa e l'altra 
+
+    while ((propMatch = propertiesRegex.exec(singleLineDefText)) !== null) {
+        let name = propMatch[1].trim().toLowerCase();
+        if ((objectType.toLowerCase() === 'permissionset') && (name.toLowerCase() === 'permissions')) {
+            continue;
+        }
+
+        let value = propMatch[2].trim();
+
+        // Prendo solo il valore tra apici (es Caption = 'Caption', locked=true;)
+        const match = value.match(/^'([^']+)'/);
+        if (match) {
+            value = match[1];
+        }
+
+        properties[name] = value;
+    }
+}
+export function findSymbolProperties(symbolDefinitionText: string, properties: { [key: string]: string }) {
+    const propertiesRegex = regExpr.objectProperties;
+
+    let propMatch: RegExpExecArray | null;
+    let singleLineDefText = symbolDefinitionText.replace(/[\n\r]/g, '');  // Definizione su singola riga senza \n e \r
     singleLineDefText = singleLineDefText.replace(/\s+/g, ' '); // Riduco il numero di spazi tra una stringa e l'altra 
 
     while ((propMatch = propertiesRegex.exec(singleLineDefText)) !== null) {
