@@ -17,7 +17,7 @@ export class AtsEventIntegrationCodeActionProvider implements vscode.CodeActionP
     ): vscode.CodeAction[] | undefined {
         try {
             if (alFileMgr.isALObjectDocument(document)) {
-                let alObject = new ALObject(document);
+                let alObject = new ALObject(document, true);
                 if (alObject && alObject.objectName) {
                     let startPosition = findCodeActionsStartPosByCurrentLine(document, range.start.line);
                     if (startPosition > 0) {
@@ -51,7 +51,7 @@ function findCodeActionsStartPosByCurrentLine(document: vscode.TextDocument, cur
 
     if (document && (currentLine > 0)) {
         if (alFileMgr.isALObjectDocument(document)) {
-            let alObject = new ALObject(document);
+            let alObject = new ALObject(document, true);
             if (alObject && alObject.objectName) {
                 let currentLineText = document.lineAt(currentLine).text.trim();
 
@@ -93,7 +93,7 @@ export function copySelectionAsEventSubscriber() {
     const document = editor.document;
     let eventStartPos = -1;
 
-    const alObject = new ALObject(document);
+    const alObject = new ALObject(document, true);
 
     if (editor.selections) {
         editor.selections.forEach(selection => {
@@ -356,7 +356,7 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
         document = editor.document;
     }
 
-    const alObject = new ALObject(document);
+    const alObject = new ALObject(document, true);
 
     let statementText = '';
 
@@ -482,7 +482,7 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
         document = editor.document;
     }
 
-    const alObject = new ALObject(document);
+    const alObject = new ALObject(document, true);
 
     let statementText = '';
 
@@ -564,7 +564,7 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    const alObject = new ALObject(document);
+    const alObject = new ALObject(document, true);
 
     let statementText = '';
 

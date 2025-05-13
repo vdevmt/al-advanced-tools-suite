@@ -36,7 +36,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
         const document = editor.document;
 
         if (alFileMgr.isALObjectDocument(document)) {
-            alObject = new ALObject(document);
+            alObject = new ALObject(document, true);
         }
     }
 
@@ -65,7 +65,7 @@ async function execALObjectExplorerByUri(docUri: vscode.Uri) {
     if (docUri) {
         const document = await vscode.workspace.openTextDocument(docUri);
         if (alFileMgr.isALObjectDocument(document)) {
-            const alObject: ALObject = new ALObject(document);
+            const alObject: ALObject = new ALObject(document, true);
             execALObjectExplorer(alObject);
         }
     }
@@ -413,7 +413,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -595,7 +595,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -643,7 +643,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -691,7 +691,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
     if (alObject) {
         let alObjectTriggers: ALObjectTriggers;
@@ -739,7 +739,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
     if (alObject) {
         let alObjectProceduresFull: ALObjectProcedures;
@@ -834,7 +834,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -882,7 +882,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -931,7 +931,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -979,7 +979,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
     }
 
     if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
     }
 
     if (alObject) {
@@ -1037,7 +1037,7 @@ export async function showOpenALObjects() {
                 const doc = await vscode.workspace.openTextDocument(documentUri);
 
                 let alObject: ALObject;
-                alObject = new ALObject(doc);
+                alObject = new ALObject(doc, true);
                 let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
@@ -1329,7 +1329,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 case cmdExecALObjectExplorer: {
                     if (selectedItem.commandArgs) {
                         const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
-                        const alObject: ALObject = new ALObject(document);
+                        const alObject: ALObject = new ALObject(document, true);
                         execALObjectExplorer(alObject);
                     }
 

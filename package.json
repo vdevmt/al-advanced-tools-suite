@@ -175,6 +175,11 @@
         "command": "ats.copyAsRecordDeleteStatement",
         "title": "Copy as Record Delete statement",
         "category": "ATS"
+      },
+      {
+        "command": "ats.showAssignedALObjectRanges",
+        "title": "Show assigned AL object ranges",
+        "category": "ATS"
       }
     ],
     "snippets": [
