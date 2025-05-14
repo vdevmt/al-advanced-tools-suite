@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
 import * as alObjectExplorer from './alObject/alObjectExplorer';
-import * as alObjectRanges from './alObject/alObjectRanges'
+import * as alObjectStats from './alObject/alObjectStatistics'
 import * as regionMgr from './alObject/alObjectRegionMgr';
 import * as regionStatusBar from './alObject/alObjectRegionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
@@ -192,10 +192,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(generateSubscriberCommand);
     //#endregion Special Copy
 
-    //#region Objects Assignment
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAssignedALObjectRanges', alObjectRanges.showAssignedALObjectRanges));
+    //#region Objects Statistics
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAssignedALObjectIDs', alObjectStats.showAssignedALObjectIDs));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.exportAssignedObjectIDsAsCsv', alObjectStats.exportAssignedObjectIDsAsCsv));
 
-    //#endregion Objects Assignment
+    //#endregion Objects Statistics
 }
 
 export function deactivate() {

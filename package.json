@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -177,8 +177,13 @@
         "category": "ATS"
       },
       {
-        "command": "ats.showAssignedALObjectRanges",
-        "title": "Show assigned AL object ranges",
+        "command": "ats.showAssignedALObjectIDs",
+        "title": "Show assigned AL object IDs",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.exportAssignedObjectIDsAsCsv",
+        "title": "Export assigned AL object IDs as csv",
         "category": "ATS"
       }
     ],

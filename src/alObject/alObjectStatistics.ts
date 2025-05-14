@@ -6,8 +6,8 @@ import * as typeHelper from '../typeHelper';
 
 type ObjectRange = { from: number; to: number; count: number };
 
-export async function exportObjectRangesAsCsv() {
-    const ranges = await findObjectRangesInWorkspace();
+export async function exportAssignedObjectIDsAsCsv() {
+    const ranges = await findObjectIDRangesInWorkspace();
 
     const csvLines: string[] = ['Object Type,From ID,To ID,Count'];
 
@@ -29,12 +29,11 @@ export async function exportObjectRangesAsCsv() {
     await vscode.window.showTextDocument(newFile);
 }
 
-export async function showAssignedALObjectRanges() {
+export async function showAssignedALObjectIDs() {
     // Estrai gli oggetti e ID dal workspace
-    const ranges = await findObjectRangesInWorkspace();
+    const ranges = await findObjectIDRangesInWorkspace();
 
     // Crea il contenuto HTML della tabella
-    //const htmlContent = createHtmlTable(ranges);
     const htmlContent = createBootstrapTable(appInfo.appName(), ranges);
 
     // Crea una WebView Panel
@@ -52,13 +51,13 @@ export async function showAssignedALObjectRanges() {
     panel.webview.html = htmlContent;
 }
 
-export async function findObjectRangesInWorkspace(): Promise<Map<string, ObjectRange[]>> {
+export async function findObjectIDRangesInWorkspace(): Promise<Map<string, ObjectRange[]>> {
     const objectRanges = new Map<string, number[]>();
 
     await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: 'Building AL object ranges..',
+            title: 'AL Object analysis in progress..',
             cancellable: false,
         },
         async (progress) => {
@@ -100,10 +99,10 @@ export async function findObjectRangesInWorkspace(): Promise<Map<string, ObjectR
     );
 
     // Calcola i range
-    return calculateObjectRanges(objectRanges);
+    return calculateObjectIDRanges(objectRanges);
 }
 
-function calculateObjectRanges(objectRanges: Map<string, number[]>): Map<string, ObjectRange[]> {
+function calculateObjectIDRanges(objectRanges: Map<string, number[]>): Map<string, ObjectRange[]> {
     const ranges = new Map<string, ObjectRange[]>();
 
     for (const [objectType, ids] of objectRanges.entries()) {
@@ -157,7 +156,8 @@ function getObjectTypeSortingKey(objectType: string): Number {
 function createBootstrapTable(title: string, objectRanges: Map<string, ObjectRange[]>): string {
 
     // Preparazione testo da copiare
-    const lines: string[] = ['Object Type\tFrom ID\tTo ID\tCount'];
+    const lines: string[] = [title];
+    lines.push('Object Type\tFrom ID\tTo ID\tCount');
     for (const [objectType, ranges] of objectRanges.entries()) {
         for (const range of ranges) {
             lines.push(`${objectType}\t${range.from}\t${range.to}\t${range.count}`);
