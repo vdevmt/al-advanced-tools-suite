@@ -203,6 +203,15 @@ export class ALObject {
 
         return false;
     }
+    public isTemporaryTable(): boolean {
+        if (this.isTable()) {
+            if (this.properties['tabletype']) {
+                return (this.properties['tabletype'].toLowerCase() === 'temporary');
+            }
+        }
+
+        return false;
+    }
     public isTableExt(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'tableextension');

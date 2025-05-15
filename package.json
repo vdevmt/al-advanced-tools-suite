@@ -177,13 +177,13 @@
         "category": "ATS"
       },
       {
-        "command": "ats.showAssignedALObjectIDs",
-        "title": "Show assigned AL object IDs",
+        "command": "ats.viewALObjectsSummary",
+        "title": "view AL objects summary",
         "category": "ATS"
       },
       {
-        "command": "ats.exportAssignedObjectIDsAsCsv",
-        "title": "Export assigned AL object IDs as csv",
+        "command": "ats.exportObjectsAssignmentDetailsAsCSV",
+        "title": "Export AL objects assignment details as csv",
         "category": "ATS"
       }
     ],

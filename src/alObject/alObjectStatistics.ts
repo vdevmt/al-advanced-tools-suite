@@ -6,7 +6,7 @@ import * as typeHelper from '../typeHelper';
 
 type ObjectRange = { from: number; to: number; count: number };
 
-export async function exportAssignedObjectIDsAsCsv() {
+export async function exportObjectsAssignmentDetailsAsCSV() {
     const ranges = await findObjectIDRangesInWorkspace();
 
     const csvLines: string[] = ['Object Type,From ID,To ID,Count'];
@@ -29,12 +29,13 @@ export async function exportAssignedObjectIDsAsCsv() {
     await vscode.window.showTextDocument(newFile);
 }
 
-export async function showAssignedALObjectIDs() {
+export async function viewALObjectsSummary() {
     // Estrai gli oggetti e ID dal workspace
     const ranges = await findObjectIDRangesInWorkspace();
+    const objectsCount = countObjectsByType(ranges);
 
     // Crea il contenuto HTML della tabella
-    const htmlContent = createBootstrapTable(appInfo.appName(), ranges);
+    const htmlContent = createObjectsSummaryWebView(appInfo.appName(), objectsCount, ranges);
 
     // Crea una WebView Panel
     const panel = vscode.window.createWebviewPanel(
@@ -51,7 +52,8 @@ export async function showAssignedALObjectIDs() {
     panel.webview.html = htmlContent;
 }
 
-export async function findObjectIDRangesInWorkspace(): Promise<Map<string, ObjectRange[]>> {
+
+async function findObjectIDRangesInWorkspace(): Promise<Map<string, ObjectRange[]>> {
     const objectRanges = new Map<string, number[]>();
 
     await vscode.window.withProgress(
@@ -153,7 +155,189 @@ function getObjectTypeSortingKey(objectType: string): Number {
     return typeHelper.getObjectTypeSortingKey(objectType);
 }
 
-function createBootstrapTable(title: string, objectRanges: Map<string, ObjectRange[]>): string {
+function countObjectsByType(objectRanges: Map<string, ObjectRange[]>): Map<string, number> {
+    const objectsCount = new Map<string, number>();
+
+    for (const [objectType, ranges] of objectRanges.entries()) {
+        // Calcola il numero totale di oggetti per ogni tipo
+        const totalObjects = ranges.reduce((count, range) => count + range.count, 0);
+        objectsCount.set(objectType, totalObjects);
+    }
+
+    return objectsCount;
+}
+
+function createObjectsSummaryWebView(
+    title: string,
+    objectsCount: Map<string, number>,
+    objectRanges: Map<string, ObjectRange[]>
+): string {
+    // Preparazione del contenuto da copiare
+    const objectsCountLines: string[] = ['Object Type\tCount'];
+    let totalCount = 0;
+    for (const [objectType, count] of objectsCount.entries()) {
+        objectsCountLines.push(`${objectType}\t${count}`);
+        totalCount += count;
+    }
+    objectsCountLines.push(`TOTAL\t${totalCount}`);
+    const objectsCountContent = objectsCountLines.join('\n');
+
+    const objectRangesLines: string[] = ['Object Type\tFrom ID\tTo ID\tCount'];
+    for (const [objectType, ranges] of objectRanges.entries()) {
+        for (const range of ranges) {
+            objectRangesLines.push(`${objectType}\t${range.from}\t${range.to}\t${range.count}`);
+        }
+    }
+    const objectRangesContent = objectRangesLines.join('\n');
+
+    const bootstrapCDN = `
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    `;
+
+    let html = `
+        <html>
+        <head>
+            ${bootstrapCDN}
+            <style>
+                body {
+                    padding: 15px;
+                }
+                table {
+                    width: 100%;
+                    table-layout: fixed;
+                    border-collapse: collapse;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                }
+                th {
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                }
+                .col-left {
+                    text-align: left;
+                }
+                .col-right {
+                    text-align: right;
+                }
+                .copy-button {
+                    margin-bottom: 15px;
+                }
+                .btn-copied {
+                    background-color: #28a745 !important;
+                    color: white !important;
+                }
+                .table-container {
+                    overflow-x: auto;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>${title}</h1>
+                
+                <h3>Objects Count</h3>
+                <div class="d-flex justify-content-end mb-3">
+                    <button id="copyCountButton" class="btn btn-primary copy-button">Copy</button>
+                </div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="col-left">Object Type</th>
+                            <th class="col-right">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    for (const [objectType, count] of objectsCount.entries()) {
+        html += `
+            <tr>
+                <td class="col-left">${objectType}</td>
+                <td class="col-right">${count}</td>
+            </tr>
+        `;
+    }
+
+    // Aggiungi riga totale
+    html += `
+            <tr>
+                <td class="col-left"><strong>TOTAL</strong></td>
+                <td class="col-right"><strong>${totalCount}</strong></td>
+            </tr>
+        `;
+
+    html += `
+                    </tbody>
+                </table>
+
+                <h3>Object Ranges</h3>
+                <div class="d-flex justify-content-end mb-3">
+                    <button id="copyRangesButton" class="btn btn-primary copy-button">Copy</button>
+                </div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="col-left">Object Type</th>
+                            <th class="col-right">From ID</th>
+                            <th class="col-right">To ID</th>
+                            <th class="col-right">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    for (const [objectType, ranges] of objectRanges.entries()) {
+        for (const range of ranges) {
+            html += `
+                <tr>
+                    <td class="col-left">${objectType}</td>
+                    <td class="col-right">${range.from}</td>
+                    <td class="col-right">${range.to}</td>
+                    <td class="col-right">${range.count}</td>
+                </tr>
+            `;
+        }
+    }
+
+    html += `
+                    </tbody>
+                </table>
+            </div>
+
+            <script>
+                // Copy to clipboard functionality
+                function copyToClipboard(buttonId, content) {
+                    navigator.clipboard.writeText(content).then(() => {
+                        const button = document.getElementById(buttonId);
+                        button.textContent = 'Copied';
+                        button.classList.add('btn-copied');
+                        setTimeout(() => {
+                            button.textContent = 'Copy';
+                            button.classList.remove('btn-copied');
+                        }, 2000)
+                    }).catch(err => {
+                        alert('Failed to copy content.');
+                    });
+                }
+
+                document.getElementById('copyCountButton').addEventListener('click', () => {
+                    copyToClipboard('copyCountButton', \`${objectsCountContent}\`);
+                });
+
+                document.getElementById('copyRangesButton').addEventListener('click', () => {
+                    copyToClipboard('copyRangesButton', \`${objectRangesContent}\`);
+                });
+            </script>
+        </body>
+        </html>
+    `;
+
+    return html;
+}
+
+function createObjectsSummaryWebView_OLD(title: string, objectsCount: Map<string, number>, objectRanges: Map<string, ObjectRange[]>): string {
 
     // Preparazione testo da copiare
     const lines: string[] = [title];

@@ -193,8 +193,8 @@ export function activate(context: vscode.ExtensionContext) {
     //#endregion Special Copy
 
     //#region Objects Statistics
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAssignedALObjectIDs', alObjectStats.showAssignedALObjectIDs));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.exportAssignedObjectIDsAsCsv', alObjectStats.exportAssignedObjectIDsAsCsv));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.viewALObjectsSummary', alObjectStats.viewALObjectsSummary));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.exportObjectsAssignmentDetailsAsCSV', alObjectStats.exportObjectsAssignmentDetailsAsCSV));
 
     //#endregion Objects Statistics
 }
