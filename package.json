@@ -178,7 +178,7 @@
       },
       {
         "command": "ats.viewALObjectsSummary",
-        "title": "view AL objects summary",
+        "title": "AL objects summary",
         "category": "ATS"
       },
       {

@@ -73,11 +73,10 @@ async function findObjectIDRangesInWorkspace(): Promise<Map<string, ObjectRange[
                     if (alFileMgr.isALObjectDocument(document)) {
                         const alObject: ALObject = new ALObject(document, false);
                         const objectType = alObject.objectType;
-                        const objectId = parseInt(alObject.objectId, 10);
+                        let objectId = parseInt(alObject.objectId, 10);
 
                         if (isNaN(objectId)) {
-                            console.warn(`Invalid object ID in file: ${file.fsPath}`);
-                            continue;
+                            objectId = 0;
                         }
 
                         if (!objectRanges.has(objectType)) {
