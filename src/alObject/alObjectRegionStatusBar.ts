@@ -43,7 +43,7 @@ function makeTooltip(regionInfoText: string): vscode.MarkdownString {
 }
 
 export async function clearRegionsCache(fileName: string) {
-    alObject = new ALObject(null);
+    alObject = new ALObject(null, false);
     alObjectRegions = new ALObjectRegions(alObject);
 }
 
@@ -66,7 +66,7 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     }
 
     if (rebuildCache) {
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, true);
         alObjectRegions = new ALObjectRegions(alObject);
         currDocumentKey = makeDocumentKey(document);
     }

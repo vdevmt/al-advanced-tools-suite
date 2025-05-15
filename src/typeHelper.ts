@@ -66,7 +66,6 @@ export function objectTypeToPascalCase(objectType: string): string {
 
     return toPascalCase(objectType);
 }
-
 export function isALObjectType(text: string): boolean {
     if (text) {
         const alObjectTypeList = ['TableData',
@@ -99,4 +98,67 @@ export function isALObjectType(text: string): boolean {
 
     return false;
 }
+
+export function getObjectTypeSortingKey(objectType: string): number {
+    if (objectType) {
+        switch (objectType.toLowerCase()) {
+            case 'tabledata': {
+                return 0;
+            }
+            case 'table': {
+                return 10;
+            }
+            case 'tableextension': {
+                return 11;
+            }
+            case 'page': {
+                return 20;
+            }
+            case 'pageextension': {
+                return 21;
+            }
+            case 'report': {
+                return 30;
+            }
+            case 'reportextension': {
+                return 31;
+            }
+            case 'codeunit': {
+                return 40;
+            }
+            case 'xmlport': {
+                return 50;
+            }
+            case 'query': {
+                return 60;
+            }
+            case 'enum': {
+                return 70;
+            }
+            case 'enumextension': {
+                return 71;
+            }
+            case 'profile': {
+                return 80;
+            }
+            case 'profileextension': {
+                return 81;
+            }
+            case 'permissionset': {
+                return 90;
+            }
+            case 'permissionsetextension': {
+                return 91;
+            }
+            case 'interface': {
+                return 100;
+            }
+        }
+
+        return 9999;
+    }
+
+    return -1;
+}
+
 //#endregion AL Obejct Type

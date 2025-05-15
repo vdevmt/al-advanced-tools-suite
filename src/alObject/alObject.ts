@@ -16,7 +16,7 @@ export class ALObject {
     public objectFileUri?: vscode.Uri;
     public properties: { [key: string]: string };
 
-    constructor(document: vscode.TextDocument) {
+    constructor(document: vscode.TextDocument, loadAllInfos: boolean) {
         this.initObjectProperties();
         this.objectContentText = '';
         this.objectFileName = '';
@@ -29,7 +29,11 @@ export class ALObject {
                 this.objectFileUri = document.uri;
 
                 if (this.objectContentText) {
-                    this.loadObjectProperties();
+                    this.loadObjectProperties(loadAllInfos);
+                }
+
+                if (!loadAllInfos) {
+                    this.objectContentText = '';
                 }
             }
         }
@@ -46,7 +50,7 @@ export class ALObject {
         this.properties = {};
     }
 
-    private loadObjectProperties(): any {
+    private loadObjectProperties(loadAllInfos: boolean): any {
         this.initObjectProperties();
 
         // Clean file content            
@@ -168,19 +172,21 @@ export class ALObject {
             this.extendedObjectId = this.extendedObjectId.trim().toString();
             this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
 
-            let objectDefTxt = '';
-            if (["permissionset", "permissionsetextension", "profile", "controladdin"].includes(this.objectType.toLowerCase())) {
-                objectDefTxt = objectTxt;
-            }
-            else {
-                objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
-            }
+            if (loadAllInfos) {
+                let objectDefTxt = '';
+                if (["permissionset", "permissionsetextension", "profile", "controladdin"].includes(this.objectType.toLowerCase())) {
+                    objectDefTxt = objectTxt;
+                }
+                else {
+                    objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
+                }
 
-            alFileMgr.findObjectProperties(this.objectType, objectDefTxt, this.properties);
+                alFileMgr.findObjectProperties(this.objectType, objectDefTxt, this.properties);
 
-            if (this.isPage()) {
-                if (this.properties['sourcetable']) {
-                    this.sourceTableName = this.properties['sourcetable'];
+                if (this.isPage()) {
+                    if (this.properties['sourcetable']) {
+                        this.sourceTableName = this.properties['sourcetable'];
+                    }
                 }
             }
         }
@@ -193,6 +199,15 @@ export class ALObject {
     public isTable(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'table');
+        }
+
+        return false;
+    }
+    public isTemporaryTable(): boolean {
+        if (this.isTable()) {
+            if (this.properties['tabletype']) {
+                return (this.properties['tabletype'].toLowerCase() === 'temporary');
+            }
         }
 
         return false;
@@ -912,7 +927,7 @@ export class ALObjectVariables {
                 default: {
                     if (typeHelper.isALObjectType(variableType)) {
                         let tempALObject: ALObject;
-                        tempALObject = new ALObject(null);
+                        tempALObject = new ALObject(null, false);
                         tempALObject.objectType = variableType;
                         const objectIconName = tempALObject.getDefaultIconName();
                         return objectIconName || 'symbol-misc';

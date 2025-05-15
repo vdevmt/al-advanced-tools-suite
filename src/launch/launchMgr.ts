@@ -150,7 +150,7 @@ export function changeStartupObjectAndRunBusinessCentral() {
 
     if (alFileMgr.isALObjectDocument(editor.document)) {
         let alObject: ALObject;
-        alObject = new ALObject(editor.document);
+        alObject = new ALObject(editor.document, true);
         if (alObject) {
             if (!alFileMgr.isValidObjectToRun(alObject)) {
                 vscode.window.showErrorMessage(`The object ${alObject.objectType} ${alObject.objectId} is not a valid object to run`);
@@ -173,7 +173,7 @@ export async function selectAndRunBusinessCentral(changeStartupObject: boolean) 
     if (editor) {
         if (alFileMgr.isALObjectDocument(editor.document)) {
             let alObject: ALObject;
-            alObject = new ALObject(editor.document);
+            alObject = new ALObject(editor.document, true);
 
             if (alFileMgr.isValidObjectToRun(alObject)) {
                 bcClientURL = await selectBusinessCentralURL(null, alObject, changeStartupObject);

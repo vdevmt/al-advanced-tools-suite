@@ -3,6 +3,82 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as externalTools from './externalTools';
 
+
+function getAppJsonFilePath(): string {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const workspacePath = workspaceFolders[0].uri.fsPath;
+
+    const filePath = path.join(workspacePath, 'app.json');
+    if (!fs.existsSync(filePath)) {
+        vscode.window.showErrorMessage("app.json not found in the workspace directory.");
+        return undefined;
+    }
+
+    return filePath;
+}
+
+export function appName(): string {
+    // Search app.json file in current workspace
+    const filePath = getAppJsonFilePath();
+
+    // Read content of file
+    let fileContent: string;
+    try {
+        fileContent = fs.readFileSync(filePath, 'utf8');
+    } catch (error) {
+        vscode.window.showErrorMessage("Failed to read app.json file.");
+        return undefined;
+    }
+
+    // Find current version
+    let appInfo: any;
+    try {
+        appInfo = JSON.parse(fileContent);
+    } catch (error) {
+        vscode.window.showErrorMessage('Invalid JSON format in app.json file.');
+        return undefined;
+    }
+
+    const appName = appInfo.name;
+    if (!appName) {
+        vscode.window.showErrorMessage('Unable to retrieve the current app name.');
+        return undefined;
+    }
+
+    return appName;
+}
+export function appVersion(): string {
+    // Search app.json file in current workspace
+    const filePath = getAppJsonFilePath();
+
+    // Read content of file
+    let fileContent: string;
+    try {
+        fileContent = fs.readFileSync(filePath, 'utf8');
+    } catch (error) {
+        vscode.window.showErrorMessage("Failed to read app.json file.");
+        return undefined;
+    }
+
+    // Find current version
+    let appInfo: any;
+    try {
+        appInfo = JSON.parse(fileContent);
+    } catch (error) {
+        vscode.window.showErrorMessage('Invalid JSON format in app.json file.');
+        return undefined;
+    }
+
+    const appName = appInfo.version;
+    if (!appName) {
+        vscode.window.showErrorMessage('Unable to retrieve the current app version.');
+        return undefined;
+    }
+
+    return appName;
+}
+
+
 export async function packageNewVersion() {
     if (await increaseAppVersion()) {
         externalTools.execAlPackage(true);
@@ -11,14 +87,7 @@ export async function packageNewVersion() {
 
 async function increaseAppVersion(): Promise<Boolean> {
     // Search app.json file in current workspace
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    const workspacePath = workspaceFolders[0].uri.fsPath;
-
-    const filePath = path.join(workspacePath, 'app.json');
-    if (!fs.existsSync(filePath)) {
-        vscode.window.showErrorMessage("app.json not found in the workspace directory.");
-        return false;
-    }
+    const filePath = getAppJsonFilePath();
 
     // Read content of file
     let fileContent: string;

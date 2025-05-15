@@ -197,7 +197,7 @@ export function getCurrentObjectNamespace(): string {
 export function getObjectNamespace(document: vscode.TextDocument): string {
     if (isALObjectDocument(document)) {
         let alObject: ALObject;
-        alObject = new ALObject(document);
+        alObject = new ALObject(document, false);
         return alObject.objectNamespace;
     }
 

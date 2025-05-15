@@ -37,7 +37,7 @@ export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarIte
     if (document) {
         if (alFileMgr.isALObjectDocument(document)) {
             let alObject: ALObject;
-            alObject = new ALObject(document);
+            alObject = new ALObject(document, true);
             let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
             objectInfoStatusBarItem.tooltip = makeTooltip(alObject, objectInfoText);
             objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;

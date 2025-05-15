@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
 import * as alObjectExplorer from './alObject/alObjectExplorer';
+import * as alObjectStats from './alObject/alObjectStatistics'
 import * as regionMgr from './alObject/alObjectRegionMgr';
 import * as regionStatusBar from './alObject/alObjectRegionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
@@ -43,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
         vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
         if (editor && editor.document) {
-            const alObject = new ALObject(editor.document);
+            const alObject = new ALObject(editor.document, false);
             if (alObject.objectType) {
                 vscode.commands.executeCommand('setContext', 'ats.isAlObject', true);
                 vscode.commands.executeCommand('setContext', 'ats.alObjectType', alObject.objectType);
@@ -190,6 +191,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(generateSubscriberCommand);
     //#endregion Special Copy
+
+    //#region Objects Statistics
+    context.subscriptions.push(vscode.commands.registerCommand('ats.viewALObjectsSummary', alObjectStats.viewALObjectsSummary));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.exportObjectsAssignmentDetailsAsCSV', alObjectStats.exportObjectsAssignmentDetailsAsCSV));
+
+    //#endregion Objects Statistics
 }
 
 export function deactivate() {
