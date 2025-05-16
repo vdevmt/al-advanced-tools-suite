@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.5.0]
+- New commands: `ATS: AL objects summary`, `ATS: Export AL objects assignment details as csv`
+
 ## [1.4.2]
 - New command: `ATS: AL Package new version`: Automate the versioning process for your Business Central apps
 
