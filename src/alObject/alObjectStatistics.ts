@@ -66,26 +66,28 @@ async function findObjectIDRangesInWorkspace(): Promise<Map<string, ObjectRange[
             // Trova tutti i file AL nel workspace corrente
             const files = await vscode.workspace.findFiles('**/*.al');
             let processedFiles = 0;
+            let lastNoIDObjectID = 0;
 
             for (const file of files) {
                 if (file) {
                     const document = await vscode.workspace.openTextDocument(file);
                     if (alFileMgr.isALObjectDocument(document)) {
                         const alObject: ALObject = new ALObject(document, false);
-                        const objectType = alObject.objectType;
-                        let objectId = parseInt(alObject.objectId, 10);
+                        if (alObject.objectType) {
+                            let objectId = parseInt(alObject.objectId, 10);
+                            if (isNaN(objectId)) {
+                                lastNoIDObjectID--;
+                                objectId = lastNoIDObjectID;
+                            }
 
-                        if (isNaN(objectId)) {
-                            objectId = 0;
-                        }
+                            if (!objectRanges.has(alObject.objectType)) {
+                                objectRanges.set(alObject.objectType, []);
+                            }
 
-                        if (!objectRanges.has(objectType)) {
-                            objectRanges.set(objectType, []);
-                        }
-
-                        const ids = objectRanges.get(objectType);
-                        if (ids && !ids.includes(objectId)) {
-                            ids.push(objectId);
+                            const ids = objectRanges.get(alObject.objectType);
+                            if (ids && !ids.includes(objectId)) {
+                                ids.push(objectId);
+                            }
                         }
                     }
 
@@ -122,8 +124,14 @@ function calculateObjectIDRanges(objectRanges: Map<string, number[]>): Map<strin
                 end = uniqueIds[i];
                 count++;
             } else {
-                // Aggiungi range
-                currentRanges.push({ from: start, to: end, count });
+                // Aggiungi range precedente
+                if (start >= 0) {
+                    currentRanges.push({ from: start, to: end, count });
+                }
+                else {
+                    currentRanges.push({ from: 0, to: 0, count });
+                }
+
                 start = uniqueIds[i];
                 end = uniqueIds[i];
                 count = 1;
@@ -131,7 +139,13 @@ function calculateObjectIDRanges(objectRanges: Map<string, number[]>): Map<strin
         }
 
         // Aggiungi l'ultimo range
-        currentRanges.push({ from: start, to: end, count });
+        if (start >= 0) {
+            currentRanges.push({ from: start, to: end, count });
+        }
+        else {
+            currentRanges.push({ from: 0, to: 0, count });
+        }
+
         ranges.set(objectType, currentRanges);
     }
 
