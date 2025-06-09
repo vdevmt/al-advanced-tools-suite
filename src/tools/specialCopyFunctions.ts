@@ -611,3 +611,145 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
     }
 }
 //#endregion Record delete statement
+
+//#region Page Fields
+export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document, true);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = await askRecordVariableName('Rec');
+
+        if (recVariableName) {
+            let fields = alTableFields.fields
+                .sort((a, b) => a.id - b.id);
+
+            fields.forEach(field => {
+                let isValidField = true;
+                if (field.properties['fieldclass']) {
+                    if (['flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        isValidField = false;
+                    }
+                }
+
+                if (isValidField) {
+                    statementText += `${createPageFieldStatement(recVariableName, field.name, field.type)}\n`;
+                }
+            });
+        }
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The field list is ready to be pasted`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Unable to create page field list for current table: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to create page field list for current table`);
+    }
+}
+
+
+function createPageFieldStatement(recVariableName: string, fieldName: string, fieldType: string): string {
+    const pageFieldName = typeHelper.addQuotesIfNeeded(fieldName);
+    let statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName}) { }`;
+    return statementText;
+}
+//#endregion Page Fields
+
+//#region Report Fields
+export async function copyRecordAsReportColumns(docUri?: vscode.Uri) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document, true);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
+
+        if (recVariableName) {
+            let fields = alTableFields.fields
+                .sort((a, b) => a.id - b.id);
+
+            fields.forEach(field => {
+                let isValidField = true;
+                if (field.properties['fieldclass']) {
+                    if (['flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        isValidField = false;
+                    }
+                }
+
+                if (isValidField) {
+                    statementText += `${createReportColumnStatement(recVariableName, field.name, field.type)}\n`;
+                }
+            });
+        }
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The column list is ready to be pasted`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Unable to create report column list for current table: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to create report column list for current table`);
+    }
+}
+
+
+function createReportColumnStatement(recVariableName: string, fieldName: string, fieldType: string): string {
+    let columnName = `${typeHelper.toPascalCase(fieldName)}`;
+    if (recVariableName) {
+        columnName = `${recVariableName}_${columnName}`;
+    }
+
+    let sourceExpr = '';
+    if (['date', 'datetime'].includes(fieldType.toLowerCase())) {
+        if (recVariableName) {
+            sourceExpr = `Format(${recVariableName}.${typeHelper.addQuotesIfNeeded(fieldName)}, 0, 4)`;
+        }
+        else {
+            sourceExpr = `Format(${typeHelper.addQuotesIfNeeded(fieldName)}, 0, 4)`;
+        }
+    }
+    else {
+        if (recVariableName) {
+            sourceExpr = `${recVariableName}.${typeHelper.addQuotesIfNeeded(fieldName)}`;
+        }
+        else {
+            sourceExpr = typeHelper.addQuotesIfNeeded(fieldName);
+        }
+    }
+
+    let statementText = `column(${columnName}; ${sourceExpr}) { }`;
+    return statementText;
+}
+//#endregion Report Fields
