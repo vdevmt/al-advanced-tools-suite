@@ -6,6 +6,7 @@ import * as typeHelper from '../typeHelper';
 import { ALObject, ALObjectFields } from '../alObject/alObject';
 
 //#region Integration Events
+//#region Code Actions
 export class AtsEventIntegrationCodeActionProvider implements vscode.CodeActionProvider {
     static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
@@ -87,7 +88,9 @@ function findCodeActionsStartPosByCurrentLine(document: vscode.TextDocument, cur
 
     return startPosition;
 }
+//#endregion Code Actions
 
+//#region Event Subscriber
 export function copySelectionAsEventSubscriber() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -342,6 +345,93 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
 
     return null;
 }
+//#endregion Event Subscriber
+
+//#region Event Integration
+export async function copySelectionAsEventIntegration() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (editor.selections) {
+        const alObject = new ALObject(document, true);
+        if (isValidObjectTypeForSubscription(alObject)) {
+            const selection = editor.selection;
+            if (selection) {
+                let isValidSelection = false;
+                let selectedText = '';
+                if (selection.start.line > 0) {
+                    selectedText = document.lineAt(selection.start.line).text.trim();
+
+                    if (selectedText) {
+                        const regex = /^on.*\(/i;  // inizia per on e contiene una parentesi aperta
+                        if (regex.test(selectedText)) {
+                            if (!selectedText.endsWith(');')) {
+                                for (let i = selection.start.line + 1; i <= selection.end.line; i++) {
+                                    selectedText += ` ${document.lineAt(i).text.trim()}`
+                                    if (selectedText.endsWith(');')) {
+                                        i = selection.end.line + 1;
+                                        isValidSelection = true;
+                                    }
+                                }
+                            }
+                            else {
+                                isValidSelection = true;
+                            }
+                        }
+                    }
+                }
+
+                if (!isValidSelection) {
+                    vscode.window.showErrorMessage('No event integration found in the current selection');
+                    return;
+                }
+
+                const eventIintegrationText = createEventIntegrationText(document, selection, selectedText);
+
+                try {
+                    await vscode.env.clipboard.writeText(eventIintegrationText);
+                    vscode.window.showInformationMessage(`The event integration definition is ready to paste!`);
+                } catch (error) {
+                    vscode.window.showErrorMessage(`Failed to create event integration definition: ${error.message}`);
+                }
+            }
+        }
+    }
+}
+
+function createEventIntegrationText(document: vscode.TextDocument, selection: vscode.Selection, selectedText: string): string {
+    let eventIntText = '';
+    if (selectedText) {
+        // Elimino un eventuale ';' finale
+        if (selectedText.endsWith(";")) {
+            selectedText = selectedText.slice(0, -1);
+        }
+
+        // Elenco parametri
+        const match = selectedText.match(/\((.*?)\)/);
+        if (match) {
+            const args = match[1].split(",").map((el) => el.trim());
+
+            // Aggiungo il var in casi particolari
+            const args2 = args.map((el) =>
+                el === "IsHandled" ? `var ${el} : Boolean` :
+                    el === "Rec" ? `var ${el}` : el
+            );
+
+            selectedText = selectedText.replace(/\(.*?\)/, `(${args2.join(", ")})`);
+        }
+
+        eventIntText = '[IntegrationEvent(false, false)]\n';
+        eventIntText += `local procedure ${selectedText}\n`;
+        eventIntText += 'begin\n';
+        eventIntText += 'end;\n';
+    }
+
+    return eventIntText;
+}
+
+//#endregion Event Integration
+
 //#endregion Integration Events
 
 //#region Record insert statement
