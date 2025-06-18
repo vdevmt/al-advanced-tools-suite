@@ -166,11 +166,16 @@ export function activate(context: vscode.ExtensionContext) {
 
     //#region Special Copy
     context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventSubscriber', specialCopyFunct.copySelectionAsEventSubscriber));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventIntegration', specialCopyFunct.copySelectionAsEventIntegration));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordInsertStatement', specialCopyFunct.copyRecordInsertStatement));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordInsertStatementWithValidation', specialCopyFunct.copyRecordInsertStatementWithValidation));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordModifyStatement', specialCopyFunct.copyRecordModifyStatement));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordModifyStatementWithValidation', specialCopyFunct.copyRecordModifyStatementWithValidation));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordDeleteStatement', specialCopyFunct.copyRecordDeleteStatement));
+
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyRecordAsPageFields', specialCopyFunct.copyRecordAsPageFields));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyRecordAsReportColumns', specialCopyFunct.copyRecordAsReportColumns));
 
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(

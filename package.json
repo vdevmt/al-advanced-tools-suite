@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.5.2",
+  "version": "1.5.5",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -152,6 +152,11 @@
         "category": "ATS"
       },
       {
+        "command": "ats.copySelectionAsEventIntegration",
+        "title": "Copy as Event Integration",
+        "category": "ATS"
+      },
+      {
         "command": "ats.copyAsRecordInsertStatement",
         "title": "Copy as Record Insert statement",
         "category": "ATS"
@@ -174,6 +179,16 @@
       {
         "command": "ats.copyAsRecordDeleteStatement",
         "title": "Copy as Record Delete statement",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyRecordAsPageFields",
+        "title": "Copy as Page Fields",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyRecordAsReportColumns",
+        "title": "Copy as Report/Query Columns",
         "category": "ATS"
       },
       {
@@ -222,34 +237,52 @@
           "title": "Copy as Event Subscriber"
         },
         {
+          "command": "ats.copySelectionAsEventIntegration",
+          "group": "Integration Event",
+          "when": "editorTextFocus && resourceLangId == al",
+          "title": "Copy as Event Integration"
+        },
+        {
           "command": "ats.copyAsRecordInsertStatement",
-          "group": "Record Insert",
+          "group": "Record Assignment",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Insert statement"
         },
         {
           "command": "ats.copyAsRecordInsertStatementWithValidation",
-          "group": "Record Insert",
+          "group": "Record Assignment",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Insert statement with validation"
         },
         {
           "command": "ats.copyAsRecordModifyStatement",
-          "group": "Record Modify",
+          "group": "Record Assignment",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Modify statement"
         },
         {
           "command": "ats.copyAsRecordModifyStatementWithValidation",
-          "group": "Record Modify",
+          "group": "Record Assignment",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Modify statement with validation"
         },
         {
           "command": "ats.copyAsRecordDeleteStatement",
-          "group": "Record Delete",
+          "group": "Record Assignment",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
-          "title": "zzCopy Record Delete statement with validation"
+          "title": "Copy Record Delete statement"
+        },
+        {
+          "command": "ats.copyRecordAsPageFields",
+          "group": "Object Field List",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy as Page Fields"
+        },
+        {
+          "command": "ats.copyRecordAsReportColumns",
+          "group": "Object Field List",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy as Report/Query Columns"
         }
       ]
     },

@@ -6,6 +6,7 @@ import * as typeHelper from '../typeHelper';
 import { ALObject, ALObjectFields } from '../alObject/alObject';
 
 //#region Integration Events
+//#region Code Actions
 export class AtsEventIntegrationCodeActionProvider implements vscode.CodeActionProvider {
     static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
@@ -87,7 +88,9 @@ function findCodeActionsStartPosByCurrentLine(document: vscode.TextDocument, cur
 
     return startPosition;
 }
+//#endregion Code Actions
 
+//#region Event Subscriber
 export function copySelectionAsEventSubscriber() {
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
@@ -342,6 +345,93 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
 
     return null;
 }
+//#endregion Event Subscriber
+
+//#region Event Integration
+export async function copySelectionAsEventIntegration() {
+    const editor = vscode.window.activeTextEditor;
+    const document = editor.document;
+
+    if (editor.selections) {
+        const alObject = new ALObject(document, true);
+        if (isValidObjectTypeForSubscription(alObject)) {
+            const selection = editor.selection;
+            if (selection) {
+                let isValidSelection = false;
+                let selectedText = '';
+                if (selection.start.line > 0) {
+                    selectedText = document.lineAt(selection.start.line).text.trim();
+
+                    if (selectedText) {
+                        const regex = /^on.*\(/i;  // inizia per on e contiene una parentesi aperta
+                        if (regex.test(selectedText)) {
+                            if (!selectedText.endsWith(');')) {
+                                for (let i = selection.start.line + 1; i <= selection.end.line; i++) {
+                                    selectedText += ` ${document.lineAt(i).text.trim()}`
+                                    if (selectedText.endsWith(');')) {
+                                        i = selection.end.line + 1;
+                                        isValidSelection = true;
+                                    }
+                                }
+                            }
+                            else {
+                                isValidSelection = true;
+                            }
+                        }
+                    }
+                }
+
+                if (!isValidSelection) {
+                    vscode.window.showErrorMessage('No event integration found in the current selection');
+                    return;
+                }
+
+                const eventIintegrationText = createEventIntegrationText(document, selection, selectedText);
+
+                try {
+                    await vscode.env.clipboard.writeText(eventIintegrationText);
+                    vscode.window.showInformationMessage(`The event integration definition is ready to paste!`);
+                } catch (error) {
+                    vscode.window.showErrorMessage(`Failed to create event integration definition: ${error.message}`);
+                }
+            }
+        }
+    }
+}
+
+function createEventIntegrationText(document: vscode.TextDocument, selection: vscode.Selection, selectedText: string): string {
+    let eventIntText = '';
+    if (selectedText) {
+        // Elimino un eventuale ';' finale
+        if (selectedText.endsWith(";")) {
+            selectedText = selectedText.slice(0, -1);
+        }
+
+        // Elenco parametri
+        const match = selectedText.match(/\((.*?)\)/);
+        if (match) {
+            const args = match[1].split(",").map((el) => el.trim());
+
+            // Aggiungo il var in casi particolari
+            const args2 = args.map((el) =>
+                el === "IsHandled" ? `var ${el} : Boolean` :
+                    el === "Rec" ? `var ${el}` : el
+            );
+
+            selectedText = selectedText.replace(/\(.*?\)/, `(${args2.join(", ")})`);
+        }
+
+        eventIntText = '[IntegrationEvent(false, false)]\n';
+        eventIntText += `local procedure ${selectedText}\n`;
+        eventIntText += 'begin\n';
+        eventIntText += 'end;\n';
+    }
+
+    return eventIntText;
+}
+
+//#endregion Event Integration
+
 //#endregion Integration Events
 
 //#region Record insert statement
@@ -446,27 +536,6 @@ function createFieldAssignmentStatement(recVariableName: string, fieldName: stri
     }
 
     return statementText;
-}
-
-async function askRecordVariableName(defaultName: string): Promise<string> {
-    const userInput = await vscode.window.showInputBox({
-        prompt: 'Type the record variable name',
-        placeHolder: '',
-        value: defaultName,
-        validateInput: (value) => {
-            if (value.trim().length > 50) {
-                return 'Value too long';
-            }
-
-            return null; // Nessun errore
-        }
-    });
-
-    if (userInput) {
-        return userInput;
-    }
-
-    return '';
 }
 //#endregion Record insert statement
 
@@ -611,3 +680,199 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
     }
 }
 //#endregion Record delete statement
+
+//#region Page Fields
+export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document, true);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = await askRecordVariableName('Rec');
+        const applicationArea = await askApplicationArea('');
+
+        if (recVariableName) {
+            let fields = alTableFields.fields
+                .sort((a, b) => a.id - b.id);
+
+            fields.forEach(field => {
+                let isValidField = true;
+                if (field.properties['fieldclass']) {
+                    if (['flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        isValidField = false;
+                    }
+                }
+
+                if (isValidField) {
+                    statementText += `${createPageFieldStatement(recVariableName, field.name, applicationArea)}\n`;
+                }
+            });
+        }
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The field list is ready to be pasted`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Unable to create page field list for current table: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to create page field list for current table`);
+    }
+}
+
+function createPageFieldStatement(recVariableName: string, fieldName: string, applicationArea: string): string {
+    const pageFieldName = typeHelper.addQuotesIfNeeded(fieldName);
+    let statementText = '';
+    if (applicationArea) {
+        statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName})\n`;
+        statementText += `{\n`;
+        statementText += `ApplicationArea = ${applicationArea};\n`;
+        statementText += `}`;
+    }
+    else {
+        statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName}) { }`;
+    }
+
+    return statementText;
+}
+//#endregion Page Fields
+
+//#region Report Fields
+export async function copyRecordAsReportColumns(docUri?: vscode.Uri) {
+    let document: vscode.TextDocument;
+
+    if (docUri) {
+        document = await vscode.workspace.openTextDocument(docUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    const alObject = new ALObject(document, true);
+
+    let statementText = '';
+
+    if (alObject.isTable() || alObject.isTableExt()) {
+        const alTableFields = new ALObjectFields(alObject);
+        const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
+
+        if (recVariableName) {
+            let fields = alTableFields.fields
+                .sort((a, b) => a.id - b.id);
+
+            fields.forEach(field => {
+                let isValidField = true;
+                if (field.properties['fieldclass']) {
+                    if (['flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        isValidField = false;
+                    }
+                }
+
+                if (isValidField) {
+                    statementText += `${createReportColumnStatement(recVariableName, field.name, field.type)}\n`;
+                }
+            });
+        }
+    }
+
+    if (statementText) {
+        try {
+            await vscode.env.clipboard.writeText(statementText);
+            vscode.window.showInformationMessage(`The column list is ready to be pasted`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Unable to create report column list for current table: ${error.message}`);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(`Unable to create report column list for current table`);
+    }
+}
+
+
+function createReportColumnStatement(recVariableName: string, fieldName: string, fieldType: string): string {
+    let columnName = `${typeHelper.toPascalCase(fieldName)}`;
+    if (recVariableName) {
+        columnName = `${recVariableName}_${columnName}`;
+    }
+
+    let sourceExpr = '';
+    if (['date', 'datetime'].includes(fieldType.toLowerCase())) {
+        if (recVariableName) {
+            sourceExpr = `Format(${recVariableName}.${typeHelper.addQuotesIfNeeded(fieldName)}, 0, 4)`;
+        }
+        else {
+            sourceExpr = `Format(${typeHelper.addQuotesIfNeeded(fieldName)}, 0, 4)`;
+        }
+    }
+    else {
+        if (recVariableName) {
+            sourceExpr = `${recVariableName}.${typeHelper.addQuotesIfNeeded(fieldName)}`;
+        }
+        else {
+            sourceExpr = typeHelper.addQuotesIfNeeded(fieldName);
+        }
+    }
+
+    let statementText = `column(${columnName}; ${sourceExpr}) { }`;
+    return statementText;
+}
+//#endregion Report Fields
+
+//#region Parameters
+async function askRecordVariableName(defaultName: string): Promise<string> {
+    const userInput = await vscode.window.showInputBox({
+        prompt: 'Type the record variable name',
+        placeHolder: '',
+        value: defaultName,
+        validateInput: (value) => {
+            if (value.trim().length > 50) {
+                return 'Value too long';
+            }
+
+            return null; // Nessun errore
+        }
+    });
+
+    if (userInput) {
+        return userInput;
+    }
+
+    return '';
+}
+
+async function askApplicationArea(defaultValue: string): Promise<string> {
+    const userInput = await vscode.window.showInputBox({
+        prompt: 'ApplicationArea',
+        placeHolder: '',
+        value: defaultValue,
+        validateInput: (value) => {
+            if (value.trim().length > 50) {
+                return 'Value too long';
+            }
+
+            return null; // Nessun errore
+        }
+    });
+
+    if (userInput) {
+        return userInput;
+    }
+
+    return '';
+}
+//#endregion Parameters
