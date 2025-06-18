@@ -1,7 +1,7 @@
 # Change Log
 
 ## [1.5.4]
-- New special copy functions: `ATS:Copy as Event Integration`, `ATS: Copy as Page Fields`, `ATS: Copy as Report Columns`
+- New special copy functions: `ATS:Copy as Event Integration`, `ATS: Copy as Page Fields`, `ATS: Copy as Report/Query Columns`
 
 ## [1.5.0]
 - New commands: `ATS: AL objects summary`, `ATS: Export AL objects assignment details as csv`

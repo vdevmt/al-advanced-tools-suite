@@ -537,27 +537,6 @@ function createFieldAssignmentStatement(recVariableName: string, fieldName: stri
 
     return statementText;
 }
-
-async function askRecordVariableName(defaultName: string): Promise<string> {
-    const userInput = await vscode.window.showInputBox({
-        prompt: 'Type the record variable name',
-        placeHolder: '',
-        value: defaultName,
-        validateInput: (value) => {
-            if (value.trim().length > 50) {
-                return 'Value too long';
-            }
-
-            return null; // Nessun errore
-        }
-    });
-
-    if (userInput) {
-        return userInput;
-    }
-
-    return '';
-}
 //#endregion Record insert statement
 
 //#region Record modify statement
@@ -721,6 +700,7 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
     if (alObject.isTable() || alObject.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName('Rec');
+        const applicationArea = await askApplicationArea('');
 
         if (recVariableName) {
             let fields = alTableFields.fields
@@ -735,7 +715,7 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
                 }
 
                 if (isValidField) {
-                    statementText += `${createPageFieldStatement(recVariableName, field.name, field.type)}\n`;
+                    statementText += `${createPageFieldStatement(recVariableName, field.name, applicationArea)}\n`;
                 }
             });
         }
@@ -754,10 +734,19 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
     }
 }
 
-
-function createPageFieldStatement(recVariableName: string, fieldName: string, fieldType: string): string {
+function createPageFieldStatement(recVariableName: string, fieldName: string, applicationArea: string): string {
     const pageFieldName = typeHelper.addQuotesIfNeeded(fieldName);
-    let statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName}) { }`;
+    let statementText = '';
+    if (applicationArea) {
+        statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName})\n`;
+        statementText += `{\n`;
+        statementText += `ApplicationArea = ${applicationArea};\n`;
+        statementText += `}`;
+    }
+    else {
+        statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName}) { }`;
+    }
+
     return statementText;
 }
 //#endregion Page Fields
@@ -843,3 +832,47 @@ function createReportColumnStatement(recVariableName: string, fieldName: string,
     return statementText;
 }
 //#endregion Report Fields
+
+//#region Parameters
+async function askRecordVariableName(defaultName: string): Promise<string> {
+    const userInput = await vscode.window.showInputBox({
+        prompt: 'Type the record variable name',
+        placeHolder: '',
+        value: defaultName,
+        validateInput: (value) => {
+            if (value.trim().length > 50) {
+                return 'Value too long';
+            }
+
+            return null; // Nessun errore
+        }
+    });
+
+    if (userInput) {
+        return userInput;
+    }
+
+    return '';
+}
+
+async function askApplicationArea(defaultValue: string): Promise<string> {
+    const userInput = await vscode.window.showInputBox({
+        prompt: 'ApplicationArea',
+        placeHolder: '',
+        value: defaultValue,
+        validateInput: (value) => {
+            if (value.trim().length > 50) {
+                return 'Value too long';
+            }
+
+            return null; // Nessun errore
+        }
+    });
+
+    if (userInput) {
+        return userInput;
+    }
+
+    return '';
+}
+//#endregion Parameters

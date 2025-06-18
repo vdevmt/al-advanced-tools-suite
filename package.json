@@ -188,7 +188,7 @@
       },
       {
         "command": "ats.copyRecordAsReportColumns",
-        "title": "Copy as Report Columns",
+        "title": "Copy as Report/Query Columns",
         "category": "ATS"
       },
       {
@@ -282,7 +282,7 @@
           "command": "ats.copyRecordAsReportColumns",
           "group": "Object Field List",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
-          "title": "Copy as Report Columns"
+          "title": "Copy as Report/Query Columns"
         }
       ]
     },
