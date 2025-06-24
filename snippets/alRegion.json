@@ -5,7 +5,6 @@
         "scope": "al",
         "body": [
             "#region ${1:regionName}",
-            "// Your code here",
             "\t$0",
             "#endregion ${1:regionName}"
         ]        

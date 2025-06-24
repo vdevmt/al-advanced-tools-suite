@@ -415,10 +415,11 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
             // Aggiungo il var in casi particolari
             const args2 = args.map((el) =>
                 el === "IsHandled" ? `var ${el} : Boolean` :
-                    el === "Rec" ? `var ${el}` : el
+                    el === "lIsHandled" ? `var IsHandled : Boolean` :
+                        el === "Rec" ? `var ${el}: Record ""` : el
             );
 
-            selectedText = selectedText.replace(/\(.*?\)/, `(${args2.join(", ")})`);
+            selectedText = selectedText.replace(/\(.*?\)/, `(${args2.join("; ")})`);
         }
 
         eventIntText = '[IntegrationEvent(false, false)]\n';
