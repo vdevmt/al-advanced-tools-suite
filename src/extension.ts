@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
+import * as alSymbols from './alObject/alSymbols';
 import * as alObjectExplorer from './alObject/alObjectExplorer';
 import * as alObjectStats from './alObject/alObjectStatistics'
 import * as regionMgr from './alObject/alObjectRegionMgr';
@@ -29,6 +30,10 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportLaunchFile', launchMgr.exportLaunchFile));
     context.subscriptions.push(vscode.commands.registerCommand('ats.openLaunchFile', launchMgr.openLaunchFile));
     //#endregion launch.json tools
+
+    //#region AL Symbols tools
+    context.subscriptions.push(vscode.commands.registerCommand('ats.importAlSymbols', alSymbols.importAlSymbols));
+    //#endregion AL Symbols tools
 
     //#region AL Objects Explorer
     setObjectTypeContext(null);

@@ -42,8 +42,7 @@ export async function importLaunchFile() {
         canSelectFolders: false,
         title: importDialogTitle,
         defaultUri: defaultImportUri,
-        filters: { 'JSON Files': ['json'] },
-        openLabel: 'Select file',
+        filters: { 'JSON Files': ['json'] }
     });
 
     if (!selectedFileUri || selectedFileUri.length === 0) {
