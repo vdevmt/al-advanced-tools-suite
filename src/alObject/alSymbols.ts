@@ -16,21 +16,58 @@ export async function importAlSymbols(): Promise<void> {
         const workspaceName = vscode.workspace.name?.replace(" (Workspace)", "");
         const importDialogTitle = `Select AL Symbols for ${workspaceName} workspace`;
 
-        // Selezione cartella di origine
-        const folderUri = await vscode.window.showOpenDialog({
-            canSelectFiles: false,
-            canSelectFolders: true,
-            canSelectMany: false,
-            title: importDialogTitle
-        });
+        // Selezione modalità di importazione
+        const copyMode = await vscode.window.showQuickPick(
+            ["Copy all symbols in folder", "Select files manually"],
+            { placeHolder: "Do you want to copy all files from a folder, or select specific ones?" }
+        );
 
-        if (!folderUri || folderUri.length === 0) {
+        if (!copyMode) {
             vscode.window.showInformationMessage("Operation cancelled.");
             return;
         }
+        const copyByFolder = (copyMode === "Copy all symbols in folder");
+        let sourceFiles: string[] = [];
 
-        const sourceFolder = folderUri[0].fsPath;
-        console.log(`Selected source folder: ${sourceFolder}`);
+        if (copyByFolder) {
+            // Selezione cartella di origine
+            const folderUri = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                title: importDialogTitle
+            });
+
+            if (!folderUri || folderUri.length === 0) {
+                vscode.window.showInformationMessage("Operation cancelled.");
+                return;
+            }
+
+            const sourceFolder = folderUri[0].fsPath;
+            console.log(`Selected source folder: ${sourceFolder}`);
+
+            sourceFiles = fs.readdirSync(sourceFolder, { withFileTypes: true })
+                .filter(dirent => dirent.isFile() && dirent.name.toLowerCase().endsWith(".app"))
+                .map(dirent => path.join(sourceFolder, dirent.name));
+
+        } else {
+            // Selezione manuale di uno o più file .app
+            const fileUris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: true,
+                title: importDialogTitle,
+                filters: { "Business Central App Files": ["app"] }
+            });
+
+            if (!fileUris || fileUris.length === 0) {
+                vscode.window.showInformationMessage("Operation cancelled.");
+                return;
+            }
+
+            sourceFiles = fileUris.map(uri => uri.fsPath);
+            console.log(`Selected files: ${sourceFiles.join(", ")}`);
+        }
 
         // Verifico presenza della cartella di default per i Symbols
         const destFolder = path.join(workspacePath, ".alpackages");
@@ -71,11 +108,8 @@ export async function importAlSymbols(): Promise<void> {
         let msSymbolsCleaned = false;
         let copiedCount = 0;
 
-        const files = fs.readdirSync(sourceFolder, { withFileTypes: true })
-            .filter(dirent => dirent.isFile() && dirent.name.toLowerCase().endsWith(".app"))
-            .map(dirent => dirent.name);
-
-        for (const fileName of files) {
+        for (const sourcePath of sourceFiles) {
+            const fileName = path.basename(sourcePath);
             const match = fileName.match(pattern);
             if (match) {
                 const Publisher = match[1];
@@ -112,7 +146,6 @@ export async function importAlSymbols(): Promise<void> {
                 }
 
                 // Copia il file
-                const sourcePath = path.join(sourceFolder, fileName);
                 const destPath = path.join(destFolder, fileName);
                 fs.copyFileSync(sourcePath, destPath);
                 copiedCount++;
