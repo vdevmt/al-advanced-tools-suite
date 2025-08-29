@@ -153,7 +153,19 @@ export async function importAlSymbols(): Promise<void> {
             }
         }
 
-        vscode.window.showInformationMessage(`Update completed. ${copiedCount} file(s) copied.`);
+        // Messaggio di conferma + richiesta di riavvio del workspace corrente
+        const reloadChoice = await vscode.window.showInformationMessage(
+            `Update completed.\nDo you want to reload the workspace now?`,
+            {
+                modal: true,
+                detail: `${copiedCount} file(s) copied.`
+            },
+            "Yes", "No"
+        );
+
+        if (reloadChoice === "Yes") {
+            await vscode.commands.executeCommand("workbench.action.reloadWindow");
+        }
     } catch (err: any) {
         vscode.window.showErrorMessage(`Error updating AL packages: ${err.message}`);
     }
