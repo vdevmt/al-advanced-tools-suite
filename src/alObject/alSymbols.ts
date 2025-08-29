@@ -155,7 +155,7 @@ export async function importAlSymbols(): Promise<void> {
 
         // Messaggio di conferma + richiesta di riavvio del workspace corrente
         const reloadChoice = await vscode.window.showInformationMessage(
-            `Update completed.\nDo you want to reload the workspace now?`,
+            `Update completed.\nDo you want to reload the workspace?`,
             {
                 modal: true,
                 detail: `${copiedCount} file(s) copied.`
