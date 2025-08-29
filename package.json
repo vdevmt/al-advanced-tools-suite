@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.5.7",
+  "version": "1.6.0",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -69,6 +69,11 @@
       {
         "command": "ats.openLaunchFile",
         "title": "Open 'launch.json'",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.importAlSymbols",
+        "title": "Import AL Symbols",
         "category": "ATS"
       },
       {

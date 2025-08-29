@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.6.0]
+- New command: `ATS: Import AL Symbols`
+
 ## [1.5.4]
 - New special copy functions: `ATS:Copy as Event Integration`, `ATS: Copy as Page Fields`, `ATS: Copy as Report/Query Columns`
 
