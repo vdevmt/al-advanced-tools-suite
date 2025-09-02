@@ -1,7 +1,15 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import { ATSSettings } from '../settings/atsSettings';
 
+//#region Import/Export utilities
+function getDefaultSymbolsArchiveFolder(): string {
+    const atsSettings = ATSSettings.GetConfigSettings(null);
+    let defaultFolder = atsSettings[ATSSettings.DefaultSymbolsArchiveFolder];
+
+    return defaultFolder;
+}
 export async function importAlSymbols(): Promise<void> {
     try {
 
@@ -29,12 +37,19 @@ export async function importAlSymbols(): Promise<void> {
         const copyByFolder = (copyMode === "Copy all symbols in folder");
         let sourceFiles: string[] = [];
 
+        let defaultImportUri = vscode.Uri.file(`${workspaceFolders[0].uri.fsPath}`);
+        let defaultFolder = getDefaultSymbolsArchiveFolder();
+        if (defaultFolder) {
+            defaultImportUri = vscode.Uri.file(defaultFolder);
+        }
+
         if (copyByFolder) {
             // Selezione cartella di origine
             const folderUri = await vscode.window.showOpenDialog({
                 canSelectFiles: false,
                 canSelectFolders: true,
                 canSelectMany: false,
+                defaultUri: defaultImportUri,
                 title: importDialogTitle
             });
 
@@ -56,6 +71,7 @@ export async function importAlSymbols(): Promise<void> {
                 canSelectFiles: true,
                 canSelectFolders: false,
                 canSelectMany: true,
+                defaultUri: defaultImportUri,
                 title: importDialogTitle,
                 filters: { "Business Central App Files": ["app"] }
             });
@@ -170,3 +186,4 @@ export async function importAlSymbols(): Promise<void> {
         vscode.window.showErrorMessage(`Error updating AL packages: ${err.message}`);
     }
 }
+//#endregion Import/Export utilities

@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -302,6 +302,13 @@
             "order": 1,
             "scope": "resource"
           },
+          "ATS.DefaultSymbolsArchiveFolder": {
+            "type": "string",
+            "description": "Default archive folder for import/export utiltities of AL Symbols files",
+            "default": "",
+            "order": 1,
+            "scope": "resource"
+          },          
           "ATS.UseObjectFilePathAsNamespace": {
             "type": "boolean",
             "description": "Allow usage of object file path for namespace declarations (default = false)",
