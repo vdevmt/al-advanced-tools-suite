@@ -295,13 +295,6 @@
       {
         "title": "Advanced Tools Suite for AL Language (ATS)",
         "properties": {
-          "ATS.DefaultLaunchArchiveFolder": {
-            "type": "string",
-            "description": "Default archive folder for import/export utiltities of launch.json file",
-            "default": "",
-            "order": 1,
-            "scope": "resource"
-          },
           "ATS.DefaultSymbolsArchiveFolder": {
             "type": "string",
             "description": "Default archive folder for import/export utiltities of AL Symbols files",
@@ -309,6 +302,13 @@
             "order": 1,
             "scope": "resource"
           },          
+          "ATS.DefaultLaunchArchiveFolder": {
+            "type": "string",
+            "description": "Default archive folder for import/export utiltities of launch.json file",
+            "default": "",
+            "order": 1,
+            "scope": "resource"
+          },
           "ATS.UseObjectFilePathAsNamespace": {
             "type": "boolean",
             "description": "Allow usage of object file path for namespace declarations (default = false)",
