@@ -163,6 +163,7 @@ With this structure you can create a complex grid like this:<br />
 
 # Extension settings
 * `ATS.DefaultLaunchArchiveFolder`: Default archive folder for import/export utiltities of launch.json file;  
+* `ATS.DefaultSymbolsArchiveFolder`: Default archive folder for import/export utiltities of AL Symbols files;  
 * `ATS.UseObjectFilePathAsNamespace`: Allow usage of object file path for namespace declarations (default = false). The number of positions included depends on the value defined in the `ATS.MaxNamespaceSize` setting;
 * `ATS.RootNamespace`: Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the `al.rootNamespace` setting);
 * `ATS.DefaultNamespaces`: List of default namespaces that can be used for AL objects;  

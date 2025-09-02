@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 export class ATSSettings {
     private static CONFIGKEY: string = 'ATS';
     static readonly DefaultLaunchArchiveFolder = 'DefaultLaunchArchiveFolder';
+    static readonly DefaultSymbolsArchiveFolder = 'DefaultSymbolsArchiveFolder';
     static readonly UseObjectFilePathAsNamespace = 'UseObjectFilePathAsNamespace';
     static readonly RootNamespace = 'RootNamespace';
     static readonly DefaultNamespaces = 'DefaultNamespaces';
@@ -34,6 +35,7 @@ export class ATSSettings {
                     vscode.workspace.getConfiguration(this.CONFIGKEY, null);
 
         this.SettingCollection[this.DefaultLaunchArchiveFolder] = this.getSetting(this.DefaultLaunchArchiveFolder);
+        this.SettingCollection[this.DefaultSymbolsArchiveFolder] = this.getSetting(this.DefaultSymbolsArchiveFolder);
         this.SettingCollection[this.UseObjectFilePathAsNamespace] = this.getSetting(this.UseObjectFilePathAsNamespace);
         this.SettingCollection[this.RootNamespace] = this.getSetting(this.RootNamespace);
         this.SettingCollection[this.DefaultNamespaces] = this.getSetting(this.DefaultNamespaces);
