@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.6.2]
+- AL Object Explorer: added button to export symbols as text
+
 ## [1.6.0]
 - New command: `ATS: Import AL Symbols`
 

@@ -59,15 +59,33 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('ats.ALObjectExplorer', alObjectExplorer.execALObjectExplorer));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alObjectExplorer.showOpenALObjects));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllFields', alObjectExplorer.showAllFields));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyFieldsAsText', alObjectExplorer.copyFieldsAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTableKeys', alObjectExplorer.showAllTableKeys));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyTableKeysAsText', alObjectExplorer.copyTableKeysAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTableFieldGroups', alObjectExplorer.showAllTableFieldGroups));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyTableFieldGroupsAsText', alObjectExplorer.copyTableFieldGroupsAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllTriggers', alObjectExplorer.showAllTriggers));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyTriggersAsText', alObjectExplorer.copyTriggersAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllProcedures', alObjectExplorer.showAllProcedures));
-    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alObjectExplorer.showAllActions));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyProceduresAsText', alObjectExplorer.copyProceduresAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllDataItems', alObjectExplorer.showAllDataItems));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyDataItemsAsText', alObjectExplorer.copyDataItemsAsText));
+
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllActions', alObjectExplorer.showAllActions));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyActionsAsText', alObjectExplorer.copyActionsAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllRegions', alObjectExplorer.showAllRegions));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyRegionsAsText', alObjectExplorer.copyRegionsAsText));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllGlobalVariables', alObjectExplorer.showAllGlobalVariables));
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copyGlobalVariablesAsText', alObjectExplorer.copyGlobalVariablesAsText));
     //#endregion AL Objects Explorer
 
     //#region Run Business Central       

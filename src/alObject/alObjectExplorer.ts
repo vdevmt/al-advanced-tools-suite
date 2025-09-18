@@ -6,7 +6,7 @@ interface ObjectElement {
     count: number,
     iconName: string,
     command: string,
-    commandArgs?: any,
+    commandArgs?: any
 }
 
 interface atsQuickPickItem extends vscode.QuickPickItem {
@@ -29,6 +29,10 @@ const cmdOpenFile = 'OpenFile';
 const cmdOpenFileOnSide = 'OpenFileOnSide';
 const cmdExecALObjectExplorer = 'ALObjectExplorer';
 
+const btnCmdCopyAsText = 'Copy as text';
+const btnCmdExecObjectExplorer = 'AL Object Explorer';
+const btnCmdOpenToSide = 'Open to the Side';
+
 //#region AL Object Explorer
 export async function execALObjectExplorer(alObject?: ALObject) {
     if (!alObject) {
@@ -48,7 +52,11 @@ export async function execALObjectExplorer(alObject?: ALObject) {
                 description: '',
                 detail: '',
                 command: element.command,
-                commandArgs: element.commandArgs
+                commandArgs: element.commandArgs,
+                buttons: [{
+                    iconPath: new vscode.ThemeIcon('copy'),
+                    tooltip: btnCmdCopyAsText
+                }]
             }));
 
             showQuickPick(qpItems,
@@ -133,7 +141,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
                         count: alObjectFields.fieldsCount,
                         command: 'ats.showAllFields',
                         commandArgs: alObject.objectFileUri,
-                        iconName: 'symbol-field'
+                        iconName: 'symbol-field',
                     });
                 }
             }
@@ -382,7 +390,7 @@ async function showObjectItems(alObject: ALObject,
                         iconPath: item.iconName ? new vscode.ThemeIcon(item.iconName) : null,
                         buttons: [{
                             iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
-                            tooltip: "Open to the Side",
+                            tooltip: btnCmdOpenToSide,
                         }]
                     });
                 });
@@ -579,6 +587,156 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
         vscode.window.showInformationMessage(`No fields found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+
+export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?: string) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+
+    if (alObject) {
+        var fullText = '';
+
+        let alObjectFieldsFull: ALObjectFields;
+        alObjectFieldsFull = new ALObjectFields(alObject);
+
+        let alObjectFields = {
+            objectType: alObjectFieldsFull.objectType,
+            objectId: alObjectFieldsFull.objectId,
+            objectName: alObjectFieldsFull.objectName,
+            elementsCount: alObjectFieldsFull.elementsCount,
+            fields: sectionFilter ? alObjectFieldsFull.fields.filter(item => item.section === sectionFilter) :
+                alObjectFieldsFull.fields
+        };
+
+        if (alObjectFields.fields) {
+            for (const field of alObjectFields.fields) {
+                if ((field.isfield) && (!field.externalFieldExt)) {
+
+                    let caption = '';
+                    let fieldClass = '';
+                    if (field.properties) {
+                        if ('caption' in field.properties) {
+                            if (field.properties['caption']) {
+                                caption = `${field.properties['caption'].trim()}`;
+                            }
+                        }
+
+                        if (alObject.isTable() || alObject.isTableExt()) {
+                            if ('fieldclass' in field.properties) {
+                                if (field.properties['fieldclass']) {
+                                    fieldClass = `${field.properties['fieldclass'].trim()}`;
+                                }
+                            }
+
+                            if (!fieldClass) {
+                                fieldClass = 'Normal';
+                            }
+                        }
+                    }
+
+                    switch (true) {
+                        case alObject.isTable(): {
+                            if (!fullText) {
+                                fullText = 'ID\tName\tType\tCaption\tPK Position\tField Class\n';
+                            }
+
+                            fullText += `${field.id}\t` +
+                                `${field.name}\t` +
+                                `${field.type ? field.type : ''}\t` +
+                                `${caption ? caption : ''}\t` +
+                                `${field.pkIndex ? field.pkIndex : 0}\t` +
+                                `${fieldClass ? fieldClass : ''}\n`;
+
+                            break;
+                        }
+
+                        case alObject.isTableExt(): {
+                            if (!fullText) {
+                                fullText = 'ID\tName\tType\tCaption\tField Class\n';
+                            }
+
+                            fullText += `${field.id}\t` +
+                                `${field.name}\t` +
+                                `${field.type ? field.type : ''}\t` +
+                                `${caption ? caption : ''}\t` +
+                                `${fieldClass ? fieldClass : ''}\n`;
+
+                            break;
+                        }
+
+                        case alObject.isReport() || alObject.isReportExt(): {
+                            if (!fullText) {
+                                fullText = 'Name\tCaption\tSource Expression\tLevel\tData Item\n';
+                            }
+
+                            if (!field.externalFieldExt) {
+                                fullText += `${field.name}\t` +
+                                    `${caption ? caption : ''}\t` +
+                                    `${field.sourceExpr ? field.sourceExpr : ''}\t` +
+                                    `${field.level}\t` +
+                                    `${field.dataItem}\n`;
+                            }
+
+                            break;
+                        }
+
+                        case alObject.isQuery(): {
+                            if (!fullText) {
+                                fullText = 'Name\tCaption\tSource Expression\tLevel\tData Item\n';
+                            }
+
+                            if (field.properties && ('method' in field.properties)) {
+                                fullText += `${field.name}\t` +
+                                    `${caption ? caption : ''}\t` +
+                                    `${field.properties['method'].toUpperCase()}(${field.sourceExpr})\t` +
+                                    `${field.level}\t` +
+                                    `${field.dataItem}\n`;
+                            }
+                            else {
+                                fullText += `${field.name}\t` +
+                                    `${caption ? caption : ''}\t` +
+                                    `${field.sourceExpr ? field.sourceExpr : ''}\t` +
+                                    `${field.level}\t` +
+                                    `${field.dataItem}\n`;
+                            }
+                            break;
+                        }
+
+                        default: {
+                            if (!fullText) {
+                                fullText = 'Name\tCaption\tSource Expression\n';
+                            }
+
+                            fullText += `${field.name}\t` +
+                                `${caption ? caption : ''}\t` +
+                                `${field.sourceExpr ? field.sourceExpr : ''}\n`;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No fields found in ${alObject.objectType} ${alObject.objectName}`);
+        }
+    }
+}
 //#endregion AL Object Fields
 
 //#region AL Table Keys
@@ -625,6 +783,48 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
         }
 
         vscode.window.showInformationMessage(`No keys found in ${alObject.objectType} ${alObject.objectName}`);
+    }
+}
+export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        var fullText = '';
+
+        let alTableKeys: ALTableKeys;
+        alTableKeys = new ALTableKeys(alObject);
+        if (alTableKeys.keys) {
+            for (const key of alTableKeys.keys) {
+                if (!fullText) {
+                    fullText = 'Name\tField List\tPK\n';
+                }
+
+                fullText += `${key.name}\t` +
+                    `${key.fieldsList}\t` +
+                    `${key.isPrimaryKey ? 'yes' : 'no'}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No keys found in ${alObject.objectType} ${alObject.objectName}`);
+        }
     }
 }
 //#endregion AL Table Keys
@@ -675,6 +875,47 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
         vscode.window.showInformationMessage(`No field groups found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        var fullText = '';
+
+        let alTableFieldGroups: ALTableFieldGroups;
+        alTableFieldGroups = new ALTableFieldGroups(alObject);
+        if (alTableFieldGroups.fieldgroups) {
+            for (const fieldGroup of alTableFieldGroups.fieldgroups) {
+                if (!fullText) {
+                    fullText = 'Name\tField List\n';
+                }
+
+                fullText += `${fieldGroup.name}\t` +
+                    `${fieldGroup.fieldsList}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No field groups found in ${alObject.objectType} ${alObject.objectName}`);
+        }
+    }
+}
 //#endregion AL Table Field Groups
 
 //#region AL Object Triggers
@@ -721,6 +962,47 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
         }
 
         vscode.window.showInformationMessage(`No triggers found in ${alObject.objectType} ${alObject.objectName}`);
+    }
+}
+export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        var fullText = '';
+
+        let alObjectTriggers: ALObjectTriggers;
+        alObjectTriggers = new ALObjectTriggers(alObject);
+
+        if (alObjectTriggers.triggers) {
+            for (const trigger of alObjectTriggers.triggers) {
+                if (!fullText) {
+                    fullText = 'Name\n';
+                }
+
+                fullText += `${trigger.name}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No triggers found in ${alObject.objectType} ${alObject.objectName}`);
+        }
     }
 }
 //#endregion AL Object Triggers
@@ -818,6 +1100,100 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
         vscode.window.showInformationMessage(`No procedures found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter?: string) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        let fullText = '';
+        let exportSourceEventDet = false;
+
+        let alObjectProceduresFull: ALObjectProcedures;
+        alObjectProceduresFull = new ALObjectProcedures(alObject);
+
+        let alObjectProcedures = {
+            objectType: alObjectProceduresFull.objectType,
+            objectId: alObjectProceduresFull.objectId,
+            objectName: alObjectProceduresFull.objectName,
+            elementsCount: (groupFilter) ? alObjectProceduresFull.procedures.filter(item => item.groupName === groupFilter).length :
+                alObjectProceduresFull.elementsCount,
+            procedures: (groupFilter) ? alObjectProceduresFull.procedures.filter(item => item.groupName === groupFilter) :
+                alObjectProceduresFull.procedures
+        };
+
+        if (alObjectProcedures.procedures) {
+            for (let currGroup = 0; currGroup < 4; currGroup++) {
+                let currGroupName: string = '';
+
+                switch (currGroup) {
+                    case 0: {
+                        currGroupName = 'Procedures';
+                        break;
+                    }
+                    case 1: {
+                        currGroupName = 'Event Subscriptions';
+                        exportSourceEventDet = true;
+                        break;
+                    }
+                    case 2: {
+                        currGroupName = 'Integration Events';
+                        break;
+                    }
+                    case 3: {
+                        currGroupName = 'Business Events';
+                        break;
+                    }
+                }
+
+                if (currGroupName) {
+                    let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
+                    if (procedures && (procedures.length > 0)) {
+                        for (let i = 0; i < procedures.length; i++) {
+                            if (!fullText) {
+                                if (exportSourceEventDet) {
+                                    fullText = 'Name\tSource Integration Event\tRegion Path\n';
+                                }
+                                else {
+                                    fullText = 'Name\tRegion Path\n';
+                                }
+                            }
+
+                            if (exportSourceEventDet) {
+                                fullText += `${procedures[i].name}\t` +
+                                    `${procedures[i].sourceEvent ? procedures[i].sourceEvent : ''}\t` +
+                                    `${procedures[i].regionPath ? procedures[i].regionPath : ''}\n`;
+                            }
+                            else {
+                                fullText += `${procedures[i].name}\t` +
+                                    `${procedures[i].regionPath ? procedures[i].regionPath : ''}\n`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No procedures found in ${alObject.objectType} ${alObject.objectName}`);
+        }
+    }
+}
 //#endregion AL Object Procedures
 
 //#region AL Object Dataitems
@@ -864,6 +1240,48 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
         }
 
         vscode.window.showInformationMessage(`No dataitems found in ${alObject.objectType} ${alObject.objectName}`);
+    }
+}
+export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        let fullText = '';
+
+        let alObjectDataItems: ALObjectDataItems;
+        alObjectDataItems = new ALObjectDataItems(alObject);
+        if (alObjectDataItems.dataItems) {
+            for (const dataItem of alObjectDataItems.dataItems) {
+                if (!fullText) {
+                    fullText = 'Name\tSource Table\tLevel\n';
+                }
+
+                fullText += `${dataItem.name}\t` +
+                    `${dataItem.sourceExpression}\t` +
+                    `${dataItem.level}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No dataitems found in ${alObject.objectType} ${alObject.objectName}`);
+        }
     }
 }
 //#endregion AL Object Dataitems
@@ -915,6 +1333,48 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
         vscode.window.showInformationMessage(`No actions found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        let fullText = '';
+
+        let alObjectActions: ALObjectActions;
+        alObjectActions = new ALObjectActions(alObject);
+        if (alObjectActions.actions) {
+            for (const action of alObjectActions.actions) {
+                if (!fullText) {
+                    fullText = 'Name\tCaption\tLinked Ref. Action\n';
+                }
+
+                fullText += `${action.name}\t` +
+                    `${(action.properties && action.properties['caption']) ? `${action.properties['caption']}` : ''}\t` +
+                    `${action.sourceAction}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No actions found in ${alObject.objectType} ${alObject.objectName}`);
+        }
+    }
+}
 //#endregion AL Object Page Actions
 
 //#region AL Object Regions
@@ -961,6 +1421,46 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
         }
 
         vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
+    }
+}
+export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        let fullText = '';
+
+        let alObjectRegions: ALObjectRegions;
+        alObjectRegions = new ALObjectRegions(alObject);
+        if (alObjectRegions.regions) {
+            for (const region of alObjectRegions.regions) {
+                if (!fullText) {
+                    fullText = 'Name\n';
+                }
+
+                fullText += `${region.name}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No regions found in ${alObject.objectType} ${alObject.objectName}`);
+        }
     }
 }
 //#endregion AL Object Regions
@@ -1016,6 +1516,53 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
         vscode.window.showInformationMessage(`No global variables found in ${alObject.objectType} ${alObject.objectName}`);
     }
 }
+
+export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
+    let alObject: ALObject;
+    let document: vscode.TextDocument;
+
+    if (alObjectUri) {
+        document = await vscode.workspace.openTextDocument(alObjectUri);
+    }
+    else {
+        const editor = vscode.window.activeTextEditor;
+        document = editor.document;
+    }
+
+    if (alFileMgr.isALObjectDocument(document)) {
+        alObject = new ALObject(document, true);
+    }
+
+    if (alObject) {
+        let fullText = '';
+
+        let alObjectVariables: ALObjectVariables;
+        alObjectVariables = new ALObjectVariables(alObject);
+        if (alObjectVariables.variables) {
+
+            for (const variable of alObjectVariables.variables) {
+                if (!fullText) {
+                    fullText = 'Name\tType\tSize\tSubtype\tAttributes\tValue\n';
+                }
+
+                fullText += `${variable.name}\t` +
+                    `${variable.type}\t` +
+                    `${(variable.size !== 0) ? variable.size : ''}\t` +
+                    `${variable.subtype ? variable.subtype : ''}\t` +
+                    `${variable.attributes ? variable.attributes : ''}\t` +
+                    `${variable.value}\n`;
+            }
+        }
+
+        if (fullText) {
+            await vscode.env.clipboard.writeText(fullText);
+            vscode.window.showInformationMessage("The requested information has been copied to the clipboard.");
+        }
+        else {
+            vscode.window.showInformationMessage(`No global variables found in ${alObject.objectType} ${alObject.objectName}`);
+        }
+    }
+}
 //#endregion AL Object Variables
 
 
@@ -1057,11 +1604,11 @@ export async function showOpenALObjects() {
                     buttons: [
                         {
                             iconPath: new vscode.ThemeIcon("symbol-misc"),
-                            tooltip: "AL Object Explorer",
+                            tooltip: btnCmdExecObjectExplorer,
                         },
                         {
                             iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
-                            tooltip: "Open to the Side",
+                            tooltip: btnCmdOpenToSide,
                         }
                     ]
                 });
@@ -1229,7 +1776,7 @@ async function showQuickPick(qpItems: atsQuickPickItem[],
         const selectedItem = selected.item as atsQuickPickItem;
         if (selectedItem) {
             switch (selected.button.tooltip) {
-                case 'Open to the Side': {
+                case btnCmdOpenToSide: {
                     switch (selectedItem.command) {
                         case cmdGoToLine: {
                             selectedItem.command = cmdGoToLineOnSide;
@@ -1243,9 +1790,55 @@ async function showQuickPick(qpItems: atsQuickPickItem[],
                     break;
                 }
 
-                case 'AL Object Explorer': {
+                case btnCmdExecObjectExplorer: {
                     selectedItem.command = cmdExecALObjectExplorer;
                     break;
+                }
+
+                case btnCmdCopyAsText: {
+                    switch (selectedItem.command) {
+                        case 'ats.showAllFields': {
+                            selectedItem.command = 'ats.copyFieldsAsText';
+                            break;
+                        }
+                        case 'ats.showAllTableKeys': {
+                            selectedItem.command = 'ats.copyTableKeysAsText';
+                            break;
+                        }
+                        case 'ats.showAllTableFieldGroups': {
+                            selectedItem.command = 'ats.copyTableFieldGroupsAsText';
+                            break;
+                        }
+                        case 'ats.showAllTriggers': {
+                            selectedItem.command = 'ats.copyTriggersAsText';
+                            break;
+                        }
+
+                        case 'ats.showAllProcedures': {
+                            selectedItem.command = 'ats.copyProceduresAsText';
+                            break;
+                        }
+
+                        case 'ats.showAllDataItems': {
+                            selectedItem.command = 'ats.copyDataItemsAsText';
+                            break;
+                        }
+
+                        case 'ats.showAllActions': {
+                            selectedItem.command = 'ats.copyActionsAsText';
+                            break;
+                        }
+
+                        case 'ats.showAllRegions': {
+                            selectedItem.command = 'ats.copyRegionsAsText';
+                            break;
+                        }
+
+                        case 'ats.showAllGlobalVariables': {
+                            selectedItem.command = 'ats.copyGlobalVariablesAsText';
+                            break;
+                        }
+                    }
                 }
             }
 
