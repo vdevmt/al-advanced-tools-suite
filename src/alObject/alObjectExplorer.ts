@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
+import * as typeHelper from '../typeHelper';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers, ALObjectVariables } from './alObject';
 interface ObjectElement {
     type: string,
@@ -2034,10 +2035,13 @@ export class ALObjectIndex implements vscode.Disposable {
                 const alObject = new ALObject(document, false);
 
                 if (alObject) {
-                    const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${alObject.objectName}` : `${alObject.objectType} ${alObject.objectName}`;
+                    const objectName = typeHelper.addQuotesIfNeeded(alObject.objectName);
+                    const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
+
+                    const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${objectName}` : `${alObject.objectType} ${objectName}`;
                     const detail =
-                        alObject.extendedObjectName && alObject.objectNamespace ? `extends ${alObject.extendedObjectName}; ${alObject.objectNamespace}` :
-                            alObject.extendedObjectName ? `extends ${alObject.extendedObjectName}` :
+                        alObject.extendedObjectName && alObject.objectNamespace ? `extends ${extendedObjectName}; ${alObject.objectNamespace}` :
+                            alObject.extendedObjectName ? `extends ${extendedObjectName}` :
                                 alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
 
 
