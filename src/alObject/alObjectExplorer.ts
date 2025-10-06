@@ -1857,26 +1857,7 @@ export function registerGoToALObjectCommand(context: vscode.ExtensionContext, in
         }
 
         const alObjects = allItems.map(toQuickPickItem);
-
-        // Ricerca gruppi 
-        const groups = [...new Map(alObjects.map(item =>
-            [item['groupName'], { id: item.groupID, name: item.groupName }])).values()]
-            .sort((a, b) => a.id - b.id);
-
-        // Ricerca elementi del gruppo                
-        if (groups) {
-            let qpItems: qpTools.atsQuickPickItem[] = [];
-            groups.forEach(group => {
-                qpItems.push({
-                    label: group.name,
-                    kind: vscode.QuickPickItemKind.Separator
-                });
-
-                qpItems.push(...alObjects.filter(item => (item.groupName === group.name)));
-            });
-
-            await qpTools.showQuickPick(qpItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
-        }
+        await qpTools.showQuickPick(alObjects, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
     });
 
     context.subscriptions.push(cmd);
@@ -1893,7 +1874,7 @@ function toQuickPickItem(item: qpTools.atsQuickPickItem): qpTools.atsQuickPickIt
         sortKey: item.sortKey,
         command: item.command,
         commandArgs: item.commandArgs,
-        alwaysShow: true,
+        alwaysShow: false,
         buttons: [
             {
                 iconPath: new vscode.ThemeIcon("symbol-misc"),
