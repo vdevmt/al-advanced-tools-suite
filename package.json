@@ -410,6 +410,11 @@
         "command": "ats.alPackageNewVersion",
         "key": "ctrl+shift+v",
         "when": "atsExtensionActive"
+      },
+      {
+        "command": "ats.gotoWorkspaceObjects",
+        "key": "ctrl+alt+t",
+        "when": "atsExtensionActive"
       }
     ]
   },
