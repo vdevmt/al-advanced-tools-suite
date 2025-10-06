@@ -16,7 +16,10 @@ import { ALObject } from './alObject/alObject';
 
 let regionPathSBDebounceTimeout = null;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
+    const output = vscode.window.createOutputChannel('Advanced Tools Suite for AL Language');
+    context.subscriptions.push(output);
+
     //#region extension status
     vscode.commands.executeCommand('setContext', 'atsExtensionActive', true);
     //#endregion extension status
@@ -223,8 +226,15 @@ export function activate(context: vscode.ExtensionContext) {
     //#region Objects Statistics
     context.subscriptions.push(vscode.commands.registerCommand('ats.viewALObjectsSummary', alObjectStats.viewALObjectsSummary));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportObjectsAssignmentDetailsAsCSV', alObjectStats.exportObjectsAssignmentDetailsAsCSV));
-
     //#endregion Objects Statistics
+
+    //#region Go to AL Object command
+    const index = new alObjectExplorer.ALObjectIndex(output);
+    await index.init();
+    context.subscriptions.push(index);
+
+    alObjectExplorer.registerGoToALObjectCommand(context, index);
+    //#endregion Go to AL Object command
 }
 
 export function deactivate() {

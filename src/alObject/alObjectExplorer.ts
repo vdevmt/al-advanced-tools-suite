@@ -1945,3 +1945,199 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
     }
 }
 //#endregion Quick Pick Functions
+
+//#region Go to AL Object command
+export type ALObjectItem = {
+    label: string;              // e.g. "table 50000 My Table"
+    description?: string;       // relative path
+    detail?: string;            // workspace folder name
+    uri: vscode.Uri;
+    position?: vscode.Position;  // where declaration starts
+    sortKey: string;            // for stable sorting
+    iconPath: vscode.ThemeIcon;
+    type: string;
+};
+
+type ALQuickPickItem = vscode.QuickPickItem & { data: ALObjectItem };
+
+const EXCLUDE_GLOBS = [
+    '**/.alpackages/**',
+    '**/packages/**',
+    '**/bin/**',
+    '**/out/**',
+    '**/node_modules/**',
+];
+
+export class ALObjectIndex implements vscode.Disposable {
+    private items: Map<string, ALObjectItem> = new Map(); // key: fsPath
+    private watcher: vscode.FileSystemWatcher | undefined;
+    private disposables: vscode.Disposable[] = [];
+
+    constructor(private readonly output?: vscode.OutputChannel) { }
+
+    async init() {
+        await this.buildFullIndex();
+
+        // Watch only *.al files in the workspace
+        this.watcher = vscode.workspace.createFileSystemWatcher('**/*.al', false, false, false);
+
+        // Add
+        this.disposables.push(
+            this.watcher.onDidCreate(async (uri) => {
+                if (this.isExcluded(uri)) return;
+                const item = await this.parseFile(uri);
+                if (item) this.items.set(uri.fsPath, item);
+            })
+        );
+
+        // Delete
+        this.disposables.push(
+            this.watcher.onDidDelete((uri) => {
+                this.items.delete(uri.fsPath);
+            })
+        );
+
+        // (Optional) Update on change
+        /*
+        this.disposables.push(
+            this.watcher.onDidChange(async (uri) => {
+                if (this.isExcluded(uri)) return;
+                const item = await this.parseFile(uri);
+                if (item) this.items.set(uri.fsPath, item);
+            })
+        );
+        */
+    }
+
+    getAll(): ALObjectItem[] {
+        return Array.from(this.items.values()).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    }
+
+    dispose() {
+        this.watcher?.dispose();
+        this.disposables.forEach(d => d.dispose());
+        this.items.clear();
+    }
+
+    private async buildFullIndex() {
+        this.items.clear();
+
+        const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
+        const uris = await vscode.workspace.findFiles('**/*.al', excludePattern);
+        const tasks = uris.map((uri) => this.parseFile(uri));
+        const results = await Promise.all(tasks);
+        for (const item of results) {
+            if (item) this.items.set(item.uri.fsPath, item);
+        }
+    }
+
+    private isExcluded(uri: vscode.Uri): boolean {
+        // Cheap path-based check to avoid parsing files in dependency folders
+        const p = uri.fsPath.replace(/\\/g, '/').toLowerCase();
+        return p.includes('/.alpackages/') ||
+            p.includes('/packages/') ||
+            p.includes('/bin/') ||
+            p.includes('/out/');
+    }
+
+    private async parseFile(uri: vscode.Uri): Promise<ALObjectItem | undefined> {
+        try {
+            if (alFileMgr.isALObjectFile(uri, false)) {
+                const document = await vscode.workspace.openTextDocument(uri);
+                const alObject = new ALObject(document, false);
+
+                if (alObject) {
+                    const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${alObject.objectName}` : `${alObject.objectType} ${alObject.objectName}`;
+                    const detail =
+                        alObject.extendedObjectName && alObject.objectNamespace ? `extends ${alObject.extendedObjectName}; ${alObject.objectNamespace}` :
+                            alObject.extendedObjectName ? `extends ${alObject.extendedObjectName}` :
+                                alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
+
+
+                    const item: ALObjectItem = {
+                        label,
+                        type: alObject.objectType,
+                        description: vscode.workspace.asRelativePath(uri),
+                        detail,
+                        uri,
+                        iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
+                        sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId.padStart(10, '0')}${alObject.objectName.toLowerCase()}`,
+                    };
+
+                    return item;
+                }
+            }
+
+            this.output?.appendLine(`[ALObjectIndex] No AL object found in "${uri.fsPath}"`);
+
+            return undefined;
+        } catch (err) {
+            this.output?.appendLine(`[ALObjectIndex] Failed to parse ${uri.fsPath}: ${String(err)}`);
+            return undefined;
+        }
+    }
+}
+
+export function registerGoToALObjectCommand(context: vscode.ExtensionContext, index: ALObjectIndex) {
+    const cmd = vscode.commands.registerCommand('ats.gotoWorkspaceObjects', async () => {
+        const items = index.getAll();
+        if (items.length === 0) {
+            void vscode.window.showInformationMessage('No AL objects found in the current workspace.');
+            return;
+        }
+
+        const qp = vscode.window.createQuickPick<ALQuickPickItem>();
+        qp.title = 'Go to AL object (workspace only)';
+        qp.matchOnDescription = false;
+        qp.matchOnDetail = false;
+        qp.items = items.map(toQuickPickItem);
+
+        const disposables: vscode.Disposable[] = [];
+        const cleanup = () => disposables.forEach(d => d.dispose());
+
+        disposables.push(
+            qp.onDidAccept(async () => {
+                const sel = qp.selectedItems[0] as ALQuickPickItem | undefined;
+                qp.hide();
+                if (sel) {
+                    const doc = await vscode.workspace.openTextDocument(sel.data.uri);
+                    const editor = await vscode.window.showTextDocument(doc, { preview: true });
+                    editor.revealRange(new vscode.Range(sel.data.position, sel.data.position), vscode.TextEditorRevealType.InCenter);
+                    editor.selection = new vscode.Selection(sel.data.position, sel.data.position);
+                }
+                cleanup();
+            }),
+            qp.onDidHide(() => {
+                qp.dispose();
+                cleanup();
+            })
+        );
+
+        qp.show();
+    });
+
+    context.subscriptions.push(cmd);
+}
+
+function toQuickPickItem(item: ALObjectItem): ALQuickPickItem {
+    return {
+        label: item.label,
+        description: item.description,
+        detail: item.detail,
+        iconPath: item.iconPath,
+        data: item,
+        buttons: [
+            {
+                iconPath: new vscode.ThemeIcon("symbol-misc"),
+                tooltip: btnCmdExecObjectExplorer,
+            },
+            {
+                iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
+                tooltip: btnCmdOpenToSide,
+            }
+        ]
+
+    };
+}
+
+//#endregion Go to AL Object command

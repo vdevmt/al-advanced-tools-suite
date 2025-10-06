@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -51,6 +51,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "ats.gotoWorkspaceObjects",
+        "title": "Go to AL Object (Workspace Only)",
+        "category": "ATS"
+      },
       {
         "command": "ats.alPackageNewVersion",
         "title": "AL Package new version",
