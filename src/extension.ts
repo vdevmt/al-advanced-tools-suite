@@ -229,11 +229,11 @@ export async function activate(context: vscode.ExtensionContext) {
     //#endregion Objects Statistics
 
     //#region Go to AL Object command
-    const index = new alObjectExplorer.ALObjectIndex(output);
-    await index.init();
-    context.subscriptions.push(index);
+    const alObjectDictionary = new alObjectExplorer.ALObjectIndex(output);
+    await alObjectDictionary.init();
+    context.subscriptions.push(alObjectDictionary);
 
-    alObjectExplorer.registerGoToALObjectCommand(context, index);
+    alObjectExplorer.registerGoToALObjectCommand(context, alObjectDictionary);
     //#endregion Go to AL Object command
 }
 

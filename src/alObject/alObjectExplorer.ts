@@ -1856,37 +1856,23 @@ export function registerGoToALObjectCommand(context: vscode.ExtensionContext, in
             return;
         }
 
-        const alObjects = allItems.map(toQuickPickItem);
+        const alObjects = allItems.map(item => ({
+            ...item,
+            buttons: [
+                {
+                    iconPath: new vscode.ThemeIcon("symbol-misc"),
+                    tooltip: qpTools.btnCmdExecObjectExplorer,
+                },
+                {
+                    iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
+                    tooltip: qpTools.btnCmdOpenToSide,
+                }
+            ]
+        }));
+
         await qpTools.showQuickPick(alObjects, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
     });
 
     context.subscriptions.push(cmd);
 }
-
-function toQuickPickItem(item: qpTools.atsQuickPickItem): qpTools.atsQuickPickItem {
-    return {
-        label: item.label,
-        description: item.description,
-        detail: item.detail,
-        iconPath: item.iconPath,
-        groupID: item.groupID,
-        groupName: item.groupName,
-        sortKey: item.sortKey,
-        command: item.command,
-        commandArgs: item.commandArgs,
-        alwaysShow: false,
-        buttons: [
-            {
-                iconPath: new vscode.ThemeIcon("symbol-misc"),
-                tooltip: qpTools.btnCmdExecObjectExplorer,
-            },
-            {
-                iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
-                tooltip: qpTools.btnCmdOpenToSide,
-            }
-        ]
-
-    };
-}
-
 //#endregion Go to AL Object command
