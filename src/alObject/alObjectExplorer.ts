@@ -1754,7 +1754,8 @@ async function showQuickPick(qpItems: atsQuickPickItem[],
     enableSearchOnDetails: boolean,
     initialValue: string
 ) {
-    const quickPick = vscode.window.createQuickPick();
+    //const quickPick = vscode.window.createQuickPick();
+    const quickPick = vscode.window.createQuickPick<atsQuickPickItem>();
     quickPick.items = qpItems;
 
     quickPick.title = title;
@@ -1763,93 +1764,104 @@ async function showQuickPick(qpItems: atsQuickPickItem[],
     quickPick.matchOnDetail = enableSearchOnDetails;
     quickPick.value = initialValue;
 
-    // Gestione elemento selezionato        
-    quickPick.onDidAccept(async () => {
-        const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
-        if (selectedItem) {
-            await executeQuickPickItemCommand(selectedItem);
-        }
-        quickPick.hide();
-    });
+    const disposables: vscode.Disposable[] = [];
+    const cleanup = () => disposables.forEach(d => d.dispose());
 
-    // Gestione button dell'elemento selezionato
-    quickPick.onDidTriggerItemButton(async (selected) => {
-        const selectedItem = selected.item as atsQuickPickItem;
-        if (selectedItem) {
-            switch (selected.button.tooltip) {
-                case btnCmdOpenToSide: {
-                    switch (selectedItem.command) {
-                        case cmdGoToLine: {
-                            selectedItem.command = cmdGoToLineOnSide;
-                            break;
-                        }
-                        case cmdOpenFile: {
-                            selectedItem.command = cmdOpenFileOnSide;
-                            break;
-                        }
-                    }
-                    break;
-                }
-
-                case btnCmdExecObjectExplorer: {
-                    selectedItem.command = cmdExecALObjectExplorer;
-                    break;
-                }
-
-                case btnCmdCopyAsText: {
-                    switch (selectedItem.command) {
-                        case 'ats.showAllFields': {
-                            selectedItem.command = 'ats.copyFieldsAsText';
-                            break;
-                        }
-                        case 'ats.showAllTableKeys': {
-                            selectedItem.command = 'ats.copyTableKeysAsText';
-                            break;
-                        }
-                        case 'ats.showAllTableFieldGroups': {
-                            selectedItem.command = 'ats.copyTableFieldGroupsAsText';
-                            break;
-                        }
-                        case 'ats.showAllTriggers': {
-                            selectedItem.command = 'ats.copyTriggersAsText';
-                            break;
-                        }
-
-                        case 'ats.showAllProcedures': {
-                            selectedItem.command = 'ats.copyProceduresAsText';
-                            break;
-                        }
-
-                        case 'ats.showAllDataItems': {
-                            selectedItem.command = 'ats.copyDataItemsAsText';
-                            break;
-                        }
-
-                        case 'ats.showAllActions': {
-                            selectedItem.command = 'ats.copyActionsAsText';
-                            break;
-                        }
-
-                        case 'ats.showAllRegions': {
-                            selectedItem.command = 'ats.copyRegionsAsText';
-                            break;
-                        }
-
-                        case 'ats.showAllGlobalVariables': {
-                            selectedItem.command = 'ats.copyGlobalVariablesAsText';
-                            break;
-                        }
-                    }
-                }
+    disposables.push(
+        // Gestione elemento selezionato        
+        quickPick.onDidAccept(async () => {
+            const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
+            if (selectedItem) {
+                await executeQuickPickItemCommand(selectedItem);
             }
-
-            // Esegui il comando per l'item selezionato
-            await executeQuickPickItemCommand(selectedItem);
             quickPick.hide();
-        }
-    });
+        }),
 
-    quickPick.onDidHide(() => quickPick.dispose());
+
+        // Gestione button dell'elemento selezionato
+        quickPick.onDidTriggerItemButton(async (selected) => {
+            const selectedItem = selected.item as atsQuickPickItem | undefined;
+            quickPick.hide();
+
+            if (selectedItem) {
+                switch (selected.button.tooltip) {
+                    case btnCmdOpenToSide: {
+                        switch (selectedItem.command) {
+                            case cmdGoToLine: {
+                                selectedItem.command = cmdGoToLineOnSide;
+                                break;
+                            }
+                            case cmdOpenFile: {
+                                selectedItem.command = cmdOpenFileOnSide;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+
+                    case btnCmdExecObjectExplorer: {
+                        selectedItem.command = cmdExecALObjectExplorer;
+                        break;
+                    }
+
+                    case btnCmdCopyAsText: {
+                        switch (selectedItem.command) {
+                            case 'ats.showAllFields': {
+                                selectedItem.command = 'ats.copyFieldsAsText';
+                                break;
+                            }
+                            case 'ats.showAllTableKeys': {
+                                selectedItem.command = 'ats.copyTableKeysAsText';
+                                break;
+                            }
+                            case 'ats.showAllTableFieldGroups': {
+                                selectedItem.command = 'ats.copyTableFieldGroupsAsText';
+                                break;
+                            }
+                            case 'ats.showAllTriggers': {
+                                selectedItem.command = 'ats.copyTriggersAsText';
+                                break;
+                            }
+
+                            case 'ats.showAllProcedures': {
+                                selectedItem.command = 'ats.copyProceduresAsText';
+                                break;
+                            }
+
+                            case 'ats.showAllDataItems': {
+                                selectedItem.command = 'ats.copyDataItemsAsText';
+                                break;
+                            }
+
+                            case 'ats.showAllActions': {
+                                selectedItem.command = 'ats.copyActionsAsText';
+                                break;
+                            }
+
+                            case 'ats.showAllRegions': {
+                                selectedItem.command = 'ats.copyRegionsAsText';
+                                break;
+                            }
+
+                            case 'ats.showAllGlobalVariables': {
+                                selectedItem.command = 'ats.copyGlobalVariablesAsText';
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Esegui il comando per l'item selezionato
+                await executeQuickPickItemCommand(selectedItem);
+                cleanup();
+            }
+        }),
+
+        quickPick.onDidHide(() => {
+            quickPick.dispose();
+            cleanup();
+        })
+    );
 
     quickPick.show();
 }
@@ -2104,35 +2116,36 @@ export function registerGoToALObjectCommand(context: vscode.ExtensionContext, in
         }
 
         /*
-        const qp = vscode.window.createQuickPick<atsQuickPickItem>();
-        qp.title = 'Go to AL object (workspace only)';
-        qp.matchOnDescription = false;
-        qp.matchOnDetail = false;
-        qp.items = items.map(toQuickPickItem);
+                const qp = vscode.window.createQuickPick<atsQuickPickItem>();
+                qp.title = 'Go to AL object (workspace only)';
+                qp.matchOnDescription = false;
+                qp.matchOnDetail = false;
+                qp.items = items.map(toQuickPickItem);
+        
+                const disposables: vscode.Disposable[] = [];
+                const cleanup = () => disposables.forEach(d => d.dispose());
+        
+                disposables.push(
+                    qp.onDidAccept(async () => {
+                        const sel = qp.selectedItems[0] as atsQuickPickItem | undefined;
+                        qp.hide();
+                        if (sel) {
+                            const doc = await vscode.workspace.openTextDocument(sel.documentUri);
+                            const editor = await vscode.window.showTextDocument(doc, { preview: true });
+                            //editor.revealRange(new vscode.Range(sel.data.position, sel.data.position), vscode.TextEditorRevealType.InCenter);
+                            //editor.selection = new vscode.Selection(sel.data.position, sel.data.position);
+                        }
+                        cleanup();
+                    }),
+                    qp.onDidHide(() => {
+                        qp.dispose();
+                        cleanup();
+                    })
+                );
+        
+                qp.show();
+                */
 
-        const disposables: vscode.Disposable[] = [];
-        const cleanup = () => disposables.forEach(d => d.dispose());
-
-        disposables.push(
-            qp.onDidAccept(async () => {
-                const sel = qp.selectedItems[0] as atsQuickPickItem | undefined;
-                qp.hide();
-                if (sel) {
-                    const doc = await vscode.workspace.openTextDocument(sel.documentUri);
-                    const editor = await vscode.window.showTextDocument(doc, { preview: true });
-                    //editor.revealRange(new vscode.Range(sel.data.position, sel.data.position), vscode.TextEditorRevealType.InCenter);
-                    //editor.selection = new vscode.Selection(sel.data.position, sel.data.position);
-                }
-                cleanup();
-            }),
-            qp.onDidHide(() => {
-                qp.dispose();
-                cleanup();
-            })
-        );
-
-        qp.show();
-        */
     });
 
     context.subscriptions.push(cmd);
