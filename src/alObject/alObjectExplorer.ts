@@ -1726,10 +1726,6 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
 //#region Go to AL Object command
 const EXCLUDE_GLOBS = [
     '**/.alpackages/**',
-    '**/packages/**',
-    '**/bin/**',
-    '**/out/**',
-    '**/node_modules/**',
 ];
 
 export class ALObjectIndex implements vscode.Disposable {
