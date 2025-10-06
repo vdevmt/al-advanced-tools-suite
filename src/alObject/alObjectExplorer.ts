@@ -1649,7 +1649,7 @@ function objectGroupID(alObject: ALObject, isCurrentEditor: boolean): number {
             groupIndex = 1;
         }
         else {
-            switch (alObject.objectType) {
+            switch (alObject.objectType.toLowerCase()) {
                 case 'table':
                     groupIndex = 10;
                     break;
@@ -1947,19 +1947,6 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
 //#endregion Quick Pick Functions
 
 //#region Go to AL Object command
-export type ALObjectItem = {
-    label: string;              // e.g. "table 50000 My Table"
-    description?: string;       // relative path
-    detail?: string;            // workspace folder name
-    uri: vscode.Uri;
-    position?: vscode.Position;  // where declaration starts
-    sortKey: string;            // for stable sorting
-    iconPath: vscode.ThemeIcon;
-    type: string;
-};
-
-type ALQuickPickItem = vscode.QuickPickItem & { data: ALObjectItem };
-
 const EXCLUDE_GLOBS = [
     '**/.alpackages/**',
     '**/packages/**',
@@ -1969,7 +1956,7 @@ const EXCLUDE_GLOBS = [
 ];
 
 export class ALObjectIndex implements vscode.Disposable {
-    private items: Map<string, ALObjectItem> = new Map(); // key: fsPath
+    private items: Map<string, atsQuickPickItem> = new Map(); // key: fsPath
     private watcher: vscode.FileSystemWatcher | undefined;
     private disposables: vscode.Disposable[] = [];
 
@@ -2009,7 +1996,7 @@ export class ALObjectIndex implements vscode.Disposable {
         */
     }
 
-    getAll(): ALObjectItem[] {
+    getAll(): atsQuickPickItem[] {
         return Array.from(this.items.values()).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     }
 
@@ -2027,7 +2014,7 @@ export class ALObjectIndex implements vscode.Disposable {
         const tasks = uris.map((uri) => this.parseFile(uri));
         const results = await Promise.all(tasks);
         for (const item of results) {
-            if (item) this.items.set(item.uri.fsPath, item);
+            if (item) this.items.set(item.documentUri.fsPath, item);
         }
     }
 
@@ -2040,7 +2027,7 @@ export class ALObjectIndex implements vscode.Disposable {
             p.includes('/out/');
     }
 
-    private async parseFile(uri: vscode.Uri): Promise<ALObjectItem | undefined> {
+    private async parseFile(uri: vscode.Uri): Promise<atsQuickPickItem | undefined> {
         try {
             if (alFileMgr.isALObjectFile(uri, false)) {
                 const document = await vscode.workspace.openTextDocument(uri);
@@ -2054,14 +2041,18 @@ export class ALObjectIndex implements vscode.Disposable {
                                 alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
 
 
-                    const item: ALObjectItem = {
+                    const item: atsQuickPickItem = {
                         label,
-                        type: alObject.objectType,
                         description: vscode.workspace.asRelativePath(uri),
                         detail,
-                        uri,
+                        groupName: alObject.objectType,
+                        groupID: objectGroupID(alObject, false),
+                        documentUri: uri,
                         iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
                         sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId.padStart(10, '0')}${alObject.objectName.toLowerCase()}`,
+                        command: cmdOpenFile,
+                        commandArgs: uri,
+
                     };
 
                     return item;
@@ -2086,7 +2077,30 @@ export function registerGoToALObjectCommand(context: vscode.ExtensionContext, in
             return;
         }
 
-        const qp = vscode.window.createQuickPick<ALQuickPickItem>();
+        const alObjects = items.map(toQuickPickItem);
+
+        // Ricerca gruppi 
+        const groups = [...new Map(alObjects.map(item =>
+            [item['groupName'], { id: item.groupID, name: item.groupName }])).values()]
+            .sort((a, b) => a.id - b.id);
+
+        // Ricerca elementi del gruppo                
+        if (groups) {
+            let qpItems: atsQuickPickItem[] = [];
+            groups.forEach(group => {
+                qpItems.push({
+                    label: group.name,
+                    kind: vscode.QuickPickItemKind.Separator
+                });
+
+                qpItems.push(...alObjects.filter(item => (item.groupName === group.name)));
+            });
+
+            await showQuickPick(qpItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '');
+        }
+
+        /*
+        const qp = vscode.window.createQuickPick<atsQuickPickItem>();
         qp.title = 'Go to AL object (workspace only)';
         qp.matchOnDescription = false;
         qp.matchOnDetail = false;
@@ -2097,13 +2111,13 @@ export function registerGoToALObjectCommand(context: vscode.ExtensionContext, in
 
         disposables.push(
             qp.onDidAccept(async () => {
-                const sel = qp.selectedItems[0] as ALQuickPickItem | undefined;
+                const sel = qp.selectedItems[0] as atsQuickPickItem | undefined;
                 qp.hide();
                 if (sel) {
-                    const doc = await vscode.workspace.openTextDocument(sel.data.uri);
+                    const doc = await vscode.workspace.openTextDocument(sel.documentUri);
                     const editor = await vscode.window.showTextDocument(doc, { preview: true });
-                    editor.revealRange(new vscode.Range(sel.data.position, sel.data.position), vscode.TextEditorRevealType.InCenter);
-                    editor.selection = new vscode.Selection(sel.data.position, sel.data.position);
+                    //editor.revealRange(new vscode.Range(sel.data.position, sel.data.position), vscode.TextEditorRevealType.InCenter);
+                    //editor.selection = new vscode.Selection(sel.data.position, sel.data.position);
                 }
                 cleanup();
             }),
@@ -2114,18 +2128,23 @@ export function registerGoToALObjectCommand(context: vscode.ExtensionContext, in
         );
 
         qp.show();
+        */
     });
 
     context.subscriptions.push(cmd);
 }
 
-function toQuickPickItem(item: ALObjectItem): ALQuickPickItem {
+function toQuickPickItem(item: atsQuickPickItem): atsQuickPickItem {
     return {
         label: item.label,
         description: item.description,
         detail: item.detail,
         iconPath: item.iconPath,
-        data: item,
+        groupID: item.groupID,
+        groupName: item.groupName,
+        sortKey: item.sortKey,
+        command: item.command,
+        commandArgs: item.commandArgs,
         buttons: [
             {
                 iconPath: new vscode.ThemeIcon("symbol-misc"),
