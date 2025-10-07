@@ -56,7 +56,7 @@ export async function showQuickPick(
         if (debounceHandle) { clearTimeout(debounceHandle); }
         quickPick.busy = true;
         debounceHandle = setTimeout(() => {
-            quickPick.items = updateItems(allItems, value, enableSearchOnDescription, enableSearchOnDetails, groupValues);
+            quickPick.items = updateItems(allItems, value, enableSearchOnDescription, enableSearchOnDetails, groupValues, false);
             quickPick.busy = false;
         }, DEBOUNCE_MS);
     });
@@ -76,7 +76,10 @@ export async function showQuickPick(
         quickPick.hide();
 
         if (selectedItem) {
-            switch (selected.button.tooltip) {
+            // Prefer a stable id on the button if provided; fallback to tooltip text
+            const buttonAny = selected.button as vscode.QuickInputButton & { id?: string };
+            const btnKey = buttonAny?.id ?? selected.button.tooltip;
+            switch (btnKey) {
                 case btnCmdOpenToSide: {
                     switch (selectedItem.command) {
                         case cmdGoToLine: { selectedItem.command = cmdGoToLineOnSide; break; }
@@ -209,6 +212,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
 //#endregion Quick Pick Functions
 
 //#region Items Search
+const regexCache = new Map<string, RegExp>();
 function normalizeText(s: string): string {
     return s
         .toLowerCase()
@@ -226,11 +230,35 @@ function buildMultiTokenRegex(query: string, wholeWords = false): RegExp | null 
     const tokens = normalizeText(query).split(' ').filter(Boolean);
     if (tokens.length === 0) return null;
 
+    const key = (wholeWords ? 'w:' : 'c:') + tokens.join(' ');
+    const cached = regexCache.get(key);
+    if (cached) return cached;
+
     const parts = tokens.map(t => {
         const tok = escapeRegex(t);
-        return wholeWords ? `(?=.*\\b${tok})` : `(?=.*${tok})`;
+        return wholeWords ? `(?=.*\\b${tok}\\b)` : `(?=.*${tok})`;
     });
-    return new RegExp(parts.join('') + '.*', 'i');
+    const rx = new RegExp(parts.join('') + '.*', 'i');
+    regexCache.set(key, rx);
+    return rx;
+}
+
+const normCache = new WeakMap<atsQuickPickItem, string>();
+function getNormalizedHay(
+    it: atsQuickPickItem,
+    onDesc: boolean,
+    onDetail: boolean
+): string {
+    let s = normCache.get(it);
+    if (!s) {
+        const hayRaw = onDesc && onDetail ? `${it.label ?? ''} ${it.description ?? ''} ${it.detail ?? ''}` :
+            onDesc ? `${it.label ?? ''} ${it.description ?? ''}` :
+                onDetail ? `${it.label ?? ''} ${it.detail ?? ''}` :
+                    `${it.label ?? ''}`;
+        s = normalizeText(hayRaw);
+        normCache.set(it, s);
+    }
+    return s;
 }
 
 function updateItems(
@@ -241,31 +269,21 @@ function updateItems(
     groupValues?: boolean,
     wholeWords = false,
 ): atsQuickPickItem[] {
-
-    const hasSpaces = query.trim().includes(' ');
-    if ((!query) || (!hasSpaces)) {
-        // query senza spazi o vuota -> restituisci tutti (eventuale raggruppo)
-        if (!groupValues) return allItems.map(i => ({ ...i, alwaysShow: true }));
-        return groupByWithSeparators(allItems);
-    }
-
-    const rx = buildMultiTokenRegex(query, wholeWords);
-    if (!rx) {
+    const trimmed = query.trim();
+    if (!trimmed) {
         // query vuota -> restituisci tutti (eventuale raggruppo)
         if (!groupValues) return allItems.map(i => ({ ...i, alwaysShow: true }));
         return groupByWithSeparators(allItems);
     }
 
-    // Filtra su label + description + detail (normalizzando il testo)
-    const filtered = allItems.filter(it => {
-        const hayRaw = enableSearchOnDescription && enableSearchOnDetails ? `${it.label ?? ''} ${it.description ?? ''} ${it.detail ?? ''}` :
-            enableSearchOnDescription ? `${it.label ?? ''} ${it.description ?? ''}` :
-                enableSearchOnDetails ? `${it.label ?? ''} ${it.detail ?? ''}` :
-                    `${it.label ?? ''}`;
+    const rx = buildMultiTokenRegex(trimmed, wholeWords);
+    if (!rx) {
+        // query non valida (dopo normalizzazione) -> nessun elemento
+        return [];
+    }
 
-        const hay = normalizeText(hayRaw);
-        return rx.test(hay);
-    });
+    // Filtra su label + description + detail (normalizzando il testo con cache)
+    const filtered = allItems.filter(it => rx.test(getNormalizedHay(it, enableSearchOnDescription, enableSearchOnDetails)));
 
     if (!groupValues) {
         return filtered.map(i => ({ ...i, alwaysShow: true }));
