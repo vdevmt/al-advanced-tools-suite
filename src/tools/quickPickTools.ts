@@ -125,7 +125,9 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 case cmdGoToLine: {
                     let lineNumber: number = Number(selectedItem.commandArgs);
                     if (lineNumber >= 0) {
-                        if (selectedItem.documentUri && (selectedItem.documentUri !== vscode.window.activeTextEditor.document.uri)) {
+                        const activeDocUri = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.uri : undefined;
+
+                        if (selectedItem.documentUri && (selectedItem.documentUri !== activeDocUri)) {
                             const position = new vscode.Position(lineNumber, 0);
                             await vscode.window.showTextDocument(selectedItem.documentUri, {
                                 viewColumn: vscode.ViewColumn.Active,
@@ -148,7 +150,10 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 case cmdGoToLineOnSide: {
                     let lineNumber: number = Number(selectedItem.commandArgs);
                     if (lineNumber >= 0) {
-                        let docUri = selectedItem.documentUri || vscode.window.activeTextEditor.document.uri;
+                        let docUri = selectedItem.documentUri ? selectedItem.documentUri :
+                            vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.uri :
+                                undefined;
+
                         if (docUri) {
                             const position = new vscode.Position(lineNumber, 0);
                             await vscode.window.showTextDocument(docUri, {
