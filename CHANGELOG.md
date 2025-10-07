@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.7.0]
+- New command: `ATS: Go to AL Object (Workspace Only)`
+
 ## [1.6.2]
 - AL Object Explorer: added button to export symbols as text
 
