@@ -13,6 +13,11 @@ If you want to support my work:
 # Features
 These features are concluded at this moment:
 
+## Go to AL Object (Workspace Only)
+Quickly access any AL object defined in your workspace, excluding dependency packages.
+Type parts of words and instantly jump to the selected object, or use the AL Object Explorer to find any symbols within it.
+Objects are grouped by type (Table, Page, Codeunit, etc.) and include custom icons for easier identification.
+
 ## AL Package new version
 Automate the versioning process for your Business Central apps with the command `ATS: AL Package new version` 
 
