@@ -246,10 +246,9 @@ export function deactivate() {
 
 async function reloadExtensionData(context: vscode.ExtensionContext) {
     //#region Go to AL Object command
-    const alObjectIndex = new ALObjectIndex();
-    await alObjectIndex.init();
+    const alObjectIndex = await ALObjectIndex.getInstance();
     context.subscriptions.push(alObjectIndex);
 
-    alObjectExplorer.registerGoToALObjectCommand(context, alObjectIndex);
+    await alObjectExplorer.registerGoToALObjectCommand(context);
     //#endregion Go to AL Object command
 }

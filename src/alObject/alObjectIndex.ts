@@ -14,8 +14,18 @@ export class ALObjectIndex implements vscode.Disposable {
     private items: Map<string, ALObject> = new Map(); // key: fsPath
     private watcher: vscode.FileSystemWatcher | undefined;
     private disposables: vscode.Disposable[] = [];
+    private static instance: ALObjectIndex | undefined;
 
     constructor() { }
+
+    static async getInstance(): Promise<ALObjectIndex> {
+        if (!this.instance) {
+            this.instance = new ALObjectIndex();
+            await this.instance.init();
+        }
+
+        return this.instance;
+    }
 
     async init() {
         const output = ATSOutputChannel.getInstance();

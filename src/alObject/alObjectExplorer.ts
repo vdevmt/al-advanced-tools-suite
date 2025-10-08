@@ -1679,9 +1679,10 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
 
 //#region Go to AL Object command
 
-export function registerGoToALObjectCommand(context: vscode.ExtensionContext, index: ALObjectIndex) {
+export async function registerGoToALObjectCommand(context: vscode.ExtensionContext) {
     const cmd = vscode.commands.registerCommand('ats.gotoWorkspaceObjects', async () => {
-        const allItems = index.toQuickPickItems();
+        const alObjectIndex = await ALObjectIndex.getInstance();
+        const allItems = alObjectIndex.toQuickPickItems();
         if (allItems.length === 0) {
             void vscode.window.showInformationMessage('No AL objects found in the current workspace.');
             return;
