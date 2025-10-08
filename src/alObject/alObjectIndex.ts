@@ -29,7 +29,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 const item = await this.parseFile(uri);
                 if (item) {
                     this.items.set(uri.fsPath, item);
-                    this.output?.appendLine(`[ALObjectIndex]: added ${item.label}`);
+                    this.output?.appendLine(`[ALObjectIndex] New AL object detected: ${item.label}`);
                 }
             })
         );
@@ -37,8 +37,10 @@ export class ALObjectIndex implements vscode.Disposable {
         // Delete
         this.disposables.push(
             this.watcher.onDidDelete((uri) => {
+                const existingItem = this.items.get(uri.fsPath);
+                this.output?.appendLine(`[ALObjectIndex] AL object removed: ${existingItem.label || uri.fsPath}`);
+
                 this.items.delete(uri.fsPath);
-                this.output?.appendLine(`[ALObjectIndex]: removed ${uri.fsPath}`);
             })
         );
 
@@ -65,6 +67,7 @@ export class ALObjectIndex implements vscode.Disposable {
     }
 
     private async buildFullIndex() {
+        this.output?.appendLine(`[ALObjectIndex] Search for AL objects in the current workspace...`);
         this.items.clear();
 
         const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
@@ -79,7 +82,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 this.items.set(item.documentUri.fsPath, item);
             }
         }
-        this.output?.appendLine(`[ALObjectIndex]: ${objectCount} objects were detected in the current workspace`);
+        this.output?.appendLine(`[ALObjectIndex] ${objectCount} objects were detected in the current workspace`);
     }
 
     private isExcluded(uri: vscode.Uri): boolean {
