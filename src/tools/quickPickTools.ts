@@ -107,12 +107,13 @@ export async function showQuickPick(
     });
 
     const onHide = quickPick.onDidHide(() => {
-        quickPick.dispose();
+        regexCache.clear();
         onDidChangeValue.dispose();
         onAccept.dispose();
         onBtn.dispose();
         onHide.dispose();
         if (debounceHandle) { clearTimeout(debounceHandle); }
+        quickPick.dispose();
     });
 
     quickPick.show();
@@ -233,11 +234,11 @@ function escapeRegex(lit: string): string {
 
 function buildMultiTokenRegex(query: string, wholeWords = false): RegExp | null {
     const tokens = normalizeText(query).split(' ').filter(Boolean);
-    if (tokens.length === 0) return null;
+    if (tokens.length === 0) {return null;}
 
     const key = (wholeWords ? 'w:' : 'c:') + tokens.join(' ');
     const cached = regexCache.get(key);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     const parts = tokens.map(t => {
         const tok = escapeRegex(t);
@@ -277,7 +278,13 @@ function updateItems(
     const trimmed = query.trim();
     if (!trimmed) {
         // query vuota -> restituisci tutti (eventuale raggruppo)
-        if (!groupValues) return allItems.map(i => ({ ...i, alwaysShow: true }));
+        if (!groupValues) {return allItems.map(i => ({ ...i, alwaysShow: true }));}
+        return groupByWithSeparators(allItems);
+    }
+
+    if (!trimmed.includes(" ")) {
+        // query senza spazi -> restituisci tutti (eventuale raggruppo). La ricerca verrà effettuata in modalità standard
+        if (!groupValues) {return allItems.map(i => ({ ...i, alwaysShow: true }));}
         return groupByWithSeparators(allItems);
     }
 
@@ -301,17 +308,17 @@ function groupByWithSeparators(items: atsQuickPickItem[]): atsQuickPickItem[] {
     const byGroup = new Map<string, atsQuickPickItem[]>();
     for (const it of items) {
         const k = it.groupName ?? 'Other';
-        if (!byGroup.has(k)) byGroup.set(k, []);
+        if (!byGroup.has(k)) {byGroup.set(k, []);}
         byGroup.get(k)!.push({ ...it, alwaysShow: true });
     }
     // ordina in-group per sortKey
-    for (const arr of byGroup.values()) arr.sort((a, b) => (a.sortKey ?? '').localeCompare(b.sortKey ?? ''));
+    for (const arr of byGroup.values()) {arr.sort((a, b) => (a.sortKey ?? '').localeCompare(b.sortKey ?? ''));}
 
     // ordina gruppi per groupID poi nome
     const groups = Array.from(byGroup.entries()).sort((a, b) => {
         const idA = a[1][0]?.groupID ?? Number.MAX_SAFE_INTEGER;
         const idB = b[1][0]?.groupID ?? Number.MAX_SAFE_INTEGER;
-        if (idA !== idB) return idA - idB;
+        if (idA !== idB) {return idA - idB;}
         return a[0].localeCompare(b[0]);
     });
 
