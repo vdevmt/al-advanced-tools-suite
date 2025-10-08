@@ -92,6 +92,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllGlobalVariables', alObjectExplorer.showAllGlobalVariables));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyGlobalVariablesAsText', alObjectExplorer.copyGlobalVariablesAsText));
+
+    context.subscriptions.push(vscode.commands.registerCommand('ats.gotoWorkspaceObjects', alObjectExplorer.gotoWorkspaceObjects));
     //#endregion AL Objects Explorer
 
     //#region Run Business Central       
@@ -248,7 +250,5 @@ async function reloadExtensionData(context: vscode.ExtensionContext) {
     //#region Go to AL Object command
     const alObjectIndex = await ALObjectIndex.getInstance();
     context.subscriptions.push(alObjectIndex);
-
-    await alObjectExplorer.registerGoToALObjectCommand(context);
     //#endregion Go to AL Object command
 }
