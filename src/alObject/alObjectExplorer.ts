@@ -1744,9 +1744,9 @@ export class ALObjectIndex implements vscode.Disposable {
         // Add
         this.disposables.push(
             this.watcher.onDidCreate(async (uri) => {
-                if (this.isExcluded(uri)) return;
+                if (this.isExcluded(uri)) {return;}
                 const item = await this.parseFile(uri);
-                if (item) this.items.set(uri.fsPath, item);
+                if (item) {this.items.set(uri.fsPath, item);}
             })
         );
 
@@ -1787,7 +1787,7 @@ export class ALObjectIndex implements vscode.Disposable {
         const tasks = uris.map((uri) => this.parseFile(uri));
         const results = await Promise.all(tasks);
         for (const item of results) {
-            if (item) this.items.set(item.documentUri.fsPath, item);
+            if (item) {this.items.set(item.documentUri.fsPath, item);}
         }
     }
 
@@ -1808,29 +1808,30 @@ export class ALObjectIndex implements vscode.Disposable {
 
                 if (alObject) {
                     const objectName = typeHelper.addQuotesIfNeeded(alObject.objectName);
-                    const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
+                    if (objectName) {
+                        const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
 
-                    const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${objectName}` : `${alObject.objectType} ${objectName}`;
-                    const detail =
-                        alObject.extendedObjectName && alObject.objectNamespace ? `extends ${extendedObjectName}; ${alObject.objectNamespace}` :
-                            alObject.extendedObjectName ? `extends ${extendedObjectName}` :
-                                alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
+                        const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${objectName}` : `${alObject.objectType} ${objectName}`;
+                        const detail =
+                            alObject.extendedObjectName && alObject.objectNamespace ? `extends ${extendedObjectName}; ${alObject.objectNamespace}` :
+                                alObject.extendedObjectName ? `extends ${extendedObjectName}` :
+                                    alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
 
+                        const item: qpTools.atsQuickPickItem = {
+                            label,
+                            description: vscode.workspace.asRelativePath(uri),
+                            detail,
+                            groupName: alObject.objectType,
+                            groupID: objectGroupID(alObject, false),
+                            documentUri: uri,
+                            iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
+                            sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId.padStart(10, '0')}${alObject.objectName.toLowerCase()}`,
+                            command: qpTools.cmdOpenFile,
+                            commandArgs: uri
+                        };
 
-                    const item: qpTools.atsQuickPickItem = {
-                        label,
-                        description: vscode.workspace.asRelativePath(uri),
-                        detail,
-                        groupName: alObject.objectType,
-                        groupID: objectGroupID(alObject, false),
-                        documentUri: uri,
-                        iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
-                        sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId.padStart(10, '0')}${alObject.objectName.toLowerCase()}`,
-                        command: qpTools.cmdOpenFile,
-                        commandArgs: uri
-                    };
-
-                    return item;
+                        return item;
+                    }
                 }
             }
 

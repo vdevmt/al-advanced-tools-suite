@@ -107,7 +107,6 @@ export async function showQuickPick(
     });
 
     const onHide = quickPick.onDidHide(() => {
-        regexCache.clear();
         onDidChangeValue.dispose();
         onAccept.dispose();
         onBtn.dispose();
@@ -218,7 +217,6 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
 //#endregion Quick Pick Functions
 
 //#region Items Search
-const regexCache = new Map<string, RegExp>();
 function normalizeText(s: string): string {
     return s
         .toLowerCase()
@@ -234,37 +232,28 @@ function escapeRegex(lit: string): string {
 
 function buildMultiTokenRegex(query: string, wholeWords = false): RegExp | null {
     const tokens = normalizeText(query).split(' ').filter(Boolean);
-    if (tokens.length === 0) {return null;}
+    if (tokens.length === 0) { return null; }
 
     const key = (wholeWords ? 'w:' : 'c:') + tokens.join(' ');
-    const cached = regexCache.get(key);
-    if (cached) {return cached;}
 
     const parts = tokens.map(t => {
         const tok = escapeRegex(t);
         return wholeWords ? `(?=.*\\b${tok}\\b)` : `(?=.*${tok})`;
     });
     const rx = new RegExp(parts.join('') + '.*', 'i');
-    regexCache.set(key, rx);
     return rx;
 }
 
-const normCache = new WeakMap<atsQuickPickItem, string>();
 function getNormalizedHay(
     it: atsQuickPickItem,
     onDesc: boolean,
     onDetail: boolean
 ): string {
-    let s = normCache.get(it);
-    if (!s) {
-        const hayRaw = onDesc && onDetail ? `${it.label ?? ''} ${it.description ?? ''} ${it.detail ?? ''}` :
-            onDesc ? `${it.label ?? ''} ${it.description ?? ''}` :
-                onDetail ? `${it.label ?? ''} ${it.detail ?? ''}` :
-                    `${it.label ?? ''}`;
-        s = normalizeText(hayRaw);
-        normCache.set(it, s);
-    }
-    return s;
+    const hayRaw = onDesc && onDetail ? `${it.label ?? ''} ${it.description ?? ''} ${it.detail ?? ''}` :
+        onDesc ? `${it.label ?? ''} ${it.description ?? ''}` :
+            onDetail ? `${it.label ?? ''} ${it.detail ?? ''}` :
+                `${it.label ?? ''}`;
+    return normalizeText(hayRaw);
 }
 
 function updateItems(
@@ -278,13 +267,13 @@ function updateItems(
     const trimmed = query.trim();
     if (!trimmed) {
         // query vuota -> restituisci tutti (eventuale raggruppo)
-        if (!groupValues) {return allItems.map(i => ({ ...i, alwaysShow: true }));}
+        if (!groupValues) { return allItems.map(i => ({ ...i, alwaysShow: true })); }
         return groupByWithSeparators(allItems);
     }
 
     if (!trimmed.includes(" ")) {
         // query senza spazi -> restituisci tutti (eventuale raggruppo). La ricerca verrà effettuata in modalità standard
-        if (!groupValues) {return allItems.map(i => ({ ...i, alwaysShow: true }));}
+        if (!groupValues) { return allItems.map(i => ({ ...i, alwaysShow: true })); }
         return groupByWithSeparators(allItems);
     }
 
@@ -294,7 +283,7 @@ function updateItems(
         return [];
     }
 
-    // Filtra su label + description + detail (normalizzando il testo con cache)
+    // Filtra elementi 
     const filtered = allItems.filter(it => rx.test(getNormalizedHay(it, enableSearchOnDescription, enableSearchOnDetails)));
 
     if (!groupValues) {
@@ -303,22 +292,22 @@ function updateItems(
     return groupByWithSeparators(filtered);
 }
 
-/** Raggruppa per groupName + separatori, ordinando per groupID, poi alfabetico */
+// Raggruppa per groupName + separatori, ordinando per groupID, poi alfabetico
 function groupByWithSeparators(items: atsQuickPickItem[]): atsQuickPickItem[] {
     const byGroup = new Map<string, atsQuickPickItem[]>();
     for (const it of items) {
         const k = it.groupName ?? 'Other';
-        if (!byGroup.has(k)) {byGroup.set(k, []);}
+        if (!byGroup.has(k)) { byGroup.set(k, []); }
         byGroup.get(k)!.push({ ...it, alwaysShow: true });
     }
     // ordina in-group per sortKey
-    for (const arr of byGroup.values()) {arr.sort((a, b) => (a.sortKey ?? '').localeCompare(b.sortKey ?? ''));}
+    for (const arr of byGroup.values()) { arr.sort((a, b) => (a.sortKey ?? '').localeCompare(b.sortKey ?? '')); }
 
     // ordina gruppi per groupID poi nome
     const groups = Array.from(byGroup.entries()).sort((a, b) => {
         const idA = a[1][0]?.groupID ?? Number.MAX_SAFE_INTEGER;
         const idB = b[1][0]?.groupID ?? Number.MAX_SAFE_INTEGER;
-        if (idA !== idB) {return idA - idB;}
+        if (idA !== idB) { return idA - idB; }
         return a[0].localeCompare(b[0]);
     });
 
