@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
 import * as alSymbols from './alObject/alSymbols';
 import * as alObjectExplorer from './alObject/alObjectExplorer';
-import * as alObjectStats from './alObject/alObjectStatistics'
+import * as alObjectStats from './alObject/alObjectStatistics';
 import * as regionMgr from './alObject/alObjectRegionMgr';
 import * as regionStatusBar from './alObject/alObjectRegionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
@@ -13,6 +13,7 @@ import *  as appInfo from './tools/appInfo';
 import { AtsEventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
 import { AtsNameSpaceDiagnosticsCodeActionProvider } from './alObject/alObjectNamespaceMgr';
 import { ALObject } from './alObject/alObject';
+import { ALObjectIndex } from './alObject/alObjectIndex';
 
 let regionPathSBDebounceTimeout = null;
 
@@ -229,11 +230,11 @@ export async function activate(context: vscode.ExtensionContext) {
     //#endregion Objects Statistics
 
     //#region Go to AL Object command
-    const alObjectDictionary = new alObjectExplorer.ALObjectIndex(output);
-    await alObjectDictionary.init();
-    context.subscriptions.push(alObjectDictionary);
+    const alObjectIndex = new ALObjectIndex(output);
+    await alObjectIndex.init();
+    context.subscriptions.push(alObjectIndex);
 
-    alObjectExplorer.registerGoToALObjectCommand(context, alObjectDictionary);
+    alObjectExplorer.registerGoToALObjectCommand(context, alObjectIndex);
     //#endregion Go to AL Object command
 }
 
