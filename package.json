@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -453,7 +453,7 @@
   },
   "dependencies": {},
   "lint-staged": {
-    "src/**/*.ts": ["eslint --fix", "prettier --write"]
+    "src/**/*.ts": ["eslint --fix"]
   },
   "files": [
     "dist/**",
