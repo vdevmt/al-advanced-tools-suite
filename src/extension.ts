@@ -19,12 +19,12 @@ import { ATSOutputChannel } from './tools/outputChannel';
 let regionPathSBDebounceTimeout = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    //#region extension status
     const output = ATSOutputChannel.getInstance();
-    output.writeInfoMessage('ATS Extension activated');
+    output.writeInfoMessage('Activating ATS Extension...');
 
+    //#region extension status
     vscode.commands.executeCommand('setContext', 'atsExtensionActive', true);
-    reloadExtensionData(context);
+    await reloadExtensionData(context);
     //#endregion extension status
 
     //#region app.json tools
@@ -230,6 +230,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.viewALObjectsSummary', alObjectStats.viewALObjectsSummary));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportObjectsAssignmentDetailsAsCSV', alObjectStats.exportObjectsAssignmentDetailsAsCSV));
     //#endregion Objects Statistics
+
+    output.writeInfoMessage('ATS Extension successfully activated');
 }
 
 export function deactivate() {
@@ -237,6 +239,9 @@ export function deactivate() {
 
     vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
     vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+
+    const output = ATSOutputChannel.getInstance();
+    output.writeInfoMessage('ATS Extension deactivated.');
 }
 
 async function reloadExtensionData(context: vscode.ExtensionContext) {
