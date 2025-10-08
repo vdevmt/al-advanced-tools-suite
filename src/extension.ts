@@ -14,15 +14,17 @@ import { AtsEventIntegrationCodeActionProvider } from './tools/specialCopyFuncti
 import { AtsNameSpaceDiagnosticsCodeActionProvider } from './alObject/alObjectNamespaceMgr';
 import { ALObject } from './alObject/alObject';
 import { ALObjectIndex } from './alObject/alObjectIndex';
+import { ATSOutputChannel } from './tools/outputChannel';
 
 let regionPathSBDebounceTimeout = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    const output = vscode.window.createOutputChannel('Advanced Tools Suite for AL Language');
-    context.subscriptions.push(output);
-
     //#region extension status
+    const output = ATSOutputChannel.getInstance();
+    output.writeInfoMessage('ATS Extension activated');
+
     vscode.commands.executeCommand('setContext', 'atsExtensionActive', true);
+    reloadExtensionData(context);
     //#endregion extension status
 
     //#region app.json tools
@@ -228,14 +230,6 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.viewALObjectsSummary', alObjectStats.viewALObjectsSummary));
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportObjectsAssignmentDetailsAsCSV', alObjectStats.exportObjectsAssignmentDetailsAsCSV));
     //#endregion Objects Statistics
-
-    //#region Go to AL Object command
-    const alObjectIndex = new ALObjectIndex(output);
-    await alObjectIndex.init();
-    context.subscriptions.push(alObjectIndex);
-
-    alObjectExplorer.registerGoToALObjectCommand(context, alObjectIndex);
-    //#endregion Go to AL Object command
 }
 
 export function deactivate() {
@@ -243,4 +237,14 @@ export function deactivate() {
 
     vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
     vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+}
+
+async function reloadExtensionData(context: vscode.ExtensionContext) {
+    //#region Go to AL Object command
+    const alObjectIndex = new ALObjectIndex();
+    await alObjectIndex.init();
+    context.subscriptions.push(alObjectIndex);
+
+    alObjectExplorer.registerGoToALObjectCommand(context, alObjectIndex);
+    //#endregion Go to AL Object command
 }

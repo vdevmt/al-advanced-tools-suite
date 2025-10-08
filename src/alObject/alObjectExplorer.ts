@@ -1681,27 +1681,13 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
 
 export function registerGoToALObjectCommand(context: vscode.ExtensionContext, index: ALObjectIndex) {
     const cmd = vscode.commands.registerCommand('ats.gotoWorkspaceObjects', async () => {
-        const allItems = index.getAll();
+        const allItems = index.toQuickPickItems();
         if (allItems.length === 0) {
             void vscode.window.showInformationMessage('No AL objects found in the current workspace.');
             return;
         }
 
-        const alObjects = allItems.map(item => ({
-            ...item,
-            buttons: [
-                {
-                    iconPath: new vscode.ThemeIcon("symbol-misc"),
-                    tooltip: qpTools.btnCmdExecObjectExplorer,
-                },
-                {
-                    iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
-                    tooltip: qpTools.btnCmdOpenToSide,
-                }
-            ]
-        }));
-
-        await qpTools.showQuickPick(alObjects, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
+        await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
     });
 
     context.subscriptions.push(cmd);

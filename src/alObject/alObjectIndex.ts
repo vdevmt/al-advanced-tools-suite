@@ -3,6 +3,7 @@ import * as typeHelper from '../typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alObjectExplorer from './alObjectExplorer';
+import { ATSOutputChannel } from '../tools/outputChannel';
 import { ALObject } from './alObject';
 
 const EXCLUDE_GLOBS = [
@@ -10,13 +11,15 @@ const EXCLUDE_GLOBS = [
 ];
 
 export class ALObjectIndex implements vscode.Disposable {
-    private items: Map<string, qpTools.atsQuickPickItem> = new Map(); // key: fsPath
+    private items: Map<string, ALObject> = new Map(); // key: fsPath
     private watcher: vscode.FileSystemWatcher | undefined;
     private disposables: vscode.Disposable[] = [];
 
-    constructor(private readonly output?: vscode.OutputChannel) { }
+    constructor() { }
 
     async init() {
+        const output = ATSOutputChannel.getInstance();
+
         await this.buildFullIndex();
 
         // Watch only *.al files in the workspace
@@ -29,7 +32,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 const item = await this.parseFile(uri);
                 if (item) {
                     this.items.set(uri.fsPath, item);
-                    this.output?.appendLine(`[ALObjectIndex] New AL object detected: ${item.label}`);
+                    output.writeInfoMessage(`New AL object detected: ${item.objectType} ${item.objectId} ${item.objectName}`);
                 }
             })
         );
@@ -38,8 +41,7 @@ export class ALObjectIndex implements vscode.Disposable {
         this.disposables.push(
             this.watcher.onDidDelete((uri) => {
                 const existingItem = this.items.get(uri.fsPath);
-                this.output?.appendLine(`[ALObjectIndex] AL object removed: ${existingItem.label || uri.fsPath}`);
-
+                output.writeInfoMessage(`AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
                 this.items.delete(uri.fsPath);
             })
         );
@@ -56,8 +58,52 @@ export class ALObjectIndex implements vscode.Disposable {
         */
     }
 
-    getAll(): qpTools.atsQuickPickItem[] {
-        return Array.from(this.items.values()).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    getAllObjects(): ALObject[] {
+        return Array.from(this.items.values());
+    }
+
+    getAllFilePath(): string[] {
+        return Array.from(this.items.keys());
+    }
+
+    toQuickPickItems(): qpTools.atsQuickPickItem[] {
+        const quickPickItems: qpTools.atsQuickPickItem[] = [...this.items.values()].map(alObject => {
+            const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
+
+            const label = alObject.objectId
+                ? `${alObject.objectType} ${alObject.objectId} ${alObject.objectName}`
+                : `${alObject.objectType} ${alObject.objectName}`;
+
+            const detail = [
+                alObject.extendedObjectName ? `extends ${extendedObjectName}` : '',
+                alObject.objectNamespace ?? ''
+            ].filter(Boolean).join('; ');
+
+            return {
+                label,
+                description: vscode.workspace.asRelativePath(alObject.objectFileUri.fsPath),
+                detail,
+                groupName: alObject.objectType,
+                groupID: alObjectExplorer.getObjectGroupID(alObject, false),
+                documentUri: alObject.objectFileUri,
+                iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
+                sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId?.toString().padStart(10, '0') ?? ''}${alObject.objectName.toLowerCase()}`,
+                command: qpTools.cmdOpenFile,
+                commandArgs: alObject.objectFileUri,
+                buttons: [
+                    {
+                        iconPath: new vscode.ThemeIcon("symbol-misc"),
+                        tooltip: qpTools.btnCmdExecObjectExplorer,
+                    },
+                    {
+                        iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
+                        tooltip: qpTools.btnCmdOpenToSide,
+                    }
+                ]
+            } as qpTools.atsQuickPickItem;
+        });
+
+        return quickPickItems.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     }
 
     dispose() {
@@ -67,7 +113,9 @@ export class ALObjectIndex implements vscode.Disposable {
     }
 
     private async buildFullIndex() {
-        this.output?.appendLine(`[ALObjectIndex] Search for AL objects in the current workspace...`);
+        const output = ATSOutputChannel.getInstance();
+        output.writeInfoMessage('Searching AL objects in the current workspace...');
+
         this.items.clear();
 
         const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
@@ -79,10 +127,11 @@ export class ALObjectIndex implements vscode.Disposable {
         for (const item of results) {
             if (item) {
                 objectCount++;
-                this.items.set(item.documentUri.fsPath, item);
+                this.items.set(item.objectFileUri.fsPath, item);
             }
         }
-        this.output?.appendLine(`[ALObjectIndex] ${objectCount} objects were detected in the current workspace`);
+
+        output.writeInfoMessage(`${objectCount} objects were detected in the current workspace`);
     }
 
     private isExcluded(uri: vscode.Uri): boolean {
@@ -94,7 +143,9 @@ export class ALObjectIndex implements vscode.Disposable {
             p.includes('/out/');
     }
 
-    private async parseFile(uri: vscode.Uri): Promise<qpTools.atsQuickPickItem | undefined> {
+    private async parseFile(uri: vscode.Uri): Promise<ALObject | undefined> {
+        const output = ATSOutputChannel.getInstance();
+
         try {
             if (alFileMgr.isALObjectFile(uri, false)) {
                 const document = await vscode.workspace.openTextDocument(uri);
@@ -103,37 +154,16 @@ export class ALObjectIndex implements vscode.Disposable {
                 if (alObject) {
                     const objectName = typeHelper.addQuotesIfNeeded(alObject.objectName);
                     if (objectName) {
-                        const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
-
-                        const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${objectName}` : `${alObject.objectType} ${objectName}`;
-                        const detail =
-                            alObject.extendedObjectName && alObject.objectNamespace ? `extends ${extendedObjectName}; ${alObject.objectNamespace}` :
-                                alObject.extendedObjectName ? `extends ${extendedObjectName}` :
-                                    alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
-
-                        const item: qpTools.atsQuickPickItem = {
-                            label,
-                            description: vscode.workspace.asRelativePath(uri),
-                            detail,
-                            groupName: alObject.objectType,
-                            groupID: alObjectExplorer.getObjectGroupID(alObject, false),
-                            documentUri: uri,
-                            iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
-                            sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId.padStart(10, '0')}${alObject.objectName.toLowerCase()}`,
-                            command: qpTools.cmdOpenFile,
-                            commandArgs: uri
-                        };
-
-                        return item;
+                        return alObject;
                     }
                 }
 
-                this.output?.appendLine(`[ALObjectIndex] No AL object found in "${uri.fsPath}"`);
+                output.writeWarningMessage(`No AL object found in "${uri.fsPath}"`);
             }
 
             return undefined;
         } catch (err) {
-            this.output?.appendLine(`[ALObjectIndex] Failed to parse ${uri.fsPath}: ${String(err)}`);
+            output.writeErrorMessage(`Failed to parse ${uri.fsPath}: ${String(err)}`, false);
             return undefined;
         }
     }
