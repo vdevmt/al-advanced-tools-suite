@@ -102,63 +102,61 @@ export function isALObjectType(text: string): boolean {
 export function getObjectTypeSortingKey(objectType: string): number {
     if (objectType) {
         switch (objectType.toLowerCase()) {
-            case 'tabledata': {
+            case 'tabledata':
                 return 0;
-            }
-            case 'table': {
-                return 10;
-            }
-            case 'tableextension': {
-                return 11;
-            }
-            case 'page': {
-                return 20;
-            }
-            case 'pageextension': {
-                return 21;
-            }
-            case 'report': {
-                return 30;
-            }
-            case 'reportextension': {
-                return 31;
-            }
-            case 'codeunit': {
-                return 40;
-            }
-            case 'xmlport': {
-                return 50;
-            }
-            case 'query': {
-                return 60;
-            }
-            case 'enum': {
-                return 70;
-            }
-            case 'enumextension': {
-                return 71;
-            }
-            case 'profile': {
-                return 80;
-            }
-            case 'profileextension': {
-                return 81;
-            }
-            case 'permissionset': {
-                return 90;
-            }
-            case 'permissionsetextension': {
-                return 91;
-            }
-            case 'interface': {
-                return 100;
-            }
-        }
 
-        return 9999;
+            case 'table':
+                return 10;
+
+            case 'tableextension':
+                return 11;
+
+            case 'page':
+                return 20;
+
+            case 'pageextension':
+                return 21;
+
+            case 'codeunit':
+                return 30;
+
+            case 'report':
+                return 40;
+
+            case 'reportextension':
+                return 41;
+
+            case 'xmlport':
+                return 50;
+
+            case 'query':
+                return 60;
+
+            case 'enum':
+                return 70;
+
+            case 'enumextension':
+                return 71;
+
+            case 'profile':
+                return 80;
+
+            case 'profileextension':
+                return 81;
+
+            case 'permissionset':
+                return 90;
+
+            case 'permissionsetextension':
+                return 91;
+
+            case 'interface':
+                return 95;
+
+        }
     }
 
-    return -1;
+    return 99;
 }
 
 //#endregion AL Obejct Type
