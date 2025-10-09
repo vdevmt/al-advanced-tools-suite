@@ -138,7 +138,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 description: vscode.workspace.asRelativePath(alObject.objectFileUri.fsPath),
                 detail,
                 groupName: alObject.objectType,
-                groupID: alObjectExplorer.getObjectGroupID(alObject, false),
+                groupID: alObjectExplorer.getObjectGroupID(alObject.objectType, false),
                 documentUri: alObject.objectFileUri,
                 iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
                 sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId?.toString().padStart(10, '0') ?? ''}${alObject.objectName.toLowerCase()}`,
@@ -178,14 +178,32 @@ export class ALObjectIndex implements vscode.Disposable {
         const results = await Promise.all(tasks);
 
         let objectCount = 0;
+        const objectTypeCount = new Map<string, number>();
         for (const item of results) {
             if (item) {
                 objectCount++;
                 this.items.set(item.objectFileUri.fsPath, item);
+
+                const current = objectTypeCount.get(item.objectType) || 0;
+                objectTypeCount.set(item.objectType, current + 1);
             }
         }
 
-        output.writeInfoMessage(`${objectCount} objects were detected in the current workspace`);
+        let summary = `${objectCount} AL objects detected`;
+        if (objectTypeCount.size > 0) {
+            const sortedTypes = Array.from(objectTypeCount.entries())
+                .sort(([a], [b]) =>
+                    alObjectExplorer.getObjectGroupID(a, false) - alObjectExplorer.getObjectGroupID(b, false)
+                );
+
+            const details = sortedTypes
+                .map(([type, count]) => `\n- ${type}: ${count}`)
+                .join(''); // niente virgole, solo newline
+
+            summary += details;
+        }
+
+        output.writeInfoMessage(summary);
     }
 
     private isExcluded(uri: vscode.Uri): boolean {

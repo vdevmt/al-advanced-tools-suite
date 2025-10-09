@@ -1571,7 +1571,7 @@ export async function showOpenALObjects() {
                     label: isLocked ? `$(lock-small) ${objectInfoText}` : objectInfoText,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
-                    groupID: getObjectGroupID(alObject, isCurrentEditor),
+                    groupID: getObjectGroupID(alObject.objectType, isCurrentEditor),
                     groupName: isCurrentEditor ? 'Current Editor' : alObject.objectType,
                     sortIndex: 0,
                     sortKey: alObject.objectName,
@@ -1620,15 +1620,15 @@ export async function showOpenALObjects() {
 //#endregion Open AL Objects
 
 //#region Utilities
-export function getObjectGroupID(alObject: ALObject, isCurrentEditor: boolean): number {
+export function getObjectGroupID(alObjectType: string, isCurrentEditor: boolean): number {
     let groupIndex: number = 99;
 
-    if (alObject) {
+    if (alObjectType) {
         if (isCurrentEditor) {
             groupIndex = 1;
         }
         else {
-            switch (alObject.objectType.toLowerCase()) {
+            switch (alObjectType.toLowerCase()) {
                 case 'table':
                     groupIndex = 10;
                     break;
