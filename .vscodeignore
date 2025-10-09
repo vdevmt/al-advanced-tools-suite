@@ -1,5 +1,13 @@
 # Exclude everything by default
 *
+.git/
+.husky/
+.snapshots/
+.vscode/
+images/
+node_modules/
+src/
+
 
 # Include only packaged assets and metadata
 !package.json
