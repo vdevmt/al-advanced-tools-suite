@@ -3,6 +3,7 @@ import * as typeHelper from '../typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alObjectExplorer from './alObjectExplorer';
+import * as gitInfo from '../tools/gitInfo';
 import { ATSOutputChannel } from '../tools/outputChannel';
 import { ALObject } from './alObject';
 
@@ -15,6 +16,7 @@ export class ALObjectIndex implements vscode.Disposable {
     private watcher: vscode.FileSystemWatcher | undefined;
     private disposables: vscode.Disposable[] = [];
     private static instance: ALObjectIndex | undefined;
+    private gitBranchName: string;
 
     constructor() { }
 
@@ -22,6 +24,17 @@ export class ALObjectIndex implements vscode.Disposable {
         if (!this.instance) {
             this.instance = new ALObjectIndex();
             await this.instance.init();
+        }
+        else {
+            const currBranchName = await gitInfo.getCurrentGitBranchName();
+            if (this.instance.gitBranchName !== currBranchName) {
+                const output = ATSOutputChannel.getInstance();
+                output.writeInfoMessage(`Branch switched to: ${currBranchName}. Rebuilding AL object index...`);
+
+                this.instance.dispose();
+                this.instance = new ALObjectIndex();
+                await this.instance.init();
+            }
         }
 
         return this.instance;
@@ -31,6 +44,7 @@ export class ALObjectIndex implements vscode.Disposable {
         const output = ATSOutputChannel.getInstance();
 
         await this.buildFullIndex();
+        this.gitBranchName = await gitInfo.getCurrentGitBranchName();
 
         // Watch only *.al files in the workspace
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.al', false, false, false);
@@ -38,6 +52,9 @@ export class ALObjectIndex implements vscode.Disposable {
         // Add
         this.disposables.push(
             this.watcher.onDidCreate(async (uri) => {
+                const currBranchName = await gitInfo.getCurrentGitBranchName();
+                if ((!currBranchName) || (this.gitBranchName !== currBranchName)) { return; }
+
                 if (this.isExcluded(uri)) { return; }
                 const item = await this.parseFile(uri);
                 if (item) {
@@ -49,7 +66,10 @@ export class ALObjectIndex implements vscode.Disposable {
 
         // Delete
         this.disposables.push(
-            this.watcher.onDidDelete((uri) => {
+            this.watcher.onDidDelete(async (uri) => {
+                const currBranchName = await gitInfo.getCurrentGitBranchName();
+                if ((!currBranchName) || (this.gitBranchName !== currBranchName)) { return; }
+
                 const existingItem = this.items.get(uri.fsPath);
                 output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
                 this.items.delete(uri.fsPath);
@@ -60,10 +80,13 @@ export class ALObjectIndex implements vscode.Disposable {
         // Update on save (only when the user saves an AL file)
         this.disposables.push(
             vscode.workspace.onDidSaveTextDocument(async (document) => {
-                if (document.languageId !== 'al') {return;}
+                if (document.languageId !== 'al') { return; }
                 const uri = document.uri;
 
-                if (this.isExcluded(uri)) {return;}
+                const currBranchName = await gitInfo.getCurrentGitBranchName();
+                if ((!currBranchName) || (this.gitBranchName !== currBranchName)) { return; }
+
+                if (this.isExcluded(uri)) { return; }
 
                 try {
                     // Se esiste già un oggetto indicizzato, lo rimuovo
