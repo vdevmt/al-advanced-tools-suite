@@ -1,5 +1,9 @@
 # Exclude everything by default
 *
+.vscode/
+images/
+src/
+.husky/
 
 # Include only packaged assets and metadata
 !package.json
