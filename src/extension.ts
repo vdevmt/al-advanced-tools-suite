@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as launchMgr from './launch/launchMgr';
 import * as alSymbols from './alObject/alSymbols';
 import * as alObjectExplorer from './alObject/alObjectExplorer';
-import * as alObjectStats from './alObject/alObjectStatistics'
+import * as alObjectStats from './alObject/alObjectStatistics';
 import * as regionMgr from './alObject/alObjectRegionMgr';
 import * as regionStatusBar from './alObject/alObjectRegionStatusBar';
 import * as objectInfoStatusBar from './alObject/alObjectInfoStatusBar';
@@ -13,15 +13,18 @@ import *  as appInfo from './tools/appInfo';
 import { AtsEventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
 import { AtsNameSpaceDiagnosticsCodeActionProvider } from './alObject/alObjectNamespaceMgr';
 import { ALObject } from './alObject/alObject';
+import { ALObjectIndex } from './alObject/alObjectIndex';
+import { ATSOutputChannel } from './tools/outputChannel';
 
 let regionPathSBDebounceTimeout = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    const output = vscode.window.createOutputChannel('Advanced Tools Suite for AL Language');
-    context.subscriptions.push(output);
+    const output = ATSOutputChannel.getInstance();
+    output.writeInfoMessage('Activating ATS Extension...');
 
     //#region extension status
     vscode.commands.executeCommand('setContext', 'atsExtensionActive', true);
+    await reloadExtensionData(context);
     //#endregion extension status
 
     //#region app.json tools
@@ -89,6 +92,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllGlobalVariables', alObjectExplorer.showAllGlobalVariables));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyGlobalVariablesAsText', alObjectExplorer.copyGlobalVariablesAsText));
+
+    context.subscriptions.push(vscode.commands.registerCommand('ats.gotoWorkspaceObjects', alObjectExplorer.gotoWorkspaceObjects));
     //#endregion AL Objects Explorer
 
     //#region Run Business Central       
@@ -228,13 +233,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.exportObjectsAssignmentDetailsAsCSV', alObjectStats.exportObjectsAssignmentDetailsAsCSV));
     //#endregion Objects Statistics
 
-    //#region Go to AL Object command
-    const alObjectDictionary = new alObjectExplorer.ALObjectIndex(output);
-    await alObjectDictionary.init();
-    context.subscriptions.push(alObjectDictionary);
-
-    alObjectExplorer.registerGoToALObjectCommand(context, alObjectDictionary);
-    //#endregion Go to AL Object command
+    output.writeInfoMessage('ATS Extension successfully activated');
 }
 
 export function deactivate() {
@@ -242,4 +241,14 @@ export function deactivate() {
 
     vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
     vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+
+    const output = ATSOutputChannel.getInstance();
+    output.writeInfoMessage('ATS Extension deactivated.');
+}
+
+async function reloadExtensionData(context: vscode.ExtensionContext) {
+    //#region Go to AL Object command
+    const alObjectIndex = await ALObjectIndex.getInstance();
+    context.subscriptions.push(alObjectIndex);
+    //#endregion Go to AL Object command
 }

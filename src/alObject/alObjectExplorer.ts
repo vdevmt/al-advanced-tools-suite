@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as typeHelper from '../typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers, ALObjectVariables } from './alObject';
+import { ALObjectIndex } from './alObjectIndex';
 interface ObjectElement {
     type: string,
     count: number,
@@ -1543,7 +1543,6 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
 }
 //#endregion AL Object Variables
 
-
 //#region Open AL Objects
 export async function showOpenALObjects() {
     const activeEditor = vscode.window.activeTextEditor;
@@ -1572,7 +1571,7 @@ export async function showOpenALObjects() {
                     label: isLocked ? `$(lock-small) ${objectInfoText}` : objectInfoText,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
-                    groupID: objectGroupID(alObject, isCurrentEditor),
+                    groupID: getObjectGroupID(alObject.objectType, isCurrentEditor),
                     groupName: isCurrentEditor ? 'Current Editor' : alObject.objectType,
                     sortIndex: 0,
                     sortKey: alObject.objectName,
@@ -1618,16 +1617,18 @@ export async function showOpenALObjects() {
         }
     }
 }
+//#endregion Open AL Objects
 
-function objectGroupID(alObject: ALObject, isCurrentEditor: boolean): number {
+//#region Utilities
+export function getObjectGroupID(alObjectType: string, isCurrentEditor: boolean): number {
     let groupIndex: number = 99;
 
-    if (alObject) {
+    if (alObjectType) {
         if (isCurrentEditor) {
             groupIndex = 1;
         }
         else {
-            switch (alObject.objectType.toLowerCase()) {
+            switch (alObjectType.toLowerCase()) {
                 case 'table':
                     groupIndex = 10;
                     break;
@@ -1661,53 +1662,6 @@ function objectGroupID(alObject: ALObject, isCurrentEditor: boolean): number {
 
     return groupIndex;
 }
-function objectSortKey(alObject: ALObject, isCurrentEditor: boolean): string {
-    let objPriority: string = 'Z';
-
-    if (alObject) {
-        if (isCurrentEditor) {
-            objPriority = 'A';
-        }
-        else {
-            switch (alObject.objectType) {
-                case 'table':
-                    objPriority = 'B';
-                    break;
-
-                case 'tableextension':
-                    objPriority = 'C';
-                    break;
-
-                case 'codeunit':
-                    objPriority = 'D';
-                    break;
-
-                case 'page':
-                    objPriority = 'E';
-                    break;
-
-                case 'pageextension':
-                    objPriority = 'F';
-                    break;
-
-                case 'report':
-                    objPriority = 'G';
-                    break;
-
-                case 'reportextension':
-                    objPriority = 'H';
-                    break;
-            }
-        }
-
-        return `${objPriority}_${alObject.objectType}_${alObject.objectName}`;
-    }
-
-    return objPriority;
-}
-//#endregion Open AL Objects
-
-//#region Utilities
 
 function addTextWithSeparator(originalText: string, textToAdd: string): string {
     if (textToAdd) {
@@ -1724,151 +1678,15 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
 //#endregion Utilities
 
 //#region Go to AL Object command
-const EXCLUDE_GLOBS = [
-    '**/.alpackages/**',
-];
 
-export class ALObjectIndex implements vscode.Disposable {
-    private items: Map<string, qpTools.atsQuickPickItem> = new Map(); // key: fsPath
-    private watcher: vscode.FileSystemWatcher | undefined;
-    private disposables: vscode.Disposable[] = [];
-
-    constructor(private readonly output?: vscode.OutputChannel) { }
-
-    async init() {
-        await this.buildFullIndex();
-
-        // Watch only *.al files in the workspace
-        this.watcher = vscode.workspace.createFileSystemWatcher('**/*.al', false, false, false);
-
-        // Add
-        this.disposables.push(
-            this.watcher.onDidCreate(async (uri) => {
-                if (this.isExcluded(uri)) return;
-                const item = await this.parseFile(uri);
-                if (item) this.items.set(uri.fsPath, item);
-            })
-        );
-
-        // Delete
-        this.disposables.push(
-            this.watcher.onDidDelete((uri) => {
-                this.items.delete(uri.fsPath);
-            })
-        );
-
-        // (Optional) Update on change
-        /*
-        this.disposables.push(
-            this.watcher.onDidChange(async (uri) => {
-                if (this.isExcluded(uri)) return;
-                const item = await this.parseFile(uri);
-                if (item) this.items.set(uri.fsPath, item);
-            })
-        );
-        */
+export async function gotoWorkspaceObjects() {
+    const alObjectIndex = await ALObjectIndex.getInstance();
+    const allItems = alObjectIndex.toQuickPickItems();
+    if (allItems.length === 0) {
+        void vscode.window.showInformationMessage('No AL objects found in the current workspace.');
+        return;
     }
 
-    getAll(): qpTools.atsQuickPickItem[] {
-        return Array.from(this.items.values()).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-    }
-
-    dispose() {
-        this.watcher?.dispose();
-        this.disposables.forEach(d => d.dispose());
-        this.items.clear();
-    }
-
-    private async buildFullIndex() {
-        this.items.clear();
-
-        const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
-        const uris = await vscode.workspace.findFiles('**/*.al', excludePattern);
-        const tasks = uris.map((uri) => this.parseFile(uri));
-        const results = await Promise.all(tasks);
-        for (const item of results) {
-            if (item) this.items.set(item.documentUri.fsPath, item);
-        }
-    }
-
-    private isExcluded(uri: vscode.Uri): boolean {
-        // Cheap path-based check to avoid parsing files in dependency folders
-        const p = uri.fsPath.replace(/\\/g, '/').toLowerCase();
-        return p.includes('/.alpackages/') ||
-            p.includes('/packages/') ||
-            p.includes('/bin/') ||
-            p.includes('/out/');
-    }
-
-    private async parseFile(uri: vscode.Uri): Promise<qpTools.atsQuickPickItem | undefined> {
-        try {
-            if (alFileMgr.isALObjectFile(uri, false)) {
-                const document = await vscode.workspace.openTextDocument(uri);
-                const alObject = new ALObject(document, false);
-
-                if (alObject) {
-                    const objectName = typeHelper.addQuotesIfNeeded(alObject.objectName);
-                    const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
-
-                    const label = alObject.objectId ? `${alObject.objectType} ${alObject.objectId} ${objectName}` : `${alObject.objectType} ${objectName}`;
-                    const detail =
-                        alObject.extendedObjectName && alObject.objectNamespace ? `extends ${extendedObjectName}; ${alObject.objectNamespace}` :
-                            alObject.extendedObjectName ? `extends ${extendedObjectName}` :
-                                alObject.objectNamespace ? `${alObject.objectNamespace}` : '';
-
-
-                    const item: qpTools.atsQuickPickItem = {
-                        label,
-                        description: vscode.workspace.asRelativePath(uri),
-                        detail,
-                        groupName: alObject.objectType,
-                        groupID: objectGroupID(alObject, false),
-                        documentUri: uri,
-                        iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
-                        sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId.padStart(10, '0')}${alObject.objectName.toLowerCase()}`,
-                        command: qpTools.cmdOpenFile,
-                        commandArgs: uri
-                    };
-
-                    return item;
-                }
-            }
-
-            this.output?.appendLine(`[ALObjectIndex] No AL object found in "${uri.fsPath}"`);
-
-            return undefined;
-        } catch (err) {
-            this.output?.appendLine(`[ALObjectIndex] Failed to parse ${uri.fsPath}: ${String(err)}`);
-            return undefined;
-        }
-    }
-}
-
-export function registerGoToALObjectCommand(context: vscode.ExtensionContext, index: ALObjectIndex) {
-    const cmd = vscode.commands.registerCommand('ats.gotoWorkspaceObjects', async () => {
-        const allItems = index.getAll();
-        if (allItems.length === 0) {
-            void vscode.window.showInformationMessage('No AL objects found in the current workspace.');
-            return;
-        }
-
-        const alObjects = allItems.map(item => ({
-            ...item,
-            buttons: [
-                {
-                    iconPath: new vscode.ThemeIcon("symbol-misc"),
-                    tooltip: qpTools.btnCmdExecObjectExplorer,
-                },
-                {
-                    iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
-                    tooltip: qpTools.btnCmdOpenToSide,
-                }
-            ]
-        }));
-
-        await qpTools.showQuickPick(alObjects, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
-    });
-
-    context.subscriptions.push(cmd);
+    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
 }
 //#endregion Go to AL Object command

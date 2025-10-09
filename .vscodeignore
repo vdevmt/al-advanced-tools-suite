@@ -1,24 +1,19 @@
-.github/**
-.vscode/**
-.vscode-test/**
-src/**
-test/**
-.eslintrc.json
-.gitattributes
-.gitignore
-.prettierrc
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
-**/*.map
-**/*.ts
-**/.vscode-test.*
-.eslintrc.json
-jsconfig.json
-tsconfig.json
+# Exclude everything by default
+*
 
-node_modules/**
-out/**
-**/esbuild.js
+# Include only packaged assets and metadata
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
 
+# Localizations
+!package.nls.json
+!package.nls.*.json
+
+# Built extension output
+!dist/**
+
+# Snippets and required images used by the extension
+!snippets/**
+!images/logo.png

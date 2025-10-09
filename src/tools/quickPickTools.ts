@@ -12,6 +12,8 @@ export const btnCmdCopyAsText = 'Copy as text';
 export const btnCmdExecObjectExplorer = 'AL Object Explorer';
 export const btnCmdOpenToSide = 'Open to the Side';
 
+const DEBOUNCE_MS = 200;
+
 export interface atsQuickPickItem extends vscode.QuickPickItem {
     iconName?: string;
     itemStartLine?: number;
@@ -44,26 +46,20 @@ export async function showQuickPick(
     quickPick.matchOnDescription = enableSearchOnDescription;
     quickPick.matchOnDetail = enableSearchOnDetails;
     quickPick.value = initialValue;
+    quickPick.items = updateItems(allItems, initialValue, enableSearchOnDescription, enableSearchOnDetails, groupValues, false);
+    quickPick.ignoreFocusOut = true;
 
-    if (groupValues) {
-        const groups = [...new Map(allItems.map(item =>
-            [item['groupName'], { id: item.groupID, name: item.groupName }]
-        )).values()].sort((a, b) => a.id - b.id);
+    // ChangeValue: esegue la ricerca
+    let debounceHandle: NodeJS.Timeout | undefined;
 
-        if (groups) {
-            let groupedItems: atsQuickPickItem[] = [];
-            groups.forEach(group => {
-                groupedItems.push({
-                    label: group.name,
-                    kind: vscode.QuickPickItemKind.Separator
-                } as atsQuickPickItem);
-                groupedItems.push(...allItems.filter(item => (item.groupName === group.name)));
-            });
-            quickPick.items = groupedItems;
-        }
-    } else {
-        quickPick.items = allItems;
-    }
+    const onDidChangeValue = quickPick.onDidChangeValue((value) => {
+        if (debounceHandle) { clearTimeout(debounceHandle); }
+        quickPick.busy = true;
+        debounceHandle = setTimeout(() => {
+            quickPick.items = updateItems(allItems, value, enableSearchOnDescription, enableSearchOnDetails, groupValues, false);
+            quickPick.busy = false;
+        }, DEBOUNCE_MS);
+    });
 
     // Accept: esegue il comando dell'item
     const onAccept = quickPick.onDidAccept(async () => {
@@ -80,7 +76,10 @@ export async function showQuickPick(
         quickPick.hide();
 
         if (selectedItem) {
-            switch (selected.button.tooltip) {
+            // Prefer a stable id on the button if provided; fallback to tooltip text
+            const buttonAny = selected.button as vscode.QuickInputButton & { id?: string };
+            const btnKey = buttonAny?.id ?? selected.button.tooltip;
+            switch (btnKey) {
                 case btnCmdOpenToSide: {
                     switch (selectedItem.command) {
                         case cmdGoToLine: { selectedItem.command = cmdGoToLineOnSide; break; }
@@ -108,10 +107,12 @@ export async function showQuickPick(
     });
 
     const onHide = quickPick.onDidHide(() => {
-        quickPick.dispose();
+        onDidChangeValue.dispose();
         onAccept.dispose();
         onBtn.dispose();
         onHide.dispose();
+        if (debounceHandle) { clearTimeout(debounceHandle); }
+        quickPick.dispose();
     });
 
     quickPick.show();
@@ -124,7 +125,9 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 case cmdGoToLine: {
                     let lineNumber: number = Number(selectedItem.commandArgs);
                     if (lineNumber >= 0) {
-                        if (selectedItem.documentUri && (selectedItem.documentUri !== vscode.window.activeTextEditor.document.uri)) {
+                        const activeDocUri = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.uri : undefined;
+
+                        if (selectedItem.documentUri && (selectedItem.documentUri !== activeDocUri)) {
                             const position = new vscode.Position(lineNumber, 0);
                             await vscode.window.showTextDocument(selectedItem.documentUri, {
                                 viewColumn: vscode.ViewColumn.Active,
@@ -147,10 +150,13 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 case cmdGoToLineOnSide: {
                     let lineNumber: number = Number(selectedItem.commandArgs);
                     if (lineNumber >= 0) {
-                        let docUri = selectedItem.documentUri || vscode.window.activeTextEditor.document.uri;
+                        let docUri = selectedItem.documentUri ? selectedItem.documentUri :
+                            vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.uri :
+                                undefined;
+
                         if (docUri) {
                             const position = new vscode.Position(lineNumber, 0);
-                            await vscode.window.showTextDocument(selectedItem.documentUri, {
+                            await vscode.window.showTextDocument(docUri, {
                                 viewColumn: vscode.ViewColumn.Beside,
                                 preserveFocus: false,
                                 selection: new vscode.Selection(position, position)
@@ -196,7 +202,7 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 default: {
                     if (selectedItem.command) {
                         if (Array.isArray(selectedItem.commandArgs)) {
-                            vscode.commands.executeCommand(selectedItem.command, ...selectedItem.commandArgs);
+                            await vscode.commands.executeCommand(selectedItem.command, ...selectedItem.commandArgs);
                         } else {
                             await vscode.commands.executeCommand(selectedItem.command, selectedItem.commandArgs);
                         }
@@ -209,3 +215,111 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
     }
 }
 //#endregion Quick Pick Functions
+
+//#region Items Search
+function normalizeText(s: string): string {
+    return s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // rimuove accenti
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function escapeRegex(lit: string): string {
+    return lit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildMultiTokenRegex(query: string, wholeWords = false): RegExp | null {
+    const tokens = normalizeText(query).split(' ').filter(Boolean);
+    if (tokens.length === 0) { return null; }
+
+    const key = (wholeWords ? 'w:' : 'c:') + tokens.join(' ');
+
+    const parts = tokens.map(t => {
+        const tok = escapeRegex(t);
+        return wholeWords ? `(?=.*\\b${tok}\\b)` : `(?=.*${tok})`;
+    });
+    const rx = new RegExp(parts.join('') + '.*', 'i');
+    return rx;
+}
+
+function getNormalizedHay(
+    it: atsQuickPickItem,
+    onDesc: boolean,
+    onDetail: boolean
+): string {
+    const hayRaw = onDesc && onDetail ? `${it.label ?? ''} ${it.description ?? ''} ${it.detail ?? ''}` :
+        onDesc ? `${it.label ?? ''} ${it.description ?? ''}` :
+            onDetail ? `${it.label ?? ''} ${it.detail ?? ''}` :
+                `${it.label ?? ''}`;
+    return normalizeText(hayRaw);
+}
+
+function updateItems(
+    allItems: atsQuickPickItem[],
+    query: string,
+    enableSearchOnDescription: boolean,
+    enableSearchOnDetails: boolean,
+    groupValues?: boolean,
+    wholeWords = false,
+): atsQuickPickItem[] {
+    const trimmed = query.trim();
+    if (!trimmed) {
+        // query vuota -> restituisci tutti (eventuale raggruppo)
+        if (!groupValues) { return allItems.map(i => ({ ...i, alwaysShow: true })); }
+        return groupByWithSeparators(allItems);
+    }
+
+    if (!trimmed.includes(" ")) {
+        // query senza spazi -> restituisci tutti (eventuale raggruppo). La ricerca verrà effettuata in modalità standard
+        if (!groupValues) { return allItems.map(i => ({ ...i, alwaysShow: true })); }
+        return groupByWithSeparators(allItems);
+    }
+
+    const rx = buildMultiTokenRegex(trimmed, wholeWords);
+    if (!rx) {
+        // query non valida (dopo normalizzazione) -> nessun elemento
+        return [];
+    }
+
+    // Filtra elementi 
+    const filtered = allItems.filter(it => rx.test(getNormalizedHay(it, enableSearchOnDescription, enableSearchOnDetails)));
+
+    if (!groupValues) {
+        return filtered.map(i => ({ ...i, alwaysShow: true }));
+    }
+    return groupByWithSeparators(filtered);
+}
+
+// Raggruppa per groupName + separatori, ordinando per groupID, poi alfabetico
+function groupByWithSeparators(items: atsQuickPickItem[]): atsQuickPickItem[] {
+    const byGroup = new Map<string, atsQuickPickItem[]>();
+    for (const it of items) {
+        const k = it.groupName ?? 'Other';
+        if (!byGroup.has(k)) { byGroup.set(k, []); }
+        byGroup.get(k)!.push({ ...it, alwaysShow: true });
+    }
+    // ordina in-group per sortKey
+    for (const arr of byGroup.values()) { arr.sort((a, b) => (a.sortKey ?? '').localeCompare(b.sortKey ?? '')); }
+
+    // ordina gruppi per groupID poi nome
+    const groups = Array.from(byGroup.entries()).sort((a, b) => {
+        const idA = a[1][0]?.groupID ?? Number.MAX_SAFE_INTEGER;
+        const idB = b[1][0]?.groupID ?? Number.MAX_SAFE_INTEGER;
+        if (idA !== idB) { return idA - idB; }
+        return a[0].localeCompare(b[0]);
+    });
+
+    const out: atsQuickPickItem[] = [];
+    for (const [name, arr] of groups) {
+        out.push({ label: name, kind: vscode.QuickPickItemKind.Separator, alwaysShow: true } as atsQuickPickItem);
+        out.push(...arr);
+    }
+    return out;
+}
+
+//#endregion Items Search
+
+
+

@@ -10,6 +10,7 @@ async function main() {
         format: 'cjs',
         minify: production,
         sourcemap: !production,
+        legalComments: 'none',
         platform: 'node',
         external: ['vscode'],
         resolveExtensions: ['.ts', '.js'], // Risolvi estensioni .ts e .js

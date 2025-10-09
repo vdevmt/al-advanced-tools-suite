@@ -8,7 +8,7 @@
 
 If you want to support my work:
 
-[![https://www.buymeacoffee.com/viacovone](./images/buymeacoffee.png)](https://www.buymeacoffee.com/viacovone)
+[![https://www.buymeacoffee.com/viacovone](https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/buymeacoffee.png)](https://www.buymeacoffee.com/viacovone)
 
 # Features
 These features are concluded at this moment:
@@ -22,66 +22,66 @@ Objects are grouped by type (Table, Page, Codeunit, etc.) and include custom ico
 Automate the versioning process for your Business Central apps with the command `ATS: AL Package new version` 
 
 <br />
-<img src="./images/ALPackageNewVersion.png" alt="AL Package new version">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ALPackageNewVersion.png" alt="AL Package new version">
 
 ## AL Object Explorer
 * Info and statistics of the current AL Object in status bar
 <br />
-<img src="./images/ALObjectInfoStatusBar.png" alt="AL Object Info">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ALObjectInfoStatusBar.png" alt="AL Object Info">
 
 * **ATS: AL Object Explorer**: navigates through the elements of the current AL object
 <br />
-<img src="./images/ALObjectExplorer.gif" alt="AL Object Explorer">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ALObjectExplorer.gif" alt="AL Object Explorer">
 
 * **ATS: Show all Fields**: Show and search fields of the current AL Object
 <br />
-<img src="./images/ShowAllFields.png" alt="ATS: Show all Fields">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllFields.png" alt="ATS: Show all Fields">
 
 * **ATS: Show all Table Keys**: Show and search keys of the current AL Table
 <br />
-<img src="./images/ShowAllKeys.png" alt="ATS: Show all Table Keys">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllKeys.png" alt="ATS: Show all Table Keys">
 
 * **ATS: Show all Procedures**: Show and search functions of the current AL Object
 <br />
-<img src="./images/ShowAllProcedures.png" alt="ATS: Show all Procedures">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllProcedures.png" alt="ATS: Show all Procedures">
 <br />
-<img src="./images/ShowAllProceduresWithRegion.png" alt="ATS: Show all Procedures with regions">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllProceduresWithRegion.png" alt="ATS: Show all Procedures with regions">
 
 * **ATS: Show all Page Actions**: Show and search page actions of the current AL Object
 <br />
-<img src="./images/ShowAllActions.png" alt="ATS: Show all Actions">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllActions.png" alt="ATS: Show all Actions">
 
 * **ATS: Show all Dataitems**: Show the complete dataitems structure of the current AL Report
 <br />
-<img src="./images/ShowAllDataitems.png" alt="ATS: Show all Dataitems">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllDataitems.png" alt="ATS: Show all Dataitems">
 
 * **ATS: Show all Triggers**: Show and search all triggers of the current AL Object (Object, fields, dataitem, etc.)
 <br />
-<img src="./images/ShowAllTriggers.png" alt="ATS: Show all Triggers">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllTriggers.png" alt="ATS: Show all Triggers">
 <br />
-<img src="./images/ShowAllReportTriggers.png" alt="ATS: Show all report triggers">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ShowAllReportTriggers.png" alt="ATS: Show all report triggers">
 
 * **ATS: Show all Regions**: Show the complete regions structure of the current AL Object
 <br />
-<img src="./images/RegionsStructure.png" alt="ATS: Show all Regions">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/RegionsStructure.png" alt="ATS: Show all Regions">
 
 * **ATS: Show open AL objects**: Show detailed list of open AL Objects
 <br />
-<img src="./images/OpenALObjects.png" alt="ATS: open objects">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/OpenALObjects.png" alt="ATS: open objects">
 
 
 ## Special Copy
-<img src="./images/SpecialCopy.png" alt="ATS: Special copy">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/SpecialCopy.png" alt="ATS: Special copy">
 
 * Copy as Record Insert/Modify/Delete statements
 <br />
-<img src="./images/CopyAsInsertStatement.gif" alt="ATS: Copy as Insert statement">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/CopyAsInsertStatement.gif" alt="ATS: Copy as Insert statement">
 
 * Copy as Event Subscriber
 <br />
-<img src="./images/CopyAsEventSubscriber.gif" alt="ATS: Copy as Event Subscriber">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/CopyAsEventSubscriber.gif" alt="ATS: Copy as Event Subscriber">
 
-<img src="./images/CopyAsEventSubscriber_Field.gif" alt="ATS: Copy Field as Event Subscriber">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/CopyAsEventSubscriber_Field.gif" alt="ATS: Copy Field as Event Subscriber">
 
 
 ## launch.json manager
@@ -94,16 +94,16 @@ With these features you can easily share launchers with your colleagues:
 * Change default startup object on launch.json file by command **ATS: Change default startup object and run Business Central**
 <br />
 <br />
-<img src="./images/ImportLaunch.gif" alt="Import launch.json" height="400">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ImportLaunch.gif" alt="Import launch.json" height="400">
 
 ## Run Business Central
 The command `ATS: Run Business Central` allows running the Business Central client by selecting the configuration to use among the various configurations defined in the launch.json file.
 <br />
-<img src="./images/RunBusinessCentral.png" alt="Run Business Central">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/RunBusinessCentral.png" alt="Run Business Central">
 
 You can define `URL Forwarding Rules` in vscode settings to run Business Central using a different URL than the one defined in the launch.json file for each configuration. This can be useful for custom setups or scenarios where URL conversion is needed.
 <br />
-<img src="./images/UrlForwardingRules.png" alt="URL Forwarding Rules">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/UrlForwardingRules.png" alt="URL Forwarding Rules">
 
 **Use Cases for Forwarding Rules:**<br />
 * Public URL:
@@ -124,7 +124,7 @@ These rules make running the Business Central client more flexible and secure wi
 
 * Set object namespace based on current file path by command **ATS: Set object namespace based on file path**<br />
 <br />
-<img src="./images/NamespaceByPathCmd.gif" alt="Namespace By Path" height="400">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/NamespaceByPathCmd.gif" alt="Namespace By Path" height="400">
 
 * Namespace completion providers based on:
     - Current File path if **ats.UseObjectFilePathAsNamespace** setting is enabled
@@ -132,25 +132,25 @@ These rules make running the Business Central client more flexible and secure wi
     - Default Root Namespace defined by **ats.RootNamespace** setting
     - Additional custom Namespaces defined in **ats.DefaultNamespaces** setting
 <br />
-<img src="./images/NamespaceSuggestion.gif" alt="Namespace Suggestion" height="400">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/NamespaceSuggestion.gif" alt="Namespace Suggestion" height="400">
 
 ## Region utilities
 
 * Create regions by snippet **tregion**
 <br />
-<img src="./images/RegionSnippet.gif" alt="Create Region Snippet" height="400">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/RegionSnippet.gif" alt="Create Region Snippet" height="400">
 
 * Create region for the selected code in the current editor by command **ATS: Create region by selection**
 <br />
-<img src="./images/RegionBySelection.gif" alt="Create Region By Selection" height="400">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/RegionBySelection.gif" alt="Create Region By Selection" height="400">
 
 * Region Path info on status bar:
 <br />
-<img src="./images/RegionStatusBar.png" alt="Region info on status bar" height="400">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/RegionStatusBar.png" alt="Region info on status bar" height="400">
 
 * Show the complete structure of regions in the current document by command **ATS: Show all regions**
 <br />
-<img src="./images/RegionsStructure.png" alt="Show all regions">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/RegionsStructure.png" alt="Show all regions">
 
 # Snippets
 
@@ -158,13 +158,13 @@ These rules make running the Business Central client more flexible and secure wi
 An easy way to organize page fields in a single-line structure.<br />
 With this structure you can create a complex grid like this:<br />
 
-<img src="./images/singlelinefields.jpg" alt="Single-Line fields">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/singlelinefields.jpg" alt="Single-Line fields">
 
 ##  tsingleLineFieldsWithCaptionTop:
 An easy way to organize page fields in a single-line structure with caption at the top.<br /> 
 With this structure you can create a complex grid like this:<br />
 
-<img src="./images/singlelinefieldscaptionupper.jpg" alt="Single-Line fields with upper caption">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/singlelinefieldscaptionupper.jpg" alt="Single-Line fields with upper caption">
 
 # Extension settings
 * `ATS.DefaultLaunchArchiveFolder`: Default archive folder for import/export utiltities of launch.json file;  
@@ -193,4 +193,4 @@ If my tools have saved you time, boosted your productivity, or simply made your 
 
 Every contribution, big or small, helps me focus on innovation and delivering even better solutions for the AL development community. Your support truly makes a difference and keeps this journey alive
 
-[![https://www.buymeacoffee.com/viacovone](./images/buymeacoffee.png)](https://www.buymeacoffee.com/viacovone)
+[![https://www.buymeacoffee.com/viacovone](https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/buymeacoffee.png)](https://www.buymeacoffee.com/viacovone)
