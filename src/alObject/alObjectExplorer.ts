@@ -1571,7 +1571,7 @@ export async function showOpenALObjects() {
                     label: isLocked ? `$(lock-small) ${objectInfoText}` : objectInfoText,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
-                    groupID: getObjectGroupID(alObject.objectType, isCurrentEditor),
+                    groupID: getObjectGroupID(alObject, isCurrentEditor),
                     groupName: isCurrentEditor ? 'Current Editor' : alObject.objectType,
                     sortIndex: 0,
                     sortKey: alObject.objectName,
@@ -1620,47 +1620,14 @@ export async function showOpenALObjects() {
 //#endregion Open AL Objects
 
 //#region Utilities
-export function getObjectGroupID(alObjectType: string, isCurrentEditor: boolean): number {
-    let groupIndex: number = 99;
-
-    if (alObjectType) {
-        if (isCurrentEditor) {
-            groupIndex = 1;
-        }
-        else {
-            switch (alObjectType.toLowerCase()) {
-                case 'table':
-                    groupIndex = 10;
-                    break;
-
-                case 'tableextension':
-                    groupIndex = 11;
-                    break;
-
-                case 'page':
-                    groupIndex = 20;
-                    break;
-
-                case 'pageextension':
-                    groupIndex = 21;
-                    break;
-
-                case 'codeunit':
-                    groupIndex = 30;
-                    break;
-
-                case 'report':
-                    groupIndex = 40;
-                    break;
-
-                case 'reportextension':
-                    groupIndex = 41;
-                    break;
-            }
-        }
+function getObjectGroupID(alObject: ALObject, isCurrentEditor: boolean): number {
+    if (isCurrentEditor) {
+        return 1;
     }
 
-    return groupIndex;
+    if (alObject) {
+        return alObject.objectTypeIndex ?? 99;
+    }
 }
 
 function addTextWithSeparator(originalText: string, textToAdd: string): string {

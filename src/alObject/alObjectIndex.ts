@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as typeHelper from '../typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import * as alFileMgr from './alObjectFileMgr';
-import * as alObjectExplorer from './alObjectExplorer';
 import * as gitInfo from '../tools/gitInfo';
 import { ATSOutputChannel } from '../tools/outputChannel';
 import { ALObject } from './alObject';
@@ -138,7 +137,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 description: vscode.workspace.asRelativePath(alObject.objectFileUri.fsPath),
                 detail,
                 groupName: alObject.objectType,
-                groupID: alObjectExplorer.getObjectGroupID(alObject.objectType, false),
+                groupID: alObject.objectTypeIndex,
                 documentUri: alObject.objectFileUri,
                 iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
                 sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId?.toString().padStart(10, '0') ?? ''}${alObject.objectName.toLowerCase()}`,
@@ -192,9 +191,7 @@ export class ALObjectIndex implements vscode.Disposable {
         let summary = `${objectCount} AL objects detected`;
         if (objectTypeCount.size > 0) {
             const sortedTypes = Array.from(objectTypeCount.entries())
-                .sort(([a], [b]) =>
-                    alObjectExplorer.getObjectGroupID(a, false) - alObjectExplorer.getObjectGroupID(b, false)
-                );
+                .sort(([a], [b]) => typeHelper.getObjectTypeSortingKey(a) - typeHelper.getObjectTypeSortingKey(b));
 
             const details = sortedTypes
                 .map(([type, count]) => `\n- ${type}: ${count}`)

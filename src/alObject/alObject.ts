@@ -5,6 +5,7 @@ import * as typeHelper from '../typeHelper';
 //#region AL Object Definition
 export class ALObject {
     public objectType: string;
+    public objectTypeIndex: number;
     public objectId: string;
     public objectName: string;
     public sourceTableName: string;
@@ -15,6 +16,7 @@ export class ALObject {
     public objectFileName?: string;
     public objectFileUri?: vscode.Uri;
     public properties: { [key: string]: string };
+    public sortKey: string;
 
     constructor(document: vscode.TextDocument, loadAllInfos: boolean) {
         this.initObjectProperties();
@@ -41,9 +43,11 @@ export class ALObject {
 
     private initObjectProperties() {
         this.objectType = "";
+        this.objectTypeIndex = 0;
         this.objectId = "";
         this.objectName = "";
         this.sourceTableName = "";
+        this.sortKey = "";
         this.extendedObjectId = "";
         this.extendedObjectName = "";
         this.objectNamespace = "";
@@ -171,6 +175,9 @@ export class ALObject {
             this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
             this.extendedObjectId = this.extendedObjectId.trim().toString();
             this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
+
+            this.objectTypeIndex = typeHelper.getObjectTypeSortingKey(this.objectType);
+            this.sortKey = `${this.objectTypeIndex.toString().padStart(10, '0')}${this.objectId?.toString().padStart(10, '0') ?? ''}${this.objectName.toLowerCase()}`;
 
             if (loadAllInfos) {
                 let objectDefTxt = '';

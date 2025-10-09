@@ -37,7 +37,9 @@ export class ATSOutputChannel {
 
     public WriteMessage(message: string): void {
         const now = new Date();
-        const timestamp = now.toISOString().replace('T', ' ').split('.')[0]; // yyyy-MM-dd HH:mm:ss
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} `
+            + `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
         this.channel.appendLine(`[${timestamp}] ${message}`);
     }
 
