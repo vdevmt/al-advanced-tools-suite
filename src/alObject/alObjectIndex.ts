@@ -42,7 +42,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 const item = await this.parseFile(uri);
                 if (item) {
                     this.items.set(uri.fsPath, item);
-                    output.writeInfoMessage(`New AL object detected: ${item.objectType} ${item.objectId} ${item.objectName}`);
+                    output.writeInfoMessage(`[AL Object Index] New AL object detected: ${item.objectType} ${item.objectId} ${item.objectName}`);
                 }
             })
         );
@@ -51,21 +51,42 @@ export class ALObjectIndex implements vscode.Disposable {
         this.disposables.push(
             this.watcher.onDidDelete((uri) => {
                 const existingItem = this.items.get(uri.fsPath);
-                output.writeInfoMessage(`AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
+                output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
                 this.items.delete(uri.fsPath);
             })
         );
 
-        // (Optional) Update on change
-        /*
+        // Save AL object file
+        // Update on save (only when the user saves an AL file)
         this.disposables.push(
-            this.watcher.onDidChange(async (uri) => {
-                if (this.isExcluded(uri)) return;
-                const item = await this.parseFile(uri);
-                if (item) this.items.set(uri.fsPath, item);
+            vscode.workspace.onDidSaveTextDocument(async (document) => {
+                if (document.languageId !== 'al') {return;}
+                const uri = document.uri;
+
+                if (this.isExcluded(uri)) {return;}
+
+                try {
+                    // Se esiste già un oggetto indicizzato, lo rimuovo
+                    const existingItem = this.items.get(uri.fsPath);
+                    if (existingItem) {
+                        this.items.delete(uri.fsPath);
+
+                        output.writeInfoMessage(`[AL Object Index] Removed outdated entry: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
+                    }
+
+                    // Reindicizzo il file appena salvato
+                    const updatedItem = await this.parseFile(uri);
+                    if (updatedItem) {
+                        this.items.set(uri.fsPath, updatedItem);
+                        output.writeInfoMessage(`[AL Object Index] Updated AL object: ${updatedItem.objectType} ${updatedItem.objectId} ${updatedItem.objectName}`);
+                    } else {
+                        output.writeInfoMessage(`[AL Object Index] No AL object found after save: ${uri.fsPath}`);
+                    }
+                } catch (err) {
+                    output.writeInfoMessage(`[AL Object Index] Failed to update ${uri.fsPath} on save: ${String(err)}`);
+                }
             })
         );
-        */
     }
 
     getAllObjects(): ALObject[] {
