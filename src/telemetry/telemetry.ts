@@ -23,28 +23,33 @@ export class TelemetryClient {
     }
 
     public static logCommand(commandName: string) {
-        if (this.isEnabled()) {
-            const telemetry = TelemetryClient.getInstance();
+        try {
+            if (this.isEnabled()) {
+                const telemetry = TelemetryClient.getInstance();
 
-            const extVersion = vscode.extensions.getExtension('vdevmt.al-advanced-tools-suite')?.packageJSON.version ?? 'unknown';
-            const vscVersion = vscode.version;
-            const platform = process.platform;
+                const extVersion = vscode.extensions.getExtension('vdevmt.al-advanced-tools-suite')?.packageJSON.version ?? 'unknown';
+                const vscVersion = vscode.version;
+                const platform = process.platform;
 
-            telemetry.reporter.sendTelemetryEvent('commandUsed', {
-                command: commandName,
-                extensionVersion: extVersion,
-                vscodeVersion: vscVersion,
-                platform: platform
-            });
+                telemetry.reporter.sendTelemetryEvent('commandUsed', {
+                    command: commandName,
+                    extensionVersion: extVersion,
+                    vscodeVersion: vscVersion,
+                    platform: platform
+                });
+            }
+        } catch (error) {
+            console.log(`Error logging telemetry for command '${commandName}'`);
         }
     }
+
 
     private static isEnabled(): boolean {
         const level = (vscode.env as any).telemetryLevel as 'all' | 'error' | 'crash' | 'off' | undefined;
         const isDisabled =
             (typeof level === 'string' ? level === 'off' : ((vscode.env as any).isTelemetryEnabled === false));
 
-        if (isDisabled) {return false;}
+        if (isDisabled) { return false; }
 
         const atsSettings = ATSSettings.GetConfigSettings(null);
         if (atsSettings[ATSSettings.EnableTelemetry]) {
