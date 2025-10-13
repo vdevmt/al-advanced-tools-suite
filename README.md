@@ -186,6 +186,14 @@ With this structure you can create a complex grid like this:<br />
 # Requirements
 * AL Language extension
 
+
+# Privacy & Telemetry
+
+This extension may collect anonymous usage data when telemetry is enabled.
+The information collected helps identify which features are most used and improve the overall experience.
+No personal or sensitive information is collected, and telemetry fully respects the global VS Code telemetry settings.
+You can disable telemetry at any time by setting: `ATS.EnableTelemetry` or by turning off VS Code telemetry in your global settings.
+
 # Support my work: Elevate your AL development Experience
 As a passionate Business Central developer, I dedicate my free time to creating tools that make AL development smoother, faster, and more enjoyable. My goal is to simplify workflows, introduce practical features, and enhance the daily experience of developers like you.
 
