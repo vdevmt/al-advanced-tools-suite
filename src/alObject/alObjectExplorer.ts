@@ -3,6 +3,7 @@ import * as alFileMgr from './alObjectFileMgr';
 import * as qpTools from '../tools/quickPickTools';
 import { ALObject, ALObjectActions, ALObjectDataItems, ALTableFieldGroups, ALObjectFields, ALObjectProcedures, ALObjectRegions, ALTableKeys, ALObjectTriggers, ALObjectVariables } from './alObject';
 import { ALObjectIndex } from './alObjectIndex';
+import { TelemetryClient } from '../telemetry/telemetry';
 interface ObjectElement {
     type: string,
     count: number,
@@ -45,6 +46,8 @@ export async function execALObjectExplorer(alObject?: ALObject) {
                 '');
         }
     }
+
+    TelemetryClient.logCommand('execALObjectExplorer');
 }
 
 async function execALObjectExplorerByUri(docUri: vscode.Uri) {
@@ -1545,6 +1548,8 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
 
 //#region Open AL Objects
 export async function showOpenALObjects() {
+    TelemetryClient.logCommand('showOpenALObjects');
+
     const activeEditor = vscode.window.activeTextEditor;
     const activeUri = activeEditor?.document.uri.toString();
 
@@ -1655,5 +1660,7 @@ export async function gotoWorkspaceObjects() {
     }
 
     await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
+
+    TelemetryClient.logCommand('gotoWorkspaceObjects');
 }
 //#endregion Go to AL Object command

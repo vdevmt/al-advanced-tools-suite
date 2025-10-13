@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as regExpr from '../regExpressions';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as typeHelper from '../typeHelper';
-
 import { ALObject, ALObjectFields } from '../alObject/alObject';
+import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Integration Events
 //#region Code Actions
@@ -92,6 +92,8 @@ function findCodeActionsStartPosByCurrentLine(document: vscode.TextDocument, cur
 
 //#region Event Subscriber
 export function copySelectionAsEventSubscriber() {
+    TelemetryClient.logCommand('copySelectionAsEventSubscriber');
+
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
     let eventStartPos = -1;
@@ -349,6 +351,8 @@ function createEventSubscriberText(alObject: ALObject, sourceText: string, scope
 
 //#region Event Integration
 export async function copySelectionAsEventIntegration() {
+    TelemetryClient.logCommand('copySelectionAsEventIntegration');
+
     const editor = vscode.window.activeTextEditor;
     const document = editor.document;
 
@@ -367,7 +371,7 @@ export async function copySelectionAsEventIntegration() {
                         if (regex.test(selectedText)) {
                             if (!selectedText.endsWith(');')) {
                                 for (let i = selection.start.line + 1; i <= selection.end.line; i++) {
-                                    selectedText += ` ${document.lineAt(i).text.trim()}`
+                                    selectedText += ` ${document.lineAt(i).text.trim()}`;
                                     if (selectedText.endsWith(');')) {
                                         i = selection.end.line + 1;
                                         isValidSelection = true;
@@ -437,6 +441,8 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
 
 //#region Record insert statement
 export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFields?: boolean) {
+    TelemetryClient.logCommand('copyRecordInsertStatement');
+
     let document: vscode.TextDocument;
 
     if (docUri) {
@@ -542,6 +548,8 @@ function createFieldAssignmentStatement(recVariableName: string, fieldName: stri
 
 //#region Record modify statement
 export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFields?: boolean) {
+    TelemetryClient.logCommand('copyRecordModifyStatement');
+
     let document: vscode.TextDocument;
 
     if (docUri) {
@@ -624,6 +632,8 @@ export function copyRecordModifyStatementWithValidation(docUri?: vscode.Uri) {
 
 //#region Record delete statement
 export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyRecordDeleteStatement');
+
     let document: vscode.TextDocument;
 
     if (docUri) {
@@ -684,6 +694,8 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
 
 //#region Page Fields
 export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyRecordAsPageFields');
+
     let document: vscode.TextDocument;
 
     if (docUri) {
@@ -754,6 +766,8 @@ function createPageFieldStatement(recVariableName: string, fieldName: string, ap
 
 //#region Report Fields
 export async function copyRecordAsReportColumns(docUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyRecordAsReportColumns');
+
     let document: vscode.TextDocument;
 
     if (docUri) {

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as externalTools from './externalTools';
-
+import { TelemetryClient } from '../telemetry/telemetry';
 
 function getAppJsonFilePath(): string {
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -80,9 +80,12 @@ export function appVersion(): string {
 
 
 export async function packageNewVersion() {
+    TelemetryClient.logCommand('packageNewVersion');
+
     if (await increaseAppVersion()) {
         externalTools.execAlPackage(true);
     }
+
 }
 
 async function increaseAppVersion(): Promise<Boolean> {
