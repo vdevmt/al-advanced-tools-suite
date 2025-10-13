@@ -15,27 +15,22 @@ export class TelemetryClient {
         this.reporter = new TelemetryReporter(this.appInsightsConnectionString);
     }
 
-    public static getInstance(): TelemetryClient {
+    private static getInstance(): TelemetryClient {
         if (!TelemetryClient.instance) {
             TelemetryClient.instance = new TelemetryClient();
         }
         return TelemetryClient.instance;
     }
 
-    public static logCommand(commandName: string) {
+    public static async logCommand(commandName: string) {
         try {
             if (this.isEnabled()) {
                 const telemetry = TelemetryClient.getInstance();
-
-                const extVersion = vscode.extensions.getExtension('vdevmt.al-advanced-tools-suite')?.packageJSON.version ?? 'unknown';
-                const vscVersion = vscode.version;
-                const platform = process.platform;
-
                 telemetry.reporter.sendTelemetryEvent('commandUsed', {
                     command: commandName,
-                    extensionVersion: extVersion,
-                    vscodeVersion: vscVersion,
-                    platform: platform
+                    extensionVersion: this.getExtVersion(),
+                    vscodeVersion: vscode.version,
+                    platform: process.platform
                 });
             }
         } catch (error) {
@@ -43,6 +38,9 @@ export class TelemetryClient {
         }
     }
 
+    private static getExtVersion(): string {
+        return vscode.extensions.getExtension('vdevmt.al-advanced-tools-suite')?.packageJSON.version ?? 'unknown';
+    }
 
     private static isEnabled(): boolean {
         const level = (vscode.env as any).telemetryLevel as 'all' | 'error' | 'crash' | 'off' | undefined;
