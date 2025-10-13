@@ -5,6 +5,7 @@ import * as jsonc from 'jsonc-parser';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject } from '../alObject/alObject';
+import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Import/Export utilities
 function getDefaultLaunchArchiveFolder(): string {
@@ -15,6 +16,8 @@ function getDefaultLaunchArchiveFolder(): string {
 }
 
 export async function importLaunchFile() {
+    TelemetryClient.logCommand('importLaunchFile');
+
     const workspaceFolders = vscode.workspace.workspaceFolders;
 
     if (!workspaceFolders) {
@@ -72,6 +75,8 @@ export async function importLaunchFile() {
 }
 
 export async function exportLaunchFile() {
+    TelemetryClient.logCommand('exportLaunchFile');
+
     const workspaceFolders = vscode.workspace.workspaceFolders;
 
     if (!workspaceFolders) {
@@ -122,6 +127,8 @@ export async function exportLaunchFile() {
 }
 
 export async function openLaunchFile() {
+    TelemetryClient.logCommand('openLaunchFile');
+
     const workspaceFolders = vscode.workspace.workspaceFolders;
 
     if (!workspaceFolders) {
@@ -162,9 +169,12 @@ export function changeStartupObjectAndRunBusinessCentral() {
     }
 
     vscode.window.showErrorMessage(`The current file is not a valid object to run`);
+
 }
 
 export async function selectAndRunBusinessCentral(changeStartupObject: boolean) {
+    TelemetryClient.logCommand('selectAndRunBusinessCentral');
+
     var bcClientURL = "";
     let useDefaultSettings = true;
 

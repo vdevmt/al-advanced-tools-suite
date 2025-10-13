@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { ATSSettings } from '../settings/atsSettings';
+import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Import/Export utilities
 function getDefaultSymbolsArchiveFolder(): string {
@@ -11,6 +12,8 @@ function getDefaultSymbolsArchiveFolder(): string {
     return defaultFolder;
 }
 export async function importAlSymbols(): Promise<void> {
+    TelemetryClient.logCommand('importAlSymbols');
+
     try {
 
         // Ricerca Path principale del workspace corrente

@@ -9,3 +9,5 @@ out
 secret.json
 *.vsix
 *.zip
+src/telemetry/store.ts
+AzureInsights/

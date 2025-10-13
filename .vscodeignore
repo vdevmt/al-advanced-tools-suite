@@ -7,7 +7,7 @@
 images/
 node_modules/
 src/
-
+AzureInsights/
 
 # Include only packaged assets and metadata
 !package.json

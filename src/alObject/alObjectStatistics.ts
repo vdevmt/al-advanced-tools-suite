@@ -1,12 +1,15 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as appInfo from '../tools/appInfo';
-import { ALObject } from './alObject';
 import * as typeHelper from '../typeHelper';
+import { ALObject } from './alObject';
+import { TelemetryClient } from '../telemetry/telemetry';
 
 type ObjectRange = { from: number; to: number; count: number };
 
 export async function exportObjectsAssignmentDetailsAsCSV() {
+    TelemetryClient.logCommand('exportObjectsAssignmentDetailsAsCSV');
+
     const ranges = await findObjectIDRangesInWorkspace();
 
     const csvLines: string[] = ['Object Type,From ID,To ID,Count'];
@@ -30,6 +33,8 @@ export async function exportObjectsAssignmentDetailsAsCSV() {
 }
 
 export async function viewALObjectsSummary() {
+    TelemetryClient.logCommand('viewALObjectsSummary');
+
     // Estrai gli oggetti e ID dal workspace
     const ranges = await findObjectIDRangesInWorkspace();
     const objectsCount = countObjectsByType(ranges);
@@ -151,8 +156,8 @@ function calculateObjectIDRanges(objectRanges: Map<string, number[]>): Map<strin
 
     // Ordina il map per Tipo oggetto e From ID
     const sortedRangesArray = Array.from(ranges.entries()).sort(([typeA, rangesA], [typeB, rangesB]) => {
-        if (getObjectTypeSortingKey(typeA) < getObjectTypeSortingKey(typeB)) return -1;
-        if (getObjectTypeSortingKey(typeA) > getObjectTypeSortingKey(typeB)) return 1;
+        if (getObjectTypeSortingKey(typeA) < getObjectTypeSortingKey(typeB)) {return -1;}
+        if (getObjectTypeSortingKey(typeA) > getObjectTypeSortingKey(typeB)) {return 1;}
 
         // Se il tipo è lo stesso, ordina per From ID
         const minA = Math.min(...rangesA.map((range) => range.from));
