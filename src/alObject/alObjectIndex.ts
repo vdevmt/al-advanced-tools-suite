@@ -92,15 +92,12 @@ export class ALObjectIndex implements vscode.Disposable {
                     const existingItem = this.items.get(uri.fsPath);
                     if (existingItem) {
                         this.items.delete(uri.fsPath);
-
-                        output.writeInfoMessage(`[AL Object Index] Removed outdated entry: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
                     }
 
                     // Reindicizzo il file appena salvato
                     const updatedItem = await this.parseFile(uri);
                     if (updatedItem) {
                         this.items.set(uri.fsPath, updatedItem);
-                        output.writeInfoMessage(`[AL Object Index] Updated AL object: ${updatedItem.objectType} ${updatedItem.objectId} ${updatedItem.objectName}`);
                     } else {
                         output.writeInfoMessage(`[AL Object Index] No AL object found after save: ${uri.fsPath}`);
                     }
