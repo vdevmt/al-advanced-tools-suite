@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ALObjectRegions } from './alObject';
+import { TelemetryClient } from '../telemetry/telemetry';
 
 interface RegionInfo {
     name: string;
@@ -10,6 +11,8 @@ interface RegionInfo {
 
 //#region Regions tools
 export async function createRegionBySelection() {
+    TelemetryClient.logCommand('createRegionBySelection');
+
     const editor = vscode.window.activeTextEditor;
 
     // Verifica la presenza di un editor attivo
