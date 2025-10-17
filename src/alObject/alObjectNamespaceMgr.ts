@@ -3,9 +3,12 @@ import * as alFileMgr from './alObjectFileMgr';
 import { CreateDiagnostic, DIAGNOSTIC_CODE } from '../diagnostics/diagnosticMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALSettings } from '../settings/alSettings';
+import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Namespace completion providers
 export async function setNamespaceByFilePath(document: vscode.TextDocument) {
+    TelemetryClient.logCommand('setNamespaceByFilePath');
+
     if (!document) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {

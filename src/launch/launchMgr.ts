@@ -152,6 +152,8 @@ export async function runBusinessCentral() {
 }
 
 export function changeStartupObjectAndRunBusinessCentral() {
+    TelemetryClient.logCommand('changeStartupObjectAndRunBusinessCentral');
+
     const editor = vscode.window.activeTextEditor;
 
     if (alFileMgr.isALObjectDocument(editor.document)) {

@@ -14,6 +14,8 @@ interface ObjectElement {
 
 //#region AL Object Explorer
 export async function execALObjectExplorer(alObject?: ALObject) {
+    TelemetryClient.logCommand('execALObjectExplorer');
+
     if (!alObject) {
         const editor = vscode.window.activeTextEditor;
         const document = editor.document;
@@ -46,8 +48,6 @@ export async function execALObjectExplorer(alObject?: ALObject) {
                 '');
         }
     }
-
-    TelemetryClient.logCommand('execALObjectExplorer');
 }
 
 async function execALObjectExplorerByUri(docUri: vscode.Uri) {
@@ -390,6 +390,8 @@ async function showObjectItems(alObject: ALObject,
 
 //#region AL Object Fields
 export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: string) {
+    TelemetryClient.logCommand('showAllFields');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -570,6 +572,8 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
 }
 
 export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?: string) {
+    TelemetryClient.logCommand('copyFieldsAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -722,6 +726,8 @@ export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?:
 
 //#region AL Table Keys
 export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllTableKeys');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -767,6 +773,8 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
     }
 }
 export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyTableKeysAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -812,6 +820,8 @@ export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
 
 //#region AL Table Field Groups
 export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllTableFieldGroups');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -857,6 +867,8 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
     }
 }
 export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyTableFieldGroupsAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -901,6 +913,8 @@ export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
 
 //#region AL Object Triggers
 export async function showAllTriggers(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllTriggers');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -946,6 +960,8 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
     }
 }
 export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyTriggersAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -990,6 +1006,8 @@ export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
 
 //#region AL Object Procedures
 export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: string) {
+    TelemetryClient.logCommand('showAllProcedures');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1082,6 +1100,8 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
     }
 }
 export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter?: string) {
+    TelemetryClient.logCommand('copyProceduresAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1179,6 +1199,8 @@ export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter
 
 //#region AL Object Dataitems
 export async function showAllDataItems(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllDataItems');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1224,6 +1246,8 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
     }
 }
 export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyDataItemsAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1269,6 +1293,8 @@ export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
 
 //#region AL Object Page Actions
 export async function showAllActions(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllActions');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1315,6 +1341,8 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
     }
 }
 export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyActionsAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1360,6 +1388,8 @@ export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
 
 //#region AL Object Regions
 export async function showAllRegions(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllRegions');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1405,6 +1435,8 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
     }
 }
 export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyRegionsAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1448,6 +1480,8 @@ export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
 
 //#region AL Object Variables
 export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('showAllGlobalVariables');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1499,6 +1533,8 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
 }
 
 export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
+    TelemetryClient.logCommand('copyGlobalVariablesAsText');
+
     let alObject: ALObject;
     let document: vscode.TextDocument;
 
@@ -1652,6 +1688,8 @@ function addTextWithSeparator(originalText: string, textToAdd: string): string {
 //#region Go to AL Object command
 
 export async function gotoWorkspaceObjects() {
+    TelemetryClient.logCommand('gotoWorkspaceObjects');
+
     const alObjectIndex = await ALObjectIndex.getInstance();
     const allItems = alObjectIndex.toQuickPickItems();
     if (allItems.length === 0) {
@@ -1661,6 +1699,5 @@ export async function gotoWorkspaceObjects() {
 
     await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
 
-    TelemetryClient.logCommand('gotoWorkspaceObjects');
 }
 //#endregion Go to AL Object command
