@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.8.4]
+- Enhanced the `ATS: Go to AL Object (Workspace Only)` feature with a new filter option that allows users to search by object type.
+
 ## [1.7.0]
 - New command: `ATS: Go to AL Object (Workspace Only)`
 
