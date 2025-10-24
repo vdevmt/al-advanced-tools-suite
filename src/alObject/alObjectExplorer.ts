@@ -25,25 +25,61 @@ export async function execALObjectExplorer(alObject?: ALObject) {
         }
     }
 
+    let qpItems: qpTools.atsQuickPickItem[] = [];
+
     if (alObject) {
         let objectElements = countObjectElements(alObject, false);
         if (objectElements && (objectElements.length > 0)) {
-            const qpItems: qpTools.atsQuickPickItem[] = objectElements.map(element => ({
-                label: `$(${element.iconName}) ${element.type}: ${element.count}`,
-                description: '',
-                detail: '',
-                command: element.command,
-                commandArgs: element.commandArgs,
-                buttons: [{
-                    iconPath: new vscode.ThemeIcon('copy'),
-                    tooltip: qpTools.btnCmdCopyAsText
-                }]
-            }));
 
-            qpTools.showQuickPick(qpItems,
-                `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-                '', false, false, '', false, false);
+            qpItems.push(
+                {
+                    label: 'Current Editor',
+                    kind: vscode.QuickPickItemKind.Separator
+                }
+            );
+
+            qpItems.push(
+                ...objectElements.map(element => ({
+                    label: `$(${element.iconName}) ${element.type}: ${element.count}`,
+                    description: '',
+                    detail: '',
+                    command: element.command,
+                    commandArgs: element.commandArgs,
+                    buttons: [{
+                        iconPath: new vscode.ThemeIcon('copy'),
+                        tooltip: qpTools.btnCmdCopyAsText
+                    }]
+                })));
         }
+
+        qpItems.push(
+            {
+                label: 'Switch Editor',
+                kind: vscode.QuickPickItemKind.Separator
+            }
+        );
+
+        qpItems.push(
+            {
+                label: 'Find object...',
+                command: 'ats.gotoWorkspaceObjects',
+                //iconName: 'extensions',
+                iconPath: new vscode.ThemeIcon('extensions')
+            }
+        );
+
+        qpItems.push(
+            {
+                label: 'Show open objects',
+                command: 'ats.showOpenALObjects',
+                //iconName: 'extensions',
+                iconPath: new vscode.ThemeIcon('files')
+            }
+        );
+
+        qpTools.showQuickPick(qpItems,
+            `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
+            '', false, false, '', false, false);
     }
 }
 
