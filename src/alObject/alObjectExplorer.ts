@@ -42,10 +42,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 
             qpTools.showQuickPick(qpItems,
                 `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-                '',
-                false,
-                false,
-                '');
+                '', false, false, '', false, false);
         }
     }
 }
@@ -369,6 +366,9 @@ async function showObjectItems(alObject: ALObject,
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
                         documentUri: alObject.objectFileUri,
                         iconPath: item.iconName ? new vscode.ThemeIcon(item.iconName) : null,
+                        groupName: item.groupName,
+                        groupID: item.groupID,
+                        kind: item.kind,
                         buttons: [{
                             iconPath: new vscode.ThemeIcon("layout-sidebar-right"),
                             tooltip: qpTools.btnCmdOpenToSide,
@@ -382,7 +382,7 @@ async function showObjectItems(alObject: ALObject,
                 'Type to search symbols',
                 enableSearchOnDescription,
                 enableSearchOnDetails,
-                selectedText);
+                selectedText, false, true);
         }
     }
 }
@@ -1654,7 +1654,7 @@ export async function showOpenALObjects() {
                 qpItems.push(...openFiles.filter(item => (item.groupName === group.name)));
             });
 
-            await qpTools.showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '');
+            await qpTools.showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '', true, true);
         }
     }
 }
@@ -1697,7 +1697,7 @@ export async function gotoWorkspaceObjects() {
         return;
     }
 
-    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true);
+    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true, true);
 
 }
 //#endregion Go to AL Object command
