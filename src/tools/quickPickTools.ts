@@ -68,7 +68,7 @@ export async function showQuickPick(
 
     // Aggiorna i pulsanti in base allo stato del filtro
     const refreshButtons = () => {
-        if (!enableFilterByGroup) {return;}
+        if (!enableFilterByGroup) { return; }
         quickPick.buttons = activeGroupId == null ? [BTN_FILTER] : [BTN_FILTER, BTN_CLEAR];
         // (opzionale) feedback nel titolo
         quickPick.title = activeGroupId == null
@@ -122,7 +122,7 @@ export async function showQuickPick(
 
     // Accept: esegue il comando dell'item
     const onAccept = quickPick.onDidAccept(async () => {
-        if (isGroupMenu) {return;}
+        if (isGroupMenu) { return; }
 
         const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
         if (selectedItem) {
@@ -181,7 +181,7 @@ export async function showQuickPick(
         ? quickPick.onDidTriggerButton(async (btn) => {
             if (btn === BTN_FILTER) {
                 // Entra in modalità "selezione gruppo" riusando lo stesso QuickPick
-                isGroupMenu = true; // [NUOVO]
+                isGroupMenu = true;
                 quickPick.busy = true;
 
                 // Salva/aggiorna UI del menu gruppi
@@ -205,9 +205,9 @@ export async function showQuickPick(
 
                 quickPick.busy = false;
 
-                // [NUOVO] Intercetta l'accept in "group mode" SENZA chiudere il QuickPick
+                // Intercetta l'accept in "group mode" SENZA chiudere il QuickPick
                 const acceptOnce = quickPick.onDidAccept(() => {
-                    if (!isGroupMenu) {return;} // ignora se nel frattempo è uscita dalla group mode
+                    if (!isGroupMenu) { return; } // ignora se nel frattempo è uscita dalla group mode
                     const sel = quickPick.selectedItems[0] as atsQuickPickItem | undefined;
                     activeGroupId = sel?.groupID;
 
@@ -223,7 +223,7 @@ export async function showQuickPick(
             } else if (btn === BTN_CLEAR) {
                 // Rimuovi filtro e (se eri nel menu gruppi) esci e torna alla lista
                 activeGroupId = undefined;
-                isGroupMenu = false; // [NUOVO]
+                isGroupMenu = false;
                 quickPick.title = title;
                 refreshButtons();
                 quickPick.items = getFilteredSource(quickPick.value);
