@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -390,6 +390,13 @@
             ],
             "description": "Enable visibility of status bar with region details for current line in active editor",
             "order": 10,
+            "scope": "resource"
+          },
+          "ATS.RemoveObjectNamePrefixes": {
+            "type": "boolean",
+            "description": "Remove prefixes from object names (as defined in AppSourceCop.json or CRS extension settings) in ATS Object Explorer Tools.",
+            "default": true,
+            "order": 15,
             "scope": "resource"
           },
           "ATS.EnableTelemetry": {

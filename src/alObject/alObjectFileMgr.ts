@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as regExpr from '../regExpressions';
 import * as alRegionMgr from './alObjectRegionMgr';
 import * as typeHelper from '../typeHelper';
+import { ATSSettings } from '../settings/atsSettings';
+import { CRSSettings } from '../settings/crsSettings';
 import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
 
 //#region AL Object file tools
@@ -206,12 +209,90 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 //#endregion Namespace tools
 
 //#region Object Name tools
-export function makeALObjectDescriptionText(alObject: ALObject) {
-    if (alObject) {
-        return `${alObject.objectType} ${alObject.objectId} ${typeHelper.addQuotesIfNeeded(alObject.objectName)}`;
+export function makeObjectDescriptionText(objectType: string, objectId: string, objectName: string): string {
+    if (objectName) {
+
+        const atsSettings = ATSSettings.GetConfigSettings(null);
+        if (atsSettings[ATSSettings.RemoveObjectNamePrefixes]) {
+            objectName = removeObjectNamePrefix(objectName);
+        }
+
+        objectName = typeHelper.addQuotesIfNeeded(objectName);
+
+        if (objectType && (objectId) && objectName) {
+            return `${objectType} ${objectId} ${objectName}`;
+        }
+        if (objectType && objectName) {
+            return `${objectType} ${objectName}`;
+        }
+
+        return objectName;
     }
 
     return '';
+}
+
+function removeObjectNamePrefix(objectName: string): string {
+    const prefixes = collectObjectNamePrefixes();
+    for (const prefix of prefixes) {
+        if (objectName.toLowerCase().startsWith(prefix.toLowerCase())) {
+            objectName = objectName.slice(prefix.length);
+            break; // esce dopo aver rimosso il primo prefisso trovato
+        }
+    }
+
+    // Pulizia caratteri in prima posizione
+    objectName = objectName.replace(/^[\.\,\;\-\_]/, '');
+
+    return objectName;
+}
+
+function collectObjectNamePrefixes(): string[] {
+    const result: string[] = [];
+
+    try {
+        // Cerca il file AppSourceCop.json nella root della workspace
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            const workspacePath = workspaceFolders[0].uri.fsPath;
+            const filePath = path.join(workspacePath, 'AppSourceCop.json');
+
+            if (fs.existsSync(filePath)) {
+                const data = fs.readFileSync(filePath, 'utf8');
+                const json = JSON.parse(data);
+
+                if (Array.isArray(json.mandatoryAffixes)) {
+                    result.push(...json.mandatoryAffixes);
+                }
+            }
+        }
+    } catch {
+        // Ignora eventuali errori (file mancante, JSON non valido, ecc.)
+    }
+
+    // Origine: CRS Extension (se installata)
+    try {
+        const crsSettings = CRSSettings.GetConfigSettings(null);
+        if (crsSettings && crsSettings[CRSSettings.ObjectNamePrefix]) {
+            result.push(crsSettings[CRSSettings.ObjectNamePrefix]);
+        }
+    } catch {
+        // Nessun errore
+    }
+
+    // Rimuovi duplicati (case-insensitive)
+    const unique = new Map<string, string>();
+    for (const p of result) {
+        const trimmed = p.trim();
+        if (!trimmed) {continue;}
+        const key = trimmed.toLowerCase();
+        if (!unique.has(key)) {
+            unique.set(key, trimmed);
+        }
+    }
+
+    // Converte in array e ordina per lunghezza (decrescente)
+    return Array.from(unique.values()).sort((a, b) => b.length - a.length);
 }
 
 //#endregion Object Name tools

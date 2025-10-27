@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as typeHelper from '../typeHelper';
+import { CRSSettings } from '../settings/crsSettings';
 
 //#region AL Object Definition
 export class ALObject {
@@ -8,6 +9,7 @@ export class ALObject {
     public objectTypeIndex: number;
     public objectId: string;
     public objectName: string;
+    public description: string;
     public sourceTableName: string;
     public extendedObjectName?: string;
     public extendedObjectId?: string;
@@ -46,6 +48,7 @@ export class ALObject {
         this.objectTypeIndex = 0;
         this.objectId = "";
         this.objectName = "";
+        this.description = "";
         this.sourceTableName = "";
         this.sortKey = "";
         this.extendedObjectId = "";
@@ -175,7 +178,7 @@ export class ALObject {
             this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
             this.extendedObjectId = this.extendedObjectId.trim().toString();
             this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
-
+            this.description = alFileMgr.makeObjectDescriptionText(this.objectType, this.objectId, this.objectName);
             this.objectTypeIndex = typeHelper.getObjectTypeSortingKey(this.objectType);
             this.sortKey = `${this.objectTypeIndex.toString().padStart(10, '0')}${this.objectId?.toString().padStart(10, '0') ?? ''}${this.objectName.toLowerCase()}`;
 

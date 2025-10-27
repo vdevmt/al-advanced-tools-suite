@@ -120,17 +120,13 @@ export class ALObjectIndex implements vscode.Disposable {
         const quickPickItems: qpTools.atsQuickPickItem[] = [...this.items.values()].map(alObject => {
             const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
 
-            const label = alObject.objectId
-                ? `${alObject.objectType} ${alObject.objectId} ${alObject.objectName}`
-                : `${alObject.objectType} ${alObject.objectName}`;
-
             const detail = [
                 alObject.extendedObjectName ? `extends ${extendedObjectName}` : '',
                 alObject.objectNamespace ?? ''
             ].filter(Boolean).join('; ');
 
             return {
-                label,
+                label: alObject.description,
                 description: vscode.workspace.asRelativePath(alObject.objectFileUri.fsPath),
                 detail,
                 groupName: alObject.objectType,
@@ -218,8 +214,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 const alObject = new ALObject(document, false);
 
                 if (alObject) {
-                    const objectName = typeHelper.addQuotesIfNeeded(alObject.objectName);
-                    if (objectName) {
+                    if (alObject.objectName) {
                         return alObject;
                     }
                 }

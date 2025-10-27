@@ -33,7 +33,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 
             qpItems.push(
                 {
-                    label: 'Current Editor',
+                    label: 'Symbols in current object',
                     kind: vscode.QuickPickItemKind.Separator
                 }
             );
@@ -54,7 +54,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 
         qpItems.push(
             {
-                label: 'Switch Editor',
+                label: 'Tools',
                 kind: vscode.QuickPickItemKind.Separator
             }
         );
@@ -77,9 +77,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
             }
         );
 
-        qpTools.showQuickPick(qpItems,
-            `${alFileMgr.makeALObjectDescriptionText(alObject)}`,
-            '', false, false, '', false, false);
+        qpTools.showQuickPick(qpItems, `${alObject.description}`, '', false, false, '', false, false);
     }
 }
 
@@ -113,7 +111,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
             }
         }
         catch {
-            console.log(`No dataItems found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+            console.log(`No dataItems found in ${alObject.description}`);
         }
     }
 
@@ -162,7 +160,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
         }
     }
     catch {
-        console.log(`No fields found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        console.log(`No fields found in ${alObject.description}`);
     }
 
     if (alObject.isTable() || alObject.isTableExt()) {
@@ -182,7 +180,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
             }
         }
         catch {
-            console.log(`No keys found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+            console.log(`No keys found in ${alObject.description}`);
         }
     }
 
@@ -203,7 +201,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
             }
         }
         catch {
-            console.log(`No field groups found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+            console.log(`No field groups found in ${alObject.description}`);
         }
     }
 
@@ -224,7 +222,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
             }
         }
         catch {
-            console.log(`No actions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+            console.log(`No actions found in ${alObject.description}`);
         }
     }
 
@@ -244,7 +242,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
         }
     }
     catch {
-        console.log(`No triggers found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        console.log(`No triggers found in ${alObject.description}`);
     }
 
     try {
@@ -291,7 +289,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
         }
     }
     catch {
-        console.log(`No procedures found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        console.log(`No procedures found in ${alObject.description}`);
     }
 
     try {
@@ -310,7 +308,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
         }
     }
     catch {
-        console.log(`No regions found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        console.log(`No regions found in ${alObject.description}`);
     }
 
     try {
@@ -329,7 +327,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
         }
     }
     catch {
-        console.log(`No global variables found in ${alFileMgr.makeALObjectDescriptionText(alObject)}`);
+        console.log(`No global variables found in ${alObject.description}`);
     }
 
     return elements;
@@ -595,7 +593,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Fields`,
+                    `${alObject.description}: Fields`,
                     enableSearchOnDescription,
                     enableSearchOnDetails,
                     1);
@@ -799,7 +797,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Keys`,
+                    `${alObject.description}: Keys`,
                     true, false, 1);
                 return;
             }
@@ -893,7 +891,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Field Groups`,
+                    `${alObject.description}: Field Groups`,
                     false, true, 1);
                 return;
             }
@@ -986,7 +984,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Triggers`,
+                    `${alObject.description}: Triggers`,
                     false, true, 1);
                 return;
             }
@@ -1125,7 +1123,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     let title = groupFilter || 'Procedures';
                     showObjectItems(alObject,
                         items,
-                        `${alFileMgr.makeALObjectDescriptionText(alObject)}: ${title}`,
+                        `${alObject.description}: ${title}`,
                         false, true, 1);
                     return;
                 }
@@ -1272,7 +1270,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Dataitems`,
+                    `${alObject.description}: Dataitems`,
                     true, false, 1);
                 return;
             }
@@ -1367,7 +1365,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Page Actions`,
+                    `${alObject.description}: Page Actions`,
                     true, true, 1);
                 return;
             }
@@ -1461,7 +1459,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Regions`,
+                    `${alObject.description}: Regions`,
                     false, false, 1);
                 return;
             }
@@ -1558,7 +1556,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
 
                 showObjectItems(alObject,
                     items,
-                    `${alFileMgr.makeALObjectDescriptionText(alObject)}: Global Variables`,
+                    `${alObject.description}: Global Variables`,
                     false, false, 2);
                 return;
             }
@@ -1639,13 +1637,12 @@ export async function showOpenALObjects() {
 
                 let alObject: ALObject;
                 alObject = new ALObject(doc, true);
-                let objectInfoText = alFileMgr.makeALObjectDescriptionText(alObject);
 
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
                 const isLocked = alFileMgr.isPreviewALObjectFile(documentUri);
 
                 openFiles.push({
-                    label: isLocked ? `$(lock-small) ${objectInfoText}` : objectInfoText,
+                    label: isLocked ? `$(lock-small) ${alObject.description}` : alObject.description,
                     description: isCurrentEditor ? '$(eye)' : '',
                     detail: vscode.workspace.asRelativePath(doc.uri),
                     groupID: getObjectGroupID(alObject, isCurrentEditor),
