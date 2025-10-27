@@ -16,7 +16,7 @@ export async function execAlPackage(refreshTranslations: boolean): Promise<Boole
 
 export async function refreshAllTranslationFiles(): Promise<Boolean> {
     try {
-        if (checkExtensionInstalled('nabsolutions.nab-al-tools')) {
+        if (isNABToolsExtensionInstalled()) {
             await vscode.commands.executeCommand('nab.RefreshXlfFilesFromGXlf');
             return true;
         }
@@ -35,6 +35,22 @@ function checkExtensionInstalled(extensionId: string): boolean {
         if (externalExtension.isActive) {
             return true;
         }
+    }
+
+    return false;
+}
+
+function isNABToolsExtensionInstalled(): boolean {
+    if (checkExtensionInstalled('nabsolutions.nab-al-tools')) {
+        return true;
+    }
+
+    return false;
+}
+
+export function isCRSExtensionInstalled(): boolean {
+    if (checkExtensionInstalled('waldo.crs-al-language-extension')) {
+        return true;
     }
 
     return false;

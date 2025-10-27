@@ -392,6 +392,13 @@
             "order": 10,
             "scope": "resource"
           },
+          "ATS.RemoveObjectNamePrefixes": {
+            "type": "boolean",
+            "description": "Remove prefixes from object names (as defined in AppSourceCop.json or CRS extension settings) in ATS Object Explorer Tools.",
+            "default": true,
+            "order": 15,
+            "scope": "resource"
+          },
           "ATS.EnableTelemetry": {
             "type": "boolean",
             "description": "Enables anonymous usage telemetry for this extension.",

@@ -13,6 +13,7 @@ export class ATSSettings {
     static readonly URLForwardingRules = 'URLForwardingRules';
     static readonly ObjectInfoOnStatusBar = 'ObjectInfoOnStatusBar';
     static readonly RegionInfoOnStatusBar = 'RegionInfoOnStatusBar';
+    static readonly RemoveObjectNamePrefixes = 'RemoveObjectNamePrefixes';
     static readonly EnableTelemetry = 'EnableTelemetry';
 
     private static config: vscode.WorkspaceConfiguration;
@@ -46,6 +47,7 @@ export class ATSSettings {
         this.SettingCollection[this.URLForwardingRules] = this.getSetting(this.URLForwardingRules);
         this.SettingCollection[this.ObjectInfoOnStatusBar] = this.getSetting(this.ObjectInfoOnStatusBar);
         this.SettingCollection[this.RegionInfoOnStatusBar] = this.getSetting(this.RegionInfoOnStatusBar);
+        this.SettingCollection[this.RemoveObjectNamePrefixes] = this.getSetting(this.RemoveObjectNamePrefixes);
         this.SettingCollection[this.EnableTelemetry] = this.getSetting(this.EnableTelemetry);
     }
 
