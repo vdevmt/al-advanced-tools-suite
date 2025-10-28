@@ -133,7 +133,7 @@ export class ALObjectIndex implements vscode.Disposable {
                 groupID: alObject.objectTypeIndex,
                 documentUri: alObject.objectFileUri,
                 iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
-                sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectId?.toString().padStart(10, '0') ?? ''}${alObject.objectName.toLowerCase()}`,
+                sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectName.toLowerCase()}`,
                 command: qpTools.cmdOpenFile,
                 commandArgs: alObject.objectFileUri,
                 buttons: [
