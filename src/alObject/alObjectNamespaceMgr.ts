@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
+import * as typeHelper from '../typeHelper';
 import { CreateDiagnostic, DIAGNOSTIC_CODE } from '../diagnostics/diagnosticMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALSettings } from '../settings/alSettings';
 import { TelemetryClient } from '../telemetry/telemetry';
+import { ALObject } from './alObject';
 
 //#region Namespace completion providers
 export async function setNamespaceByFilePath(document: vscode.TextDocument) {
@@ -86,7 +88,7 @@ function makeNamespaceFromPath(file: vscode.Uri): string {
 
         if (rootNamespace) {
             if (!namespace.startsWith(rootNamespace)) {
-                namespace = rootNamespace + '.' + namespace;
+                namespace = namespace ? (rootNamespace + '.' + namespace) : rootNamespace;
             }
         }
 
@@ -132,7 +134,21 @@ function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpa
     let defaultRootNamespace = getDefaultRootNamespace();
 
     if (useObjectFilePathAsNamespace) {
-        addNamespaceToList(defaultNamespaces, makeNamespaceFromPath(currDocument.uri), 'ATS: Namespace by current file path', 1);
+        const nsFromPath = makeNamespaceFromPath(currDocument.uri);
+        if (nsFromPath) {
+            addNamespaceToList(defaultNamespaces, nsFromPath, 'ATS: Namespace by current file path', 1);
+
+            const alObject = new ALObject(currDocument, false);
+            if (alObject.isControlAddin()) {
+                let normalizedObjName = alFileMgr.removeObjectNamePrefix(alObject.objectName, false);
+                normalizedObjName = typeHelper.toPascalCase(normalizedObjName);
+
+                if (nsFromPath.endsWith(`.${normalizedObjName}`)) {
+                    const additionalNS = nsFromPath.split('.').slice(0, -1).join('.');
+                    addNamespaceToList(defaultNamespaces, additionalNS, 'ATS: Namespace by current file path', 1);
+                }
+            }
+        }
     }
 
     addNamespaceToList(defaultNamespaces, defaultRootNamespace, 'ATS: Default root namespace', 2);
