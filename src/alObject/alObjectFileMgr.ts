@@ -211,12 +211,7 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 //#region Object Name tools
 export function makeObjectDescriptionText(objectType: string, objectId: string, objectName: string): string {
     if (objectName) {
-
-        const atsSettings = ATSSettings.GetConfigSettings(null);
-        if (atsSettings[ATSSettings.RemoveObjectNamePrefixes]) {
-            objectName = removeObjectNamePrefix(objectName);
-        }
-
+        objectName = removeObjectNamePrefix(objectName, false);
         objectName = typeHelper.addQuotesIfNeeded(objectName);
 
         if (objectType && (objectId) && objectName) {
@@ -232,7 +227,14 @@ export function makeObjectDescriptionText(objectType: string, objectId: string, 
     return '';
 }
 
-function removeObjectNamePrefix(objectName: string): string {
+export function removeObjectNamePrefix(objectName: string, force: boolean): string {
+    if (!force) {
+        const atsSettings = ATSSettings.GetConfigSettings(null);
+        if (!atsSettings[ATSSettings.RemoveObjectNamePrefixes]) {
+            return objectName;
+        }
+    }
+
     const prefixes = collectObjectNamePrefixes();
     for (const prefix of prefixes) {
         if (objectName.toLowerCase().startsWith(prefix.toLowerCase())) {
@@ -284,7 +286,7 @@ function collectObjectNamePrefixes(): string[] {
     const unique = new Map<string, string>();
     for (const p of result) {
         const trimmed = p.trim();
-        if (!trimmed) {continue;}
+        if (!trimmed) { continue; }
         const key = trimmed.toLowerCase();
         if (!unique.has(key)) {
             unique.set(key, trimmed);

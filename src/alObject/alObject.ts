@@ -306,6 +306,13 @@ export class ALObject {
 
         return false;
     }
+    public isControlAddin(): boolean {
+        if (this) {
+            return (this.objectType.toLowerCase() === 'controladdin');
+        }
+
+        return false;
+    }
     public isPermissionSet(): boolean {
         if (this) {
             return (this.objectType.toLowerCase() === 'permissionset');
