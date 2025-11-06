@@ -711,7 +711,8 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
     let statementText = '';
 
     if (alObject.isTable() || alObject.isTableExt()) {
-        const alTableFields = new ALObjectFields(alObject);
+        const alTableFields = new ALObjectFields(undefined);
+        alFileMgr.findTableFieldsFromSelection(alObject, alTableFields);
         const recVariableName = await askRecordVariableName('Rec');
         const applicationArea = await askApplicationArea('');
 
@@ -750,15 +751,12 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
 function createPageFieldStatement(recVariableName: string, fieldName: string, applicationArea: string): string {
     const pageFieldName = typeHelper.addQuotesIfNeeded(fieldName);
     let statementText = '';
+    statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName})\n`;
+    statementText += `{\n`;
     if (applicationArea) {
-        statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName})\n`;
-        statementText += `{\n`;
         statementText += `ApplicationArea = ${applicationArea};\n`;
-        statementText += `}`;
     }
-    else {
-        statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName}) { }`;
-    }
+    statementText += `}`;
 
     return statementText;
 }
@@ -783,7 +781,9 @@ export async function copyRecordAsReportColumns(docUri?: vscode.Uri) {
     let statementText = '';
 
     if (alObject.isTable() || alObject.isTableExt()) {
-        const alTableFields = new ALObjectFields(alObject);
+        const alTableFields = new ALObjectFields(undefined);
+        alFileMgr.findTableFieldsFromSelection(alObject, alTableFields);
+
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
         if (recVariableName) {

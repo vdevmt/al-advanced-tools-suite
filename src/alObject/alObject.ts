@@ -393,16 +393,19 @@ export class ALObjectFields {
         startLine: number
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        if (this.fields) {
-            this.elementsCount = this.fields.length;
-            this.fieldsCount = this.fields.filter(item => item.isfield === true).length;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            if (this.fields) {
+                this.elementsCount = this.fields.length;
+                this.fieldsCount = this.fields.filter(item => item.isfield === true).length;
+            }
         }
     }
 
@@ -465,14 +468,17 @@ export class ALObjectProcedures {
         startLine: number
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.procedures ? this.procedures.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.procedures ? this.procedures.length : 0;
+        }
     }
 
     private initObjectProperties() {
@@ -508,14 +514,17 @@ export class ALObjectTriggers {
         startLine: number
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.triggers ? this.triggers.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.triggers ? this.triggers.length : 0;
+        }
     }
 
     private initObjectProperties() {
@@ -572,14 +581,17 @@ export class ALObjectRegions {
         level?: number;
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.regions ? this.regions.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.regions ? this.regions.length : 0;
+        }
     }
 
     private initObjectProperties() {
@@ -619,16 +631,19 @@ export class ALObjectActions {
         startLine: number
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        if (this.actions) {
-            this.elementsCount = this.actions.length;
-            this.actionsCount = this.actions.filter(item => item.isAction === true).length;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            if (this.actions) {
+                this.elementsCount = this.actions.length;
+                this.actionsCount = this.actions.filter(item => item.isAction === true).length;
+            }
         }
     }
 
@@ -676,14 +691,17 @@ export class ALObjectDataItems {
         endLine?: number
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.dataItems ? this.dataItems.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.dataItems ? this.dataItems.length : 0;
+        }
     }
 
     private initObjectProperties() {
@@ -733,14 +751,17 @@ export class ALTableKeys {
         endLine?: number,
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.keys ? this.keys.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.keys ? this.keys.length : 0;
+        }
     }
 
     private initObjectProperties() {
@@ -773,14 +794,17 @@ export class ALTableFieldGroups {
         endLine?: number,
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.fieldgroups ? this.fieldgroups.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.fieldgroups ? this.fieldgroups.length : 0;
+        }
     }
 
     private initObjectProperties() {
@@ -819,14 +843,17 @@ export class ALObjectVariables {
         groupName: string,
     }[];
 
-    constructor(alObject: ALObject) {
+    constructor(alObject: ALObject | undefined) {
         this.initObjectProperties();
-        this.objectType = alObject.objectType;
-        this.objectId = alObject.objectId;
-        this.objectName = alObject.objectName;
 
-        this.findElements(alObject);
-        this.elementsCount = this.variables ? this.variables.length : 0;
+        if (alObject) {
+            this.objectType = alObject.objectType;
+            this.objectId = alObject.objectId;
+            this.objectName = alObject.objectName;
+
+            this.findElements(alObject);
+            this.elementsCount = this.variables ? this.variables.length : 0;
+        }
     }
 
     private initObjectProperties() {

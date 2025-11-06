@@ -479,8 +479,6 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
                         while ((match = regExpr.tableExtFieldDefinition.exec(codeSectionsInfo[0].content)) !== null) {
                             const fieldName = match[1].trim();
                             if (fieldName) {
-                                let normalizedFieldName = fieldName.replace(/^"|"$/g, '').toLowerCase();
-
                                 // Ricerca proprietà 
                                 const fieldBody = removeCommentedLines(match[2].trim());
                                 const properties: { [key: string]: string } = {};
@@ -511,6 +509,107 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
         }
     }
 }
+
+
+export function findTableFieldsFromSelection(alObject: ALObject, alTableFields: ALObjectFields) {
+    if (!alObject || !(alObject.isTable() || alObject.isTableExt())) {return;}
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        // Nessun editor → prendo tutti i campi della tabella
+        findTableFields(alObject, alTableFields);
+        return;
+    }
+
+    const { document } = editor;
+
+    // Prendi solo selezioni non vuote (ignorando spazi/break lines)
+    const selections = editor.selections.filter(sel => {
+        const txt = document.getText(sel);
+        return txt.trim().length > 0;
+    });
+
+    if (selections.length === 0) {
+        // Nessuna selezione utile → prendo tutti i campi della tabella
+        findTableFields(alObject, alTableFields);
+        return;
+    }
+
+    // Evita duplicati (es. selezioni sovrapposte): chiave per ID+linea d'inizio
+    const seen = new Set<string>();
+
+    // Ricerca PK
+    let primaryKeyFields: string[] = [];
+    if (alObject.isTable()) {
+        let alTableKeys: ALTableKeys;
+        alTableKeys = new ALTableKeys(alObject);
+        if (alTableKeys && (alTableKeys.elementsCount > 0)) {
+            primaryKeyFields = alTableKeys.keys[0].fieldsList
+                .split(',')
+                .map(field => field.trim().toLowerCase().replace(/^"|"$/g, ''));
+        }
+    }
+
+    for (const sel of selections) {
+        const selectionText = document.getText(sel);
+
+        // Ricrea la regex con flag 'g' garantito
+        const src = regExpr.tableFieldDefinition.source;
+        const flags = Array.from(new Set((regExpr.tableFieldDefinition.flags + "g").split(""))).join("");
+        const re = new RegExp(src, flags);
+        re.lastIndex = 0;
+
+        const selectionStartOffset = document.offsetAt(sel.start);
+
+        let match: RegExpExecArray | null;
+        while ((match = re.exec(selectionText)) !== null) {
+            if (match[0] === "") { re.lastIndex++; continue; }
+
+            const fieldIdStr = (match[1] ?? "").trim();
+            const fieldName = (match[2] ?? "").trim();
+            const fieldType = (match[3] ?? "").trim();
+            const bodyRaw = (match[4] ?? "");
+
+            if (!fieldName) {continue;}
+
+            const fieldID = Number(fieldIdStr);
+            if (!Number.isFinite(fieldID)) {continue;}
+
+            let normalizedFieldName = fieldName.replace(/^"|"$/g, '').toLowerCase();
+            let pkIndex = primaryKeyFields.indexOf(normalizedFieldName);
+            pkIndex = pkIndex >= 0 ? pkIndex + 1 : 0;
+
+            // Calcolo posizione assoluta nel documento per la startLine
+            const matchStartOffset = selectionStartOffset + match.index;
+            const startLine = document.positionAt(matchStartOffset).line;
+
+            // Evita duplicati tra selezioni
+            const key = `${fieldID}|${startLine}`;
+            if (seen.has(key)) {continue;}
+            seen.add(key);
+
+            // Proprietà dal corpo (senza commenti)
+            const fieldBody = removeCommentedLines(bodyRaw.trim());
+            const properties: { [key: string]: string } = {};
+            findSymbolProperties(fieldBody, properties);
+
+            alTableFields.fields.push({
+                id: fieldID,
+                name: fieldName,
+                section: 'fields',
+                isfield: true,
+                type: fieldType,
+                externalFieldExt: false,
+                pkIndex: pkIndex,
+                properties,
+                iconName: (pkIndex > 0) ? 'key' : 'symbol-field',
+                level: 0,
+                startLine
+            });
+        }
+    }
+}
+
 
 export function isTableFieldDefinition(lineText: string, fieldInfo: { id: number, name: string, type: string }): boolean {
     const match = lineText.trim().match(regExpr.tableField);
