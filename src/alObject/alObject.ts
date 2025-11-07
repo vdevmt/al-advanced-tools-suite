@@ -837,6 +837,7 @@ export class ALObjectVariables {
         size?: number,
         scope: string,
         attributes?: string,
+        byRef?: boolean,
         iconName?: string,
         linePosition: number,
         groupIndex: number,
@@ -850,9 +851,6 @@ export class ALObjectVariables {
             this.objectType = alObject.objectType;
             this.objectId = alObject.objectId;
             this.objectName = alObject.objectName;
-
-            this.findElements(alObject);
-            this.elementsCount = this.variables ? this.variables.length : 0;
         }
     }
 
@@ -864,8 +862,14 @@ export class ALObjectVariables {
         this.variables = [];
     }
 
-    private findElements(alObject: ALObject) {
-        alFileMgr.findObjectVariables(alObject, this);
+    public findGlobalVariables(alObject: ALObject) {
+        alFileMgr.findObjectGlobalVariables(alObject, this);
+        this.elementsCount = this.variables ? this.variables.length : 0;
+    }
+
+    public findLocalVariablesInCurrentScope() {
+        alFileMgr.findLocalVariablesInCurrentScope(this);
+        this.elementsCount = this.variables ? this.variables.length : 0;
     }
 
     public getDefaultIconName(variableType: string): string {

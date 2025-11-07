@@ -58,10 +58,10 @@ export const businessEvent = /^\s*\[BusinessEvent\(/i;
 export const eventSubscriber = /^\[EventSubscriber\(\s*ObjectType::([^,]+),\s*([^:]+::"?[^,]+"?|[0-9]+),\s*'([^']+)',\s*'(.*?)',\s*(true|false),\s*(true|false)\s*\)\]/i;
 
 // Variables
-export const variable = /^\s*(\w+):\s*(\w+)(?:\s+(".*?"|[\w\s,]+))?(?:\[(\d+)\])?(?:\s+(temporary))?;/gm;
+export const variable = /^\s*(?:var\s+)?(\w+)\s*:\s*(\w+)(?:\s+(?:"([^"]+)"|[\w\s,]+))?(?:\[(\d+)\])?(?:\s+(temporary))?\s*;?\s*/gmi;
 export const label = /^\s*(\w+):\s*(Label)\s+'((?:''|[^'])*)'?(.*);/gim;
-export const array = /(\w+):\s*Array\[(\d+(?:,\s*\d+)*)\]\s*of\s*(\w+);/ig;
-export const listDictionary = /(\w+):\s*(List|Dictionary)(?:\[(\d+(?:,\s*\d+)*)\])?\s*of\s*\[(.*?)\];/ig;
+export const array = /^\s*(?:var\s+)?(\w+)\s*:\s*Array\[(\d+(?:,\s*\d+)*)\]\s*of\s*(\w+)\s*;?\s*/gmi;
+export const listDictionary = /^\s*(?:var\s+)?(\w+)\s*:\s*(List|Dictionary)(?:\[(\d+(?:,\s*\d+)*)\])?\s*of\s*\[(.*?)\]\s*;?\s*/gmi;
 
 // Object Properties
 export const objectProperties = /(\w+)\s*=\s*([^;]+);/g;

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as regExpr from '../regExpressions';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as typeHelper from '../typeHelper';
-import { ALObject, ALObjectFields } from '../alObject/alObject';
+import { ALObject, ALObjectFields, ALObjectVariables } from '../alObject/alObject';
 import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Integration Events
@@ -405,31 +405,63 @@ export async function copySelectionAsEventIntegration() {
 
 function createEventIntegrationText(document: vscode.TextDocument, selection: vscode.Selection, selectedText: string): string {
     let eventIntText = '';
+
     if (selectedText) {
-        // Elimino un eventuale ';' finale
-        if (selectedText.endsWith(";")) {
-            selectedText = selectedText.slice(0, -1);
+        if (alFileMgr.isALObjectDocument(document)) {
+            // Elimino un eventuale ';' finale
+            if (selectedText.endsWith(";")) {
+                selectedText = selectedText.slice(0, -1);
+            }
+
+            const match = selectedText.match(/\((.*?)\)/);
+            if (match) {
+
+                const alObject = new ALObject(document, true);
+
+                // Ricerca variabili locali e parametri
+                const localVariables = new ALObjectVariables(alObject);
+                localVariables.findLocalVariablesInCurrentScope();
+
+                // Ricerca variabili globali
+                const globalVariables = new ALObjectVariables(alObject);
+                globalVariables.findGlobalVariables(alObject);
+
+                const args = match[1].split(",").map((el) => el.trim());
+                const args2 = args.map((el) => {
+
+                    // Gestione parametri "speciali" 
+                    if (["ishandled", "lishandled"].includes(el.toLowerCase())) {
+                        return `var ${el} : Boolean`;
+                    }
+                    if (el.toLowerCase() === 'rec') {
+                        const currentTableName = alFileMgr.findObjectRecName(alObject);
+                        return `var ${el}: Record "${currentTableName}"`;
+                    }
+
+                    // Ricerca variabile locale
+                    let alVarDef = alFileMgr.searchAndMakeVariableDefinitionText(localVariables, el);
+                    if (alVarDef) {
+                        return alVarDef;
+                    }
+
+                    // Ricerca variabile globale
+                    alVarDef = alFileMgr.searchAndMakeVariableDefinitionText(globalVariables, el);
+                    if (alVarDef) {
+                        return alVarDef;
+                    }
+
+                    // Lascia invariato in tutti gli altri casi
+                    return el;
+                });
+
+                selectedText = selectedText.replace(/\(.*?\)/, `(${args2.join("; ")})`);
+            }
+
+            eventIntText = '[IntegrationEvent(false, false)]\n';
+            eventIntText += `local procedure ${selectedText}\n`;
+            eventIntText += 'begin\n';
+            eventIntText += 'end;\n';
         }
-
-        // Elenco parametri
-        const match = selectedText.match(/\((.*?)\)/);
-        if (match) {
-            const args = match[1].split(",").map((el) => el.trim());
-
-            // Aggiungo il var in casi particolari
-            const args2 = args.map((el) =>
-                el === "IsHandled" ? `var ${el} : Boolean` :
-                    el === "lIsHandled" ? `var IsHandled : Boolean` :
-                        el === "Rec" ? `var ${el}: Record ""` : el
-            );
-
-            selectedText = selectedText.replace(/\(.*?\)/, `(${args2.join("; ")})`);
-        }
-
-        eventIntText = '[IntegrationEvent(false, false)]\n';
-        eventIntText += `local procedure ${selectedText}\n`;
-        eventIntText += 'begin\n';
-        eventIntText += 'end;\n';
     }
 
     return eventIntText;

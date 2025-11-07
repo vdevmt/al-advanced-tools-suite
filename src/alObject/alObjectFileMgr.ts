@@ -512,7 +512,7 @@ export function findTableFields(alObject: ALObject, alTableFields: ALObjectField
 
 
 export function findTableFieldsFromSelection(alObject: ALObject, alTableFields: ALObjectFields) {
-    if (!alObject || !(alObject.isTable() || alObject.isTableExt())) {return;}
+    if (!alObject || !(alObject.isTable() || alObject.isTableExt())) { return; }
 
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -570,10 +570,10 @@ export function findTableFieldsFromSelection(alObject: ALObject, alTableFields: 
             const fieldType = (match[3] ?? "").trim();
             const bodyRaw = (match[4] ?? "");
 
-            if (!fieldName) {continue;}
+            if (!fieldName) { continue; }
 
             const fieldID = Number(fieldIdStr);
-            if (!Number.isFinite(fieldID)) {continue;}
+            if (!Number.isFinite(fieldID)) { continue; }
 
             let normalizedFieldName = fieldName.replace(/^"|"$/g, '').toLowerCase();
             let pkIndex = primaryKeyFields.indexOf(normalizedFieldName);
@@ -585,7 +585,7 @@ export function findTableFieldsFromSelection(alObject: ALObject, alTableFields: 
 
             // Evita duplicati tra selezioni
             const key = `${fieldID}|${startLine}`;
-            if (seen.has(key)) {continue;}
+            if (seen.has(key)) { continue; }
             seen.add(key);
 
             // Proprietà dal corpo (senza commenti)
@@ -3029,7 +3029,7 @@ export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectR
 
 //#region Variables
 
-export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObjectVariables) {
+export function findObjectGlobalVariables(alObject: ALObject, alObjectVariables: ALObjectVariables) {
     if (alObject) {
         if (alObject.objectContentText) {
             const lines = alObject.objectContentText.split('\n');
@@ -3126,6 +3126,180 @@ export function findObjectVariables(alObject: ALObject, alObjectVariables: ALObj
     }
 }
 
+export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVariables) {
+    alObjectVariables.variables = [];
+    alObjectVariables.elementsCount = 0;
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {return;}
+
+    const document = editor.document;
+
+    // Posizione corrente
+    const caret = editor.selection.active;
+    const caretLine = caret.line;
+
+    const isProcOrTrig = (s: string) => /^(local|internal|protected)?\s*(procedure|trigger)\b/i.test(s);
+
+    // Trova la riga di definizione (startLine)
+    let startLine = caretLine;
+    const currentLineText = cleanObjectLineText(document.lineAt(caretLine).text);
+
+    if (!isProcOrTrig(currentLineText)) {
+        // Risali verso l'alto fino a trovare la definizione
+        let found = false;
+        for (let i = caretLine - 1; i >= 0; i--) {
+            const t = cleanObjectLineText(document.lineAt(i).text);
+            if (isProcOrTrig(t)) {
+                startLine = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // Non c'è una definizione sopra il cursore: esco (niente da scansionare)
+            return;
+        }
+    }
+
+    // Ricerca tipo e nome procedure/trigger
+    let scopeName: string | undefined;
+    let scopeKind: 'procedure' | 'trigger' | undefined;
+    const defRegex = /^(?:local|internal|protected)?\s*(procedure|trigger)\s+([A-Za-z_]\w*)\s*\(/i;
+    let m = currentLineText.match(defRegex);
+    if (m) {
+        // Caso semplice: il nome è sulla stessa riga
+        scopeKind = m[1].toLowerCase() as 'procedure' | 'trigger';
+        scopeName = m[2];
+    } else {
+        // Caso multilinea: nome o "(" si trovano nelle righe successive
+        let header = currentLineText;
+        for (let j = startLine + 1; j < Math.min(document.lineCount, startLine + 5); j++) {
+            header += " " + cleanObjectLineText(document.lineAt(j).text);
+            if (/\(/.test(header)) {break;}
+        }
+        const m2 = header.match(defRegex);
+        if (m2) {
+            scopeKind = m2[1].toLowerCase() as 'procedure' | 'trigger';
+            scopeName = m2[2];
+        }
+    }
+
+    // Ricerca parametri
+    let header = cleanObjectLineText(document.lineAt(startLine).text);
+    if (!/\)/.test(header)) {
+        for (let j = startLine + 1; j < Math.min(document.lineCount, startLine + 30); j++) {
+            header += " " + cleanObjectLineText(document.lineAt(j).text);
+            if (/\)/.test(header)) {break;}
+        }
+    }
+    const paren = header.match(/\(([\s\S]*?)\)/);
+    if (!paren) {return;}
+
+    const paramsBlob = paren[1];
+    const parts = paramsBlob.split(';').map(s => s.trim()).filter(Boolean);
+    for (const p of parts) {
+        let variableInfo: {
+            name: string,
+            type: string,
+            subtype?: string,
+            size?: number,
+            isALObject: boolean,
+            value?: string,
+            attributes?: string
+        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
+        if (isVariableDefinition(p, variableInfo)) {
+            if (variableInfo.name) {
+                alObjectVariables.variables.push({
+                    name: variableInfo.name,
+                    type: variableInfo.type,
+                    subtype: variableInfo.subtype,
+                    value: variableInfo.value,
+                    size: variableInfo.size,
+                    byRef: p.toLowerCase().startsWith('var ') ? true : false,
+                    attributes: variableInfo.attributes,
+                    isALObject: variableInfo.isALObject,
+                    scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
+                        scopeName ? scopeName : 'parameter',
+                    linePosition: startLine,
+                    groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
+                    groupIndex: getVariableGroupIndex(variableInfo.type),
+                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
+                });
+
+                alObjectVariables.elementsCount++;
+            }
+        }
+
+    }
+
+    // Ricerca variabili locali
+    // Scorri verso il basso da startLine fino a condizione di uscita
+    const stopCondition = (lineText: string, lineNo: number) => {
+        // 1) Stop al primo BEGIN
+        if (/^\s*begin\b/i.test(lineText)) {
+            return true;
+        }
+
+        // 2) Stop se incontro un'altra definizione di procedure/trigger *dopo* lo start
+        if (/^(local|internal|protected)?\s*(procedure|trigger)\b/i.test(lineText) && lineNo > startLine) {
+            return true;
+        }
+
+        return false;
+    };
+
+    let insideLocalVarSection = false;
+    for (let i = startLine; i < document.lineCount; i++) {
+        const lineText = cleanObjectLineText(document.lineAt(i).text);
+        const lineNumber = i;
+
+        if (!insideLocalVarSection) {
+            if (/^var\s*$/.test(lineText)) {
+                insideLocalVarSection = true;
+                continue;
+            }
+        }
+
+        if (insideLocalVarSection) {
+            let variableInfo: {
+                name: string,
+                type: string,
+                subtype?: string,
+                size?: number,
+                isALObject: boolean,
+                value?: string,
+                attributes?: string
+            } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
+            if (isVariableDefinition(lineText, variableInfo)) {
+                if (variableInfo.name) {
+                    alObjectVariables.variables.push({
+                        name: variableInfo.name,
+                        type: variableInfo.type,
+                        subtype: variableInfo.subtype,
+                        value: variableInfo.value,
+                        size: variableInfo.size,
+                        attributes: variableInfo.attributes,
+                        isALObject: variableInfo.isALObject,
+                        scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
+                            scopeName ? scopeName : 'local',
+                        linePosition: lineNumber,
+                        groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
+                        groupIndex: getVariableGroupIndex(variableInfo.type),
+                        iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
+                    });
+
+                    alObjectVariables.elementsCount++;
+                }
+            }
+        }
+
+        if (stopCondition(lineText, i)) {
+            break;
+        }
+    }
+}
+
 function isVariableDefinition(
     lineText: string,
     variableInfo: {
@@ -3161,7 +3335,7 @@ function isVariableDefinition(
                 variableInfo.name = match[1];
                 variableInfo.type = 'Array';
                 variableInfo.value = '';
-                variableInfo.subtype = match[3] ? `(${match[2]}) of [${match[3]}]` : match[4];
+                variableInfo.subtype = match[3] ? `[${match[2]}] of ${match[3]}` : match[4];
                 variableInfo.isALObject = false;
                 variableInfo.attributes = '';
             }
@@ -3271,6 +3445,77 @@ function getVariableGroupIndex(type: string): number {
 
     return 8;
 }
+
+export function findObjectRecName(alObject: ALObject): string {
+    if (alObject) {
+        if (alObject.isTable()) {
+            return alObject.objectName;
+        }
+        if (alObject.isTableExt()) {
+            return alObject.extendedObjectName;
+        }
+        if (alObject.isPage()) {
+            if (alObject.properties['sourcetable']) {
+                return alObject.properties['sourcetable'];
+            }
+        }
+    }
+
+    return "";
+}
+
+export function searchAndMakeVariableDefinitionText(alObjectVariables: ALObjectVariables, varName: string): string {
+    if (alObjectVariables && (alObjectVariables.elementsCount > 0)) {
+        var globalVarDef = alObjectVariables.variables.find(v => v.name === varName);
+
+        if (globalVarDef) {
+            let globalVarDescr = globalVarDef.byRef ? `var ${varName}: ${globalVarDef.type}` :
+                `${varName}: ${globalVarDef.type}`;
+
+            if (globalVarDef.subtype) {
+                globalVarDescr = `${globalVarDescr} ${globalVarDef.subtype}`;
+            }
+            if ((globalVarDef.size) && (globalVarDef.size > 0)) {
+                globalVarDescr = `${globalVarDescr} [${globalVarDef.size}]`;
+            }
+            if (globalVarDef.attributes) {
+                globalVarDescr = `${globalVarDescr} ${globalVarDef.attributes}`;
+            }
+
+            return globalVarDescr;
+        }
+    }
+
+    return "";
+}
+
+export function findLocalVarTypeInCurrentALScope2(document: vscode.TextDocument, varName: string): string {
+    if (isALObjectDocument(document)) {
+        const alObject = new ALObject(document, true);
+        const alObjectVariables = new ALObjectVariables(alObject);
+        findLocalVariablesInCurrentScope(alObjectVariables);
+        var globalVarDef = alObjectVariables.variables.find(v => v.name === varName);
+
+        if (globalVarDef) {
+            let globalVarDescr = globalVarDef.type;
+
+            if (globalVarDef.subtype) {
+                globalVarDescr = `${globalVarDescr} ${globalVarDef.subtype}`;
+            }
+            if ((globalVarDef.size) && (globalVarDef.size > 0)) {
+                globalVarDescr = `${globalVarDescr} [${globalVarDef.size}]`;
+            }
+            if (globalVarDef.attributes) {
+                globalVarDescr = `${globalVarDescr} ${globalVarDef.attributes}`;
+            }
+
+            return globalVarDescr;
+        }
+    }
+
+    return "";
+}
+
 //#endregion Variables
 
 //#region Comments on Code
