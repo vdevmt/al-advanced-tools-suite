@@ -1730,7 +1730,15 @@ export async function gotoWorkspaceObjects() {
         return;
     }
 
-    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true, true);
+    let selectedText = '';
+    try {
+        const editor = vscode.window.activeTextEditor;
+        const selection = editor.selection;
+        selectedText = editor.document.getText(selection).trim();
+    }
+    catch { }
+
+    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, selectedText, true, true);
 
 }
 //#endregion Go to AL Object command
