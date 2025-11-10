@@ -1,4 +1,6 @@
 # Change Log
+## [1.8.9]
+- Special copy tools improvements
 
 ## [1.8.4]
 - Enhanced the `ATS: Go to AL Object (Workspace Only)` feature with a new filter option that allows users to search by object type.

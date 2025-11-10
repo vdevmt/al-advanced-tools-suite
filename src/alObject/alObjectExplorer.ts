@@ -314,6 +314,7 @@ export function countObjectElements(alObject: ALObject, useShortNames: boolean):
     try {
         let alObjectVariables: ALObjectVariables;
         alObjectVariables = new ALObjectVariables(alObject);
+        alObjectVariables.findGlobalVariables(alObject);
         if (alObjectVariables) {
             if (alObjectVariables.elementsCount > 0) {
                 elements.push({
@@ -1534,6 +1535,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
     if (alObject) {
         let alObjectVariables: ALObjectVariables;
         alObjectVariables = new ALObjectVariables(alObject);
+        alObjectVariables.findGlobalVariables(alObject);
         if (alObjectVariables.variables) {
             if (alObjectVariables.elementsCount > 0) {
                 let items: qpTools.atsQuickPickItem[] = alObjectVariables.variables.map(variable => ({
@@ -1589,6 +1591,7 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
 
         let alObjectVariables: ALObjectVariables;
         alObjectVariables = new ALObjectVariables(alObject);
+        alObjectVariables.findGlobalVariables(alObject);
         if (alObjectVariables.variables) {
 
             for (const variable of alObjectVariables.variables) {
@@ -1730,7 +1733,15 @@ export async function gotoWorkspaceObjects() {
         return;
     }
 
-    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, '', true, true);
+    let selectedText = '';
+    try {
+        const editor = vscode.window.activeTextEditor;
+        const selection = editor.selection;
+        selectedText = editor.document.getText(selection).trim();
+    }
+    catch { }
+
+    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, selectedText, true, true);
 
 }
 //#endregion Go to AL Object command
