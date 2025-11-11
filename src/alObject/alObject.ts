@@ -985,5 +985,57 @@ export class ALObjectVariables {
             }
         }
     }
+
+    public getDefaultSortingIndex(variableType: string): number {
+        switch (variableType.toLowerCase()) {
+            case 'record': {
+                return 1;
+            }
+            case 'report': {
+                return 2;
+            }
+            case 'codeunit': {
+                return 3;
+            }
+            case 'xmlport': {
+                return 4;
+            }
+            case 'page': {
+                return 5;
+            }
+            case 'query': {
+                return 6;
+            }
+            case 'notification': {
+                return 7;
+            }
+            case 'bigtext': {
+                return 8;
+            }
+            case 'dateformula': {
+                return 9;
+            }
+            case 'recordid': {
+                return 10;
+            }
+            case 'recordref': {
+                return 11;
+            }
+            case 'fieldref': {
+                return 12;
+            }
+            case 'filterpagebuilder': {
+                return 13;
+            }
+            case 'enum': {
+                return 14;
+            }
+            case 'label': {
+                return 90;
+            }
+        }
+
+        return 50;
+    }
 }
 //#endregion AL Object Variables

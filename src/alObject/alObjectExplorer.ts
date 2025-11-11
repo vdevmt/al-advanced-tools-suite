@@ -1646,7 +1646,7 @@ export async function showAllLocalVariables() {
                 detail: variable.value,
                 groupID: variable.groupIndex,
                 groupName: variable.groupName,
-                sortKey: variable.groupIndex.toString().padStart(10, "0") + variable.type + variable.name,
+                sortKey: alObjectVariables.getDefaultSortingIndex(variable.type).toString().padStart(10, "0") + variable.type + variable.name,
                 itemStartLine: variable.linePosition ? variable.linePosition : 0,
                 itemEndLine: 0,
                 sortIndex: variable.linePosition ? variable.linePosition : 0,

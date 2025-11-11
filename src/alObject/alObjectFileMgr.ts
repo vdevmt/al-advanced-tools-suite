@@ -3107,7 +3107,7 @@ export function findObjectGlobalVariables(alObject: ALObject, alObjectVariables:
                                     scope: 'global',
                                     linePosition: lineNumber,
                                     groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
-                                    groupIndex: getVariableGroupIndex(variableInfo.type),
+                                    groupIndex: alObjectVariables.getDefaultSortingIndex(variableInfo.type),
                                     iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                                 });
                             }
@@ -3220,10 +3220,10 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                     attributes: variableInfo.attributes,
                     isALObject: variableInfo.isALObject,
                     scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
-                        scopeName ? scopeName : 'parameter',
+                        scopeName ? scopeName : 'parameters',
                     linePosition: startLine,
                     groupName: 'Parameters',
-                    groupIndex: getVariableGroupIndex(variableInfo.type),
+                    groupIndex: 1,
                     iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                 });
 
@@ -3282,10 +3282,10 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                         attributes: variableInfo.attributes,
                         isALObject: variableInfo.isALObject,
                         scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
-                            scopeName ? scopeName : 'local',
+                            scopeName ? scopeName : 'variables',
                         linePosition: lineNumber,
-                        groupName: (variableInfo.type.toLocaleLowerCase() === 'label') ? 'Labels' : 'Locals',
-                        groupIndex: 100 + getVariableGroupIndex(variableInfo.type),
+                        groupName: (variableInfo.type.toLocaleLowerCase() === 'label') ? 'Labels' : 'Variables',
+                        groupIndex: (variableInfo.type.toLocaleLowerCase() === 'label') ? 3 : 2,
                         iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                     });
 
@@ -3419,58 +3419,6 @@ function getVariableGroupName(type: string, attributes: string): string {
         return `${type} ${attributes}`;
     }
     return type;
-}
-
-function getVariableGroupIndex(type: string): number {
-    switch (type.toLowerCase()) {
-        case 'record': {
-            return 1;
-        }
-        case 'report': {
-            return 2;
-        }
-        case 'codeunit': {
-            return 3;
-        }
-        case 'xmlport': {
-            return 4;
-        }
-        case 'page': {
-            return 5;
-        }
-        case 'query': {
-            return 6;
-        }
-        case 'notification': {
-            return 7;
-        }
-        case 'bigtext': {
-            return 8;
-        }
-        case 'dateformula': {
-            return 9;
-        }
-        case 'recordid': {
-            return 10;
-        }
-        case 'recordref': {
-            return 11;
-        }
-        case 'fieldref': {
-            return 12;
-        }
-        case 'filterpagebuilder': {
-            return 13;
-        }
-        case 'enum': {
-            return 14;
-        }
-        case 'label': {
-            return 90;
-        }
-    }
-
-    return 50;
 }
 
 export function findObjectRecName(alObject: ALObject): string {
