@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import * as regExpr from '../regExpressions';
+import * as regExpr from './regExpressions';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
-import * as typeHelper from '../typeHelper';
+import * as typeHelper from './typeHelper';
 import { ALObject, ALObjectFields, ALObjectVariables } from '../alObject/alObject';
 import { TelemetryClient } from '../telemetry/telemetry';
 

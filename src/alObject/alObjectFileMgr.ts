@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as regExpr from '../regExpressions';
+import * as regExpr from '../tools/regExpressions';
 import * as alRegionMgr from './alObjectRegionMgr';
-import * as typeHelper from '../typeHelper';
+import * as typeHelper from '../tools/typeHelper';
 import { ATSSettings } from '../settings/atsSettings';
 import { CRSSettings } from '../settings/crsSettings';
 import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
@@ -3131,7 +3131,7 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
     alObjectVariables.elementsCount = 0;
 
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {return;}
+    if (!editor) { return; }
 
     const document = editor.document;
 
@@ -3143,14 +3143,14 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
 
     // Trova la riga di definizione (startLine)
     let startLine = caretLine;
-    const currentLineText = cleanObjectLineText(document.lineAt(caretLine).text);
+    let currentLineText = cleanObjectLineText(document.lineAt(caretLine).text);
 
     if (!isProcOrTrig(currentLineText)) {
         // Risali verso l'alto fino a trovare la definizione
         let found = false;
         for (let i = caretLine - 1; i >= 0; i--) {
-            const t = cleanObjectLineText(document.lineAt(i).text);
-            if (isProcOrTrig(t)) {
+            currentLineText = cleanObjectLineText(document.lineAt(i).text);
+            if (isProcOrTrig(currentLineText)) {
                 startLine = i;
                 found = true;
                 break;
@@ -3176,7 +3176,7 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
         let header = currentLineText;
         for (let j = startLine + 1; j < Math.min(document.lineCount, startLine + 5); j++) {
             header += " " + cleanObjectLineText(document.lineAt(j).text);
-            if (/\(/.test(header)) {break;}
+            if (/\(/.test(header)) { break; }
         }
         const m2 = header.match(defRegex);
         if (m2) {
@@ -3190,11 +3190,11 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
     if (!/\)/.test(header)) {
         for (let j = startLine + 1; j < Math.min(document.lineCount, startLine + 30); j++) {
             header += " " + cleanObjectLineText(document.lineAt(j).text);
-            if (/\)/.test(header)) {break;}
+            if (/\)/.test(header)) { break; }
         }
     }
     const paren = header.match(/\(([\s\S]*?)\)/);
-    if (!paren) {return;}
+    if (!paren) { return; }
 
     const paramsBlob = paren[1];
     const parts = paramsBlob.split(';').map(s => s.trim()).filter(Boolean);
@@ -3222,7 +3222,7 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                     scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
                         scopeName ? scopeName : 'parameter',
                     linePosition: startLine,
-                    groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
+                    groupName: 'Parameters',
                     groupIndex: getVariableGroupIndex(variableInfo.type),
                     iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                 });
@@ -3284,8 +3284,8 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                         scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
                             scopeName ? scopeName : 'local',
                         linePosition: lineNumber,
-                        groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
-                        groupIndex: getVariableGroupIndex(variableInfo.type),
+                        groupName: (variableInfo.type.toLocaleLowerCase() === 'label') ? 'Labels' : 'Locals',
+                        groupIndex: 100 + getVariableGroupIndex(variableInfo.type),
                         iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
                     });
 
@@ -3426,24 +3426,51 @@ function getVariableGroupIndex(type: string): number {
         case 'record': {
             return 1;
         }
-        case 'page': {
-            return 3;
-        }
         case 'report': {
-            return 4;
+            return 2;
         }
         case 'codeunit': {
+            return 3;
+        }
+        case 'xmlport': {
+            return 4;
+        }
+        case 'page': {
             return 5;
         }
-        case 'enum': {
+        case 'query': {
             return 6;
         }
-        case 'label': {
+        case 'notification': {
+            return 7;
+        }
+        case 'bigtext': {
+            return 8;
+        }
+        case 'dateformula': {
+            return 9;
+        }
+        case 'recordid': {
             return 10;
+        }
+        case 'recordref': {
+            return 11;
+        }
+        case 'fieldref': {
+            return 12;
+        }
+        case 'filterpagebuilder': {
+            return 13;
+        }
+        case 'enum': {
+            return 14;
+        }
+        case 'label': {
+            return 90;
         }
     }
 
-    return 8;
+    return 50;
 }
 
 export function findObjectRecName(alObject: ALObject): string {
@@ -3471,33 +3498,6 @@ export function searchAndMakeVariableDefinitionText(alObjectVariables: ALObjectV
         if (globalVarDef) {
             let globalVarDescr = globalVarDef.byRef ? `var ${varName}: ${globalVarDef.type}` :
                 `${varName}: ${globalVarDef.type}`;
-
-            if (globalVarDef.subtype) {
-                globalVarDescr = `${globalVarDescr} ${globalVarDef.subtype}`;
-            }
-            if ((globalVarDef.size) && (globalVarDef.size > 0)) {
-                globalVarDescr = `${globalVarDescr} [${globalVarDef.size}]`;
-            }
-            if (globalVarDef.attributes) {
-                globalVarDescr = `${globalVarDescr} ${globalVarDef.attributes}`;
-            }
-
-            return globalVarDescr;
-        }
-    }
-
-    return "";
-}
-
-export function findLocalVarTypeInCurrentALScope2(document: vscode.TextDocument, varName: string): string {
-    if (isALObjectDocument(document)) {
-        const alObject = new ALObject(document, true);
-        const alObjectVariables = new ALObjectVariables(alObject);
-        findLocalVariablesInCurrentScope(alObjectVariables);
-        var globalVarDef = alObjectVariables.variables.find(v => v.name === varName);
-
-        if (globalVarDef) {
-            let globalVarDescr = globalVarDef.type;
 
             if (globalVarDef.subtype) {
                 globalVarDescr = `${globalVarDescr} ${globalVarDef.subtype}`;

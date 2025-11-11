@@ -63,7 +63,6 @@ export async function execALObjectExplorer(alObject?: ALObject) {
             {
                 label: 'Find object...',
                 command: 'ats.gotoWorkspaceObjects',
-                //iconName: 'extensions',
                 iconPath: new vscode.ThemeIcon('extensions')
             }
         );
@@ -72,8 +71,15 @@ export async function execALObjectExplorer(alObject?: ALObject) {
             {
                 label: 'Show open objects',
                 command: 'ats.showOpenALObjects',
-                //iconName: 'extensions',
                 iconPath: new vscode.ThemeIcon('files')
+            }
+        );
+
+        qpItems.push(
+            {
+                label: 'Show local variables',
+                command: 'ats.showAllLocalVariables',
+                iconPath: new vscode.ThemeIcon('symbol-variable')
             }
         );
 
@@ -1616,6 +1622,47 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
             vscode.window.showInformationMessage(`No global variables found in ${alObject.objectType} ${alObject.objectName}`);
         }
     }
+}
+
+
+export async function showAllLocalVariables() {
+    TelemetryClient.logCommand('showAllLocalVariables');
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) { return; }
+
+    const alObject = new ALObject(editor.document, false);
+    const alObjectVariables = new ALObjectVariables(undefined);
+    alFileMgr.findLocalVariablesInCurrentScope(alObjectVariables);
+    if (alObjectVariables.variables) {
+        if (alObjectVariables.elementsCount > 0) {
+            let items: qpTools.atsQuickPickItem[] = alObjectVariables.variables.map(variable => ({
+                label: variable.name,
+                description:
+                    (variable.subtype && variable.attributes) ? `${variable.type} ${variable.subtype} ${variable.attributes}` :
+                        variable.subtype ? `${variable.type} ${variable.subtype}` :
+                            variable.size ? `${variable.type}[${variable.size}]` :
+                                variable.type,
+                detail: variable.value,
+                groupID: variable.groupIndex,
+                groupName: variable.groupName,
+                sortKey: variable.groupIndex.toString().padStart(10, "0") + variable.type + variable.name,
+                itemStartLine: variable.linePosition ? variable.linePosition : 0,
+                itemEndLine: 0,
+                sortIndex: variable.linePosition ? variable.linePosition : 0,
+                level: 0,
+                iconName: variable.iconName
+            }));
+
+            showObjectItems(alObject,
+                items,
+                `${alObjectVariables.variables[0].scope}: Local Variables`,
+                false, false, 2);
+            return;
+        }
+    }
+
+    vscode.window.showInformationMessage(`No local variables found in current position`);
 }
 //#endregion AL Object Variables
 

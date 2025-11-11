@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -149,6 +149,11 @@
       {
         "command": "ats.showAllGlobalVariables",
         "title": "Show all global variables",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllLocalVariables",
+        "title": "Show all local variables",
         "category": "ATS AL Object Explorer"
       },
       {

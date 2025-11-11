@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as typeHelper from '../typeHelper';
-import { CRSSettings } from '../settings/crsSettings';
+import * as typeHelper from '../tools/typeHelper';
 
 //#region AL Object Definition
 export class ALObject {
