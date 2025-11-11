@@ -18,6 +18,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 
     if (!alObject) {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         const document = editor.document;
 
         if (alFileMgr.isALObjectDocument(document)) {
@@ -400,9 +401,9 @@ async function showObjectItems(alObject: ALObject,
 
                 groupItems.forEach(item => {
                     qpItems.push({
-                        label: (item.level > 0) ? `${'....'.repeat(item.level)} ${item.label}` : `${item.label}`,
+                        label: (item.level > 0) ? `${'•  '.repeat(item.level)} ${item.label}` : `${item.label}`,
                         description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
-                        detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
+                        detail: (item.detail && (item.level > 0)) ? `${'      '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : qpTools.cmdGoToLine,
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
                         documentUri: alObject.objectFileUri,
@@ -441,6 +442,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -623,6 +625,7 @@ export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?:
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -777,6 +780,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -824,6 +828,7 @@ export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -871,6 +876,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -918,6 +924,7 @@ export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -964,6 +971,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1011,6 +1019,7 @@ export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1057,6 +1066,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1106,19 +1116,51 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     if (currGroupName) {
                         let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
                         if (procedures && (procedures.length > 0)) {
+                            let lastRegionPath = '';
+                            let lastRegionCount = 0;
+                            let level = 0;
                             for (let i = 0; i < procedures.length; i++) {
+                                if ((procedures[i].regionPath !== lastRegionPath)) {
+                                    lastRegionPath = procedures[i].regionPath;
+                                    let regions = procedures[i].regionPath.split(' > ');
+                                    let currRegionName = regions[regions.length - 1];
+
+                                    if (i > 0) {
+                                        if (regions.length > lastRegionCount) {
+                                            level++;
+                                        }
+                                        if (regions.length < lastRegionCount) {
+                                            if (level > 0) { level--; }
+                                        }
+                                    }
+                                    lastRegionCount = regions.length;
+
+                                    if (currRegionName) {
+                                        items.push({
+                                            label: currRegionName,
+                                            description: 'Region',
+                                            detail: (regions.length > 1) ? procedures[i].regionPath : '',
+                                            groupID: currGroup,
+                                            groupName: currGroupName,
+                                            itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
+                                            itemEndLine: 0,
+                                            sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
+                                            level: level,
+                                            iconName: 'symbol-number'
+                                        });
+                                    }
+                                }
+
                                 items.push({
                                     label: procedures[i].name,
                                     description: procedures[i].scope,
-                                    detail: (procedures[i].regionPath && procedures[i].sourceEvent) ? `Region: ${procedures[i].regionPath} | Event: ${procedures[i].sourceEvent}` :
-                                        (procedures[i].regionPath) ? `Region: ${procedures[i].regionPath}` :
-                                            (procedures[i].sourceEvent) ? `Event: ${procedures[i].sourceEvent}` : '',
+                                    detail: (procedures[i].sourceEvent) ? `${procedures[i].sourceEvent}` : '',
                                     groupID: currGroup,
                                     groupName: currGroupName,
                                     itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
                                     itemEndLine: 0,
                                     sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                    level: 0,
+                                    level: level,
                                     iconName: procedures[i].iconName
                                 });
                             }
@@ -1131,7 +1173,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     showObjectItems(alObject,
                         items,
                         `${alObject.description}: ${title}`,
-                        false, true, 1);
+                        false, false, 1);
                     return;
                 }
             }
@@ -1151,6 +1193,7 @@ export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1250,6 +1293,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1297,6 +1341,7 @@ export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1344,6 +1389,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1392,6 +1438,7 @@ export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1439,6 +1486,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1486,6 +1534,7 @@ export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1531,6 +1580,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1585,6 +1635,7 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 

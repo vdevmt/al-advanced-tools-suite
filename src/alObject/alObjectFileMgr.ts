@@ -3155,6 +3155,12 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                 found = true;
                 break;
             }
+            else {
+                if (currentLineText.startsWith('{') || currentLineText.endsWith('}')) {
+                    // Se entro in altro contesto (field, acttion, area, group ecc..): esco (niente da scansionare)
+                    return;
+                }
+            }
         }
         if (!found) {
             // Non c'è una definizione sopra il cursore: esco (niente da scansionare)

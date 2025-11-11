@@ -95,6 +95,7 @@ export function copySelectionAsEventSubscriber() {
     TelemetryClient.logCommand('copySelectionAsEventSubscriber');
 
     const editor = vscode.window.activeTextEditor;
+    if (!editor) { return; }
     const document = editor.document;
     let eventStartPos = -1;
 
@@ -354,6 +355,7 @@ export async function copySelectionAsEventIntegration() {
     TelemetryClient.logCommand('copySelectionAsEventIntegration');
 
     const editor = vscode.window.activeTextEditor;
+    if (!editor) { return; }
     const document = editor.document;
 
     if (editor.selections) {
@@ -482,6 +484,7 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -589,6 +592,7 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -673,6 +677,7 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -735,6 +740,7 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -805,6 +811,7 @@ export async function copyRecordAsReportColumns(docUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
