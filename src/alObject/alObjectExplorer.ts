@@ -1160,7 +1160,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                                     itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
                                     itemEndLine: 0,
                                     sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                    level: level,
+                                    level: procedures[i].regionPath ? level + 1 : level,
                                     iconName: procedures[i].iconName
                                 });
                             }
