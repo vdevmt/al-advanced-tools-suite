@@ -38,7 +38,8 @@ export async function showQuickPick(
     enableSearchOnDetails: boolean,
     initialValue: string,
     groupValues: boolean,
-    enableFilterByGroup: boolean
+    enableFilterByGroup: boolean,
+    goBackCommand: string
 ) {
     // Elenco gruppi
     let itemGroups: ReturnType<typeof getGroupsList> = [];
@@ -58,6 +59,11 @@ export async function showQuickPick(
         tooltip: 'Clear filters'
     };
 
+    const BTN_GOBACK: vscode.QuickInputButton = {
+        iconPath: new vscode.ThemeIcon('home'),
+        tooltip: 'Go back'
+    };
+
     // Applica filtro corrente (activeGroupId) + ricerca corrente
     const getFilteredSource = (value: string) => {
         const base = activeGroupId == null
@@ -68,12 +74,23 @@ export async function showQuickPick(
 
     // Aggiorna i pulsanti in base allo stato del filtro
     const refreshButtons = () => {
-        if (!enableFilterByGroup) { return; }
-        quickPick.buttons = activeGroupId == null ? [BTN_FILTER] : [BTN_FILTER, BTN_CLEAR];
-        // (opzionale) feedback nel titolo
-        quickPick.title = activeGroupId == null
-            ? title
-            : `${title} — Filter: ${itemGroups.find(g => g.groupID === activeGroupId)?.groupName ?? activeGroupId}`;
+        let buttonList: vscode.QuickInputButton[] = [];
+
+        if (goBackCommand) {
+            buttonList.push(BTN_GOBACK);
+        }
+
+        if (enableFilterByGroup) {
+            buttonList.push(BTN_FILTER);
+
+            quickPick.title = title;
+            if (activeGroupId) {
+                buttonList.push(BTN_CLEAR);
+                quickPick.title = `${title} — Filter: ${itemGroups.find(g => g.groupID === activeGroupId)?.groupName ?? activeGroupId}`;
+            }
+        }
+
+        quickPick.buttons = buttonList;
     };
 
 
@@ -177,10 +194,9 @@ export async function showQuickPick(
         }))
     ];
 
-    const onTitleBtn = enableFilterByGroup
+    const onTitleBtn = (enableFilterByGroup || goBackCommand)
         ? quickPick.onDidTriggerButton(async (btn) => {
             if (btn === BTN_FILTER) {
-                // Entra in modalità "selezione gruppo" riusando lo stesso QuickPick
                 isGroupMenu = true;
                 quickPick.busy = true;
 
@@ -188,7 +204,13 @@ export async function showQuickPick(
                 const prevPlaceholder = quickPick.placeholder;
                 quickPick.placeholder = 'Filter by group/type (Enter to apply)';
                 quickPick.title = `${title} — Choose group/type`;
-                quickPick.buttons = [BTN_CLEAR]; // mentre scegli un gruppo, mostra solo "clear"
+
+                if (goBackCommand) {
+                    quickPick.buttons = [BTN_GOBACK, BTN_CLEAR];
+                }
+                else {
+                    quickPick.buttons = [BTN_CLEAR];
+                }
 
                 // Mostra i gruppi come items del quickPick stesso
                 quickPick.items = buildGroupItems();
@@ -220,13 +242,19 @@ export async function showQuickPick(
                     acceptOnce.dispose(); // cleanup handler one-shot
                 });
 
-            } else if (btn === BTN_CLEAR) {
+            }
+            if (btn === BTN_CLEAR) {
                 // Rimuovi filtro e (se eri nel menu gruppi) esci e torna alla lista
                 activeGroupId = undefined;
                 isGroupMenu = false;
                 quickPick.title = title;
                 refreshButtons();
                 quickPick.items = getFilteredSource(quickPick.value);
+            }
+            if (btn === BTN_GOBACK) {
+                quickPick.hide();
+                quickPick.dispose();
+                await vscode.commands.executeCommand(goBackCommand);
             }
         })
         : { dispose() {/* no-op when disabled */ } };

@@ -84,7 +84,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
             }
         );
 
-        qpTools.showQuickPick(qpItems, `${alObject.description}`, '', false, false, '', false, false);
+        qpTools.showQuickPick(qpItems, `${alObject.description}`, '', false, false, '', false, false, '');
     }
 }
 
@@ -424,7 +424,8 @@ async function showObjectItems(alObject: ALObject,
                 'Type to search symbols',
                 enableSearchOnDescription,
                 enableSearchOnDetails,
-                selectedText, false, true);
+                selectedText, false, true,
+                'ats.ALObjectExplorer');
         }
     }
 }
@@ -1788,7 +1789,7 @@ export async function showOpenALObjects() {
                 qpItems.push(...openFiles.filter(item => (item.groupName === group.name)));
             });
 
-            await qpTools.showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '', true, true);
+            await qpTools.showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '', true, true, '');
         }
     }
 }
@@ -1839,7 +1840,7 @@ export async function gotoWorkspaceObjects() {
     }
     catch { }
 
-    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, selectedText, true, true);
+    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, selectedText, true, true, '');
 
 }
 //#endregion Go to AL Object command
