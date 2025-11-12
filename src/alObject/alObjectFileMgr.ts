@@ -3108,7 +3108,7 @@ export function findObjectGlobalVariables(alObject: ALObject, alObjectVariables:
                                     linePosition: lineNumber,
                                     groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
                                     groupIndex: alObjectVariables.getDefaultSortingIndex(variableInfo.type),
-                                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
+                                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type, variableInfo.attributes)
                                 });
                             }
                         }
@@ -3230,7 +3230,7 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                     linePosition: startLine,
                     groupName: 'Parameters',
                     groupIndex: 1,
-                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
+                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type, variableInfo.attributes)
                 });
 
                 alObjectVariables.elementsCount++;
@@ -3292,7 +3292,7 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
                         linePosition: lineNumber,
                         groupName: (variableInfo.type.toLocaleLowerCase() === 'label') ? 'Labels' : 'Variables',
                         groupIndex: (variableInfo.type.toLocaleLowerCase() === 'label') ? 3 : 2,
-                        iconName: alObjectVariables.getDefaultIconName(variableInfo.type)
+                        iconName: alObjectVariables.getDefaultIconName(variableInfo.type, variableInfo.attributes)
                     });
 
                     alObjectVariables.elementsCount++;

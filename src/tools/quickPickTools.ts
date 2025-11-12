@@ -41,240 +41,215 @@ export async function showQuickPick(
     enableFilterByGroup: boolean,
     goBackCommand: string
 ) {
-    // Elenco gruppi
-    let itemGroups: ReturnType<typeof getGroupsList> = [];
+    type ButtonId = 'filter' | 'clear' | 'goback';
+    type Btn = vscode.QuickInputButton & { id: ButtonId };
 
-    //Stato filtro per groupID (se abilitato)
-    let activeGroupId: number | undefined;
+    const BTN_FILTER: Btn = { id: 'filter', iconPath: new vscode.ThemeIcon('filter'), tooltip: 'Filter by type' };
+    const BTN_CLEAR: Btn = { id: 'clear', iconPath: new vscode.ThemeIcon('close'), tooltip: 'Clear filters' };
+    const BTN_GOBACK: Btn = { id: 'goback', iconPath: new vscode.ThemeIcon('home'), tooltip: 'Go back' };
+
+    const qp = vscode.window.createQuickPick<atsQuickPickItem>();
+    const disposables: vscode.Disposable[] = [];
     let isGroupMenu = false;
+    let activeGroupId: number | undefined;
 
-    // Pulsanti per gestione filtro per group
-    const BTN_FILTER: vscode.QuickInputButton = {
-        iconPath: new vscode.ThemeIcon('filter'),
-        tooltip: 'Filter by type'
-    };
-
-    const BTN_CLEAR: vscode.QuickInputButton = {
-        iconPath: new vscode.ThemeIcon('close'),
-        tooltip: 'Clear filters'
-    };
-
-    const BTN_GOBACK: vscode.QuickInputButton = {
-        iconPath: new vscode.ThemeIcon('home'),
-        tooltip: 'Go back'
-    };
-
-    // Applica filtro corrente (activeGroupId) + ricerca corrente
+    // ——— helpers ———
     const getFilteredSource = (value: string) => {
-        const base = activeGroupId == null
-            ? allItems
-            : allItems.filter(i => i.groupID === activeGroupId);
+        const base = activeGroupId == null ? allItems : allItems.filter(i => i.groupID === activeGroupId);
         return updateItems(base, value, enableSearchOnDescription, enableSearchOnDetails, groupValues, false);
     };
 
-    // Aggiorna i pulsanti in base allo stato del filtro
-    const refreshButtons = () => {
-        let buttonList: vscode.QuickInputButton[] = [];
+    const originalTitle = title;
+    const originalPlaceholder = placeholder;
 
-        if (goBackCommand) {
-            buttonList.push(BTN_GOBACK);
-        }
-
-        if (enableFilterByGroup) {
-            buttonList.push(BTN_FILTER);
-
-            quickPick.title = title;
-            if (activeGroupId) {
-                buttonList.push(BTN_CLEAR);
-                quickPick.title = `${title} — Filter: ${itemGroups.find(g => g.groupID === activeGroupId)?.groupName ?? activeGroupId}`;
-            }
-        }
-
-        quickPick.buttons = buttonList;
-    };
-
-
-    const quickPick = vscode.window.createQuickPick<atsQuickPickItem>();
-
-    quickPick.title = title;
-    quickPick.placeholder = placeholder;
-    quickPick.matchOnDescription = enableSearchOnDescription;
-    quickPick.matchOnDetail = enableSearchOnDetails;
-    quickPick.value = initialValue;
-    quickPick.items = updateItems(allItems, initialValue, enableSearchOnDescription, enableSearchOnDetails, groupValues, false);
-    quickPick.ignoreFocusOut = true;
+    let itemGroups: ReturnType<typeof getGroupsList> = [];
+    let groupMenuItems: atsQuickPickItem[] = [];
 
     if (enableFilterByGroup) {
-        // Prepara l’elenco dei gruppi e mostra il pulsante di filtro
         itemGroups = getGroupsList(allItems);
-
-        // Se non ci sono gruppi o ce n'è solo uno, disattiva il filtro
         if (!itemGroups || itemGroups.length <= 1) {
             enableFilterByGroup = false;
         } else {
-            // Altrimenti mostra il pulsante "Filter"
-            quickPick.buttons = [BTN_FILTER];
+            // pre-build static group menu once
+            groupMenuItems = [
+                { label: 'All types', description: 'Show all items', groupID: undefined },
+                ...itemGroups.map(g => ({
+                    label: g.groupName ?? String(g.groupID),
+                    description: `${g.count} item(s)`,
+                    groupID: g.groupID
+                }))
+            ];
         }
     }
 
-    // ChangeValue: esegue la ricerca
-    let debounceHandle: NodeJS.Timeout | undefined;
-
-    const onDidChangeValue = quickPick.onDidChangeValue((value) => {
-        if (debounceHandle) { clearTimeout(debounceHandle); }
-        quickPick.busy = true;
-        debounceHandle = setTimeout(() => {
-            if (!isGroupMenu) {
-                // solo nella lista principale
-                quickPick.items = getFilteredSource(value);
-            } else {
-                // opzionale: permetti filtro sul menu gruppi
-                const q = value.toLowerCase().trim();
-                const base = buildGroupItems();
-                quickPick.items = q ? base.filter(x => x.label.toLowerCase().includes(q)) : base;
+    const refreshButtons = () => {
+        const btns: vscode.QuickInputButton[] = [];
+        if (goBackCommand) {btns.push(BTN_GOBACK);}
+        if (enableFilterByGroup) {
+            btns.push(BTN_FILTER);
+            qp.title = originalTitle;
+            if (activeGroupId != null) {
+                btns.push(BTN_CLEAR);
+                const label = itemGroups.find(g => g.groupID === activeGroupId)?.groupName ?? String(activeGroupId);
+                qp.title = `${originalTitle} — Filter: ${label}`;
             }
-            quickPick.busy = false;
-        }, DEBOUNCE_MS);
-    });
-
-    // Accept: esegue il comando dell'item
-    const onAccept = quickPick.onDidAccept(async () => {
-        if (isGroupMenu) { return; }
-
-        const selectedItem = quickPick.selectedItems[0] as atsQuickPickItem;
-        if (selectedItem) {
-            await executeQuickPickItemCommand(selectedItem);
         }
-        quickPick.hide();
-    });
+        qp.buttons = btns;
+    };
 
-    // Click su bottone item
-    const onBtn = quickPick.onDidTriggerItemButton(async (selected) => {
-        const selectedItem = selected.item as atsQuickPickItem | undefined;
-        quickPick.hide();
+    const showMainList = (keepValue = true) => {
+        isGroupMenu = false;
+        qp.placeholder = originalPlaceholder;
+        qp.title = originalTitle;
+        refreshButtons();
+        qp.items = getFilteredSource(keepValue ? qp.value : '');
+    };
 
-        if (selectedItem) {
-            // Prefer a stable id on the button if provided; fallback to tooltip text
+    const showGroupMenu = () => {
+        isGroupMenu = true;
+        qp.placeholder = 'Filter by group/type (Enter to apply)';
+        qp.title = `${originalTitle} — Choose group/type`;
+        qp.buttons = goBackCommand ? [BTN_GOBACK, BTN_CLEAR] : [BTN_CLEAR];
+        qp.items = groupMenuItems;
+
+        // pre-select current
+        const idx = groupMenuItems.findIndex(it => it.groupID === activeGroupId);
+        qp.activeItems = [qp.items[Math.max(0, idx)]];
+    };
+
+    // ——— quick pick setup ———
+    qp.title = title;
+    qp.placeholder = placeholder;
+    qp.matchOnDescription = enableSearchOnDescription;
+    qp.matchOnDetail = enableSearchOnDetails;
+    qp.value = initialValue;
+    qp.items = updateItems(allItems, initialValue, enableSearchOnDescription, enableSearchOnDetails, groupValues, false);
+    qp.ignoreFocusOut = true;
+    refreshButtons();
+
+    if (enableFilterByGroup) {
+        qp.buttons = goBackCommand ? [BTN_GOBACK, BTN_FILTER] : [BTN_FILTER];
+    }
+
+    // ——— debounced search ———
+    let debounceHandle: NodeJS.Timeout | undefined;
+    const DEBOUNCE_MS = 120; // usa il tuo valore se già definito altrove
+
+    disposables.push(
+        qp.onDidChangeValue((value) => {
+            if (debounceHandle) {clearTimeout(debounceHandle);}
+            qp.busy = true;
+            debounceHandle = setTimeout(() => {
+                try {
+                    if (isGroupMenu) {
+                        const q = value.toLowerCase().trim();
+                        qp.items = q ? groupMenuItems.filter(x => x.label.toLowerCase().includes(q)) : groupMenuItems;
+                    } else {
+                        qp.items = getFilteredSource(value);
+                    }
+                } finally {
+                    qp.busy = false;
+                }
+            }, DEBOUNCE_MS);
+        })
+    );
+
+    // ——— accept ———
+    disposables.push(
+        qp.onDidAccept(async () => {
+            if (isGroupMenu) {
+                // apply group filter
+                const sel = qp.selectedItems[0] as atsQuickPickItem | undefined;
+                activeGroupId = sel?.groupID;
+                showMainList(true);
+                return;
+            }
+            const selectedItem = qp.selectedItems[0] as atsQuickPickItem | undefined;
+            if (!selectedItem) {return;}
+            await executeQuickPickItemCommand(selectedItem);
+            qp.hide();
+        })
+    );
+
+    // ——— item buttons ———
+    disposables.push(
+        qp.onDidTriggerItemButton(async (selected) => {
+            const selectedItem = selected.item as atsQuickPickItem | undefined;
+            if (!selectedItem) {return;}
+            qp.hide();
+
+            // preferisci id stabile sul bottone se disponibile; fallback a tooltip per retrocompatibilità
             const buttonAny = selected.button as vscode.QuickInputButton & { id?: string };
             const btnKey = buttonAny?.id ?? selected.button.tooltip;
+
             switch (btnKey) {
                 case btnCmdOpenToSide: {
                     switch (selectedItem.command) {
-                        case cmdGoToLine: { selectedItem.command = cmdGoToLineOnSide; break; }
-                        case cmdOpenFile: { selectedItem.command = cmdOpenFileOnSide; break; }
+                        case cmdGoToLine: selectedItem.command = cmdGoToLineOnSide; break;
+                        case cmdOpenFile: selectedItem.command = cmdOpenFileOnSide; break;
                     }
                     break;
                 }
-                case btnCmdExecObjectExplorer: { selectedItem.command = cmdExecALObjectExplorer; break; }
+                case btnCmdExecObjectExplorer:
+                    selectedItem.command = cmdExecALObjectExplorer;
+                    break;
                 case btnCmdCopyAsText: {
-                    switch (selectedItem.command) {
-                        case 'ats.showAllFields': selectedItem.command = 'ats.copyFieldsAsText'; break;
-                        case 'ats.showAllTableKeys': selectedItem.command = 'ats.copyTableKeysAsText'; break;
-                        case 'ats.showAllTableFieldGroups': selectedItem.command = 'ats.copyTableFieldGroupsAsText'; break;
-                        case 'ats.showAllTriggers': selectedItem.command = 'ats.copyTriggersAsText'; break;
-                        case 'ats.showAllProcedures': selectedItem.command = 'ats.copyProceduresAsText'; break;
-                        case 'ats.showAllDataItems': selectedItem.command = 'ats.copyDataItemsAsText'; break;
-                        case 'ats.showAllActions': selectedItem.command = 'ats.copyActionsAsText'; break;
-                        case 'ats.showAllRegions': selectedItem.command = 'ats.copyRegionsAsText'; break;
-                        case 'ats.showAllGlobalVariables': selectedItem.command = 'ats.copyGlobalVariablesAsText'; break;
-                    }
+                    // mapping compatto
+                    const map: Record<string, string | undefined> = {
+                        'ats.showAllFields': 'ats.copyFieldsAsText',
+                        'ats.showAllTableKeys': 'ats.copyTableKeysAsText',
+                        'ats.showAllTableFieldGroups': 'ats.copyTableFieldGroupsAsText',
+                        'ats.showAllTriggers': 'ats.copyTriggersAsText',
+                        'ats.showAllProcedures': 'ats.copyProceduresAsText',
+                        'ats.showAllDataItems': 'ats.copyDataItemsAsText',
+                        'ats.showAllActions': 'ats.copyActionsAsText',
+                        'ats.showAllRegions': 'ats.copyRegionsAsText',
+                        'ats.showAllGlobalVariables': 'ats.copyGlobalVariablesAsText',
+                    };
+                    selectedItem.command = map[selectedItem.command ?? ''] ?? selectedItem.command;
+                    break;
                 }
             }
             await executeQuickPickItemCommand(selectedItem);
-        }
-    });
-
-    // Gestione dei pulsanti di filtro della title bar (filter / clear)
-    const buildGroupItems = (): atsQuickPickItem[] => [
-        { label: 'All types', description: 'Show all items', groupID: undefined },
-        ...itemGroups.map(g => ({
-            label: g.groupName ?? String(g.groupID),
-            description: `${g.count} item(s)`,
-            groupID: g.groupID
-        }))
-    ];
-
-    const onTitleBtn = (enableFilterByGroup || goBackCommand)
-        ? quickPick.onDidTriggerButton(async (btn) => {
-            if (btn === BTN_FILTER) {
-                isGroupMenu = true;
-                quickPick.busy = true;
-
-                // Salva/aggiorna UI del menu gruppi
-                const prevPlaceholder = quickPick.placeholder;
-                quickPick.placeholder = 'Filter by group/type (Enter to apply)';
-                quickPick.title = `${title} — Choose group/type`;
-
-                if (goBackCommand) {
-                    quickPick.buttons = [BTN_GOBACK, BTN_CLEAR];
-                }
-                else {
-                    quickPick.buttons = [BTN_CLEAR];
-                }
-
-                // Mostra i gruppi come items del quickPick stesso
-                quickPick.items = buildGroupItems();
-
-                // Pre-seleziona il gruppo coerente con il filtro attivo (se presente)
-                const idx = buildGroupItems().findIndex(it => it.groupID === activeGroupId);
-                if (idx >= 0) {
-                    // @ts-ignore: activeItems accetta QuickPickItem
-                    quickPick.activeItems = [quickPick.items[idx]];
-                } else {
-                    // @ts-ignore
-                    quickPick.activeItems = [quickPick.items[0]]; // "All types"
-                }
-
-                quickPick.busy = false;
-
-                // Intercetta l'accept in "group mode" SENZA chiudere il QuickPick
-                const acceptOnce = quickPick.onDidAccept(() => {
-                    if (!isGroupMenu) { return; } // ignora se nel frattempo è uscita dalla group mode
-                    const sel = quickPick.selectedItems[0] as atsQuickPickItem | undefined;
-                    activeGroupId = sel?.groupID;
-
-                    // Torna alla lista oggetti filtrata
-                    isGroupMenu = false;
-                    quickPick.title = title;
-                    quickPick.placeholder = prevPlaceholder;
-                    refreshButtons(); // ripristina pulsanti (Filter / Clear in base allo stato)
-                    quickPick.items = getFilteredSource(quickPick.value); // mantiene la query corrente
-                    acceptOnce.dispose(); // cleanup handler one-shot
-                });
-
-            }
-            if (btn === BTN_CLEAR) {
-                // Rimuovi filtro e (se eri nel menu gruppi) esci e torna alla lista
-                activeGroupId = undefined;
-                isGroupMenu = false;
-                quickPick.title = title;
-                refreshButtons();
-                quickPick.items = getFilteredSource(quickPick.value);
-            }
-            if (btn === BTN_GOBACK) {
-                quickPick.hide();
-                quickPick.dispose();
-                await vscode.commands.executeCommand(goBackCommand);
-            }
         })
-        : { dispose() {/* no-op when disabled */ } };
+    );
 
-    const onHide = quickPick.onDidHide(() => {
-        onDidChangeValue.dispose();
-        onAccept.dispose();
-        onBtn.dispose();
-        onHide.dispose();
-        onTitleBtn.dispose();
-        if (debounceHandle) { clearTimeout(debounceHandle); }
-        quickPick.dispose();
-    });
+    // ——— title bar buttons ———
+    if (enableFilterByGroup || goBackCommand) {
+        disposables.push(
+            qp.onDidTriggerButton(async (btn) => {
+                const id = (btn as Btn).id as ButtonId | undefined;
+                if (id === 'filter') {
+                    qp.busy = true;
+                    try {
+                        showGroupMenu();
+                    } finally {
+                        qp.busy = false;
+                    }
+                } else if (id === 'clear') {
+                    activeGroupId = undefined;
+                    showMainList(true);
+                } else if (id === 'goback') {
+                    qp.hide();
+                    qp.dispose();
+                    await vscode.commands.executeCommand(goBackCommand);
+                }
+            })
+        );
+    }
 
-    // Aggiorna stato pulsanti all'avvio
-    refreshButtons();
+    // ——— lifecycle ———
+    disposables.push(
+        qp.onDidHide(() => {
+            if (debounceHandle) {clearTimeout(debounceHandle);}
+            disposables.forEach(d => { try { d.dispose(); } catch { /* noop */ } });
+            qp.dispose();
+        })
+    );
 
-    // Apre la Quick Pick
-    quickPick.show();
+    qp.show();
 }
+
 
 async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
     if (selectedItem) {

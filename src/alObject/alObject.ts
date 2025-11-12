@@ -871,17 +871,20 @@ export class ALObjectVariables {
         this.elementsCount = this.variables ? this.variables.length : 0;
     }
 
-    public getDefaultIconName(variableType: string): string {
+    public getDefaultIconName(variableType: string, attributes: string): string {
         if (variableType) {
             switch (variableType.toLowerCase()) {
                 case 'Record'.toLowerCase(): {
+                    if (attributes.toLowerCase().includes('temporary')) {
+                        return 'clock';
+                    }
                     return 'database';
                 }
                 case 'RecordRef'.toLowerCase(): {
-                    return 'database';
+                    return 'tag';
                 }
                 case 'FieldRef'.toLowerCase(): {
-                    return 'database';
+                    return 'symbol-field';
                 }
                 case 'KeyRef'.toLowerCase(): {
                     return 'key';

@@ -1140,7 +1140,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                                         items.push({
                                             label: currRegionName,
                                             description: 'Region',
-                                            detail: (regions.length > 1) ? procedures[i].regionPath : '',
+                                            detail: '',
                                             groupID: currGroup,
                                             groupName: currGroupName,
                                             itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
