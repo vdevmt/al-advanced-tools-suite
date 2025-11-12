@@ -1,4 +1,10 @@
 # Change Log
+
+## [1.9.0]
+- New command `ATS: Show all local variables`
+- `ATS: Show all procedures` : Added regions to the list
+- New extension logo
+
 ## [1.8.9]
 - Special copy tools improvements
 
