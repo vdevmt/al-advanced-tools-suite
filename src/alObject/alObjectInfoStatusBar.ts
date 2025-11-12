@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alObjectExplorer from './alObjectExplorer';
-import * as typeHelper from '../typeHelper';
+import * as typeHelper from '../tools/typeHelper';
 import { ALObject } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 

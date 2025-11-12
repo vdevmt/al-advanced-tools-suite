@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as typeHelper from '../typeHelper';
+import * as typeHelper from '../tools/typeHelper';
 import { CreateDiagnostic, DIAGNOSTIC_CODE } from '../diagnostics/diagnosticMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALSettings } from '../settings/alSettings';

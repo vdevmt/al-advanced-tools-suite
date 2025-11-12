@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
-import * as typeHelper from '../typeHelper';
-import { CRSSettings } from '../settings/crsSettings';
+import * as typeHelper from '../tools/typeHelper';
 
 //#region AL Object Definition
 export class ALObject {
@@ -872,17 +871,20 @@ export class ALObjectVariables {
         this.elementsCount = this.variables ? this.variables.length : 0;
     }
 
-    public getDefaultIconName(variableType: string): string {
+    public getDefaultIconName(variableType: string, attributes: string): string {
         if (variableType) {
             switch (variableType.toLowerCase()) {
                 case 'Record'.toLowerCase(): {
+                    if (attributes.toLowerCase().includes('temporary')) {
+                        return 'clock';
+                    }
                     return 'database';
                 }
                 case 'RecordRef'.toLowerCase(): {
-                    return 'database';
+                    return 'tag';
                 }
                 case 'FieldRef'.toLowerCase(): {
-                    return 'database';
+                    return 'symbol-field';
                 }
                 case 'KeyRef'.toLowerCase(): {
                     return 'key';
@@ -985,6 +987,58 @@ export class ALObjectVariables {
                 }
             }
         }
+    }
+
+    public getDefaultSortingIndex(variableType: string): number {
+        switch (variableType.toLowerCase()) {
+            case 'record': {
+                return 1;
+            }
+            case 'report': {
+                return 2;
+            }
+            case 'codeunit': {
+                return 3;
+            }
+            case 'xmlport': {
+                return 4;
+            }
+            case 'page': {
+                return 5;
+            }
+            case 'query': {
+                return 6;
+            }
+            case 'notification': {
+                return 7;
+            }
+            case 'bigtext': {
+                return 8;
+            }
+            case 'dateformula': {
+                return 9;
+            }
+            case 'recordid': {
+                return 10;
+            }
+            case 'recordref': {
+                return 11;
+            }
+            case 'fieldref': {
+                return 12;
+            }
+            case 'filterpagebuilder': {
+                return 13;
+            }
+            case 'enum': {
+                return 14;
+            }
+            case 'label': {
+                return 90;
+            }
+        }
+
+        return 50;
     }
 }
 //#endregion AL Object Variables

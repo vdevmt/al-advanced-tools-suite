@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
 import * as appInfo from '../tools/appInfo';
-import * as typeHelper from '../typeHelper';
+import * as typeHelper from '../tools/typeHelper';
 import { ALObject } from './alObject';
 import { TelemetryClient } from '../telemetry/telemetry';
 
@@ -156,8 +156,8 @@ function calculateObjectIDRanges(objectRanges: Map<string, number[]>): Map<strin
 
     // Ordina il map per Tipo oggetto e From ID
     const sortedRangesArray = Array.from(ranges.entries()).sort(([typeA, rangesA], [typeB, rangesB]) => {
-        if (getObjectTypeSortingKey(typeA) < getObjectTypeSortingKey(typeB)) {return -1;}
-        if (getObjectTypeSortingKey(typeA) > getObjectTypeSortingKey(typeB)) {return 1;}
+        if (getObjectTypeSortingKey(typeA) < getObjectTypeSortingKey(typeB)) { return -1; }
+        if (getObjectTypeSortingKey(typeA) > getObjectTypeSortingKey(typeB)) { return 1; }
 
         // Se il tipo è lo stesso, ordina per From ID
         const minA = Math.min(...rangesA.map((range) => range.from));

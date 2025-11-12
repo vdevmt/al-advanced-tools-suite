@@ -18,6 +18,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 
     if (!alObject) {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         const document = editor.document;
 
         if (alFileMgr.isALObjectDocument(document)) {
@@ -63,7 +64,6 @@ export async function execALObjectExplorer(alObject?: ALObject) {
             {
                 label: 'Find object...',
                 command: 'ats.gotoWorkspaceObjects',
-                //iconName: 'extensions',
                 iconPath: new vscode.ThemeIcon('extensions')
             }
         );
@@ -72,12 +72,19 @@ export async function execALObjectExplorer(alObject?: ALObject) {
             {
                 label: 'Show open objects',
                 command: 'ats.showOpenALObjects',
-                //iconName: 'extensions',
                 iconPath: new vscode.ThemeIcon('files')
             }
         );
 
-        qpTools.showQuickPick(qpItems, `${alObject.description}`, '', false, false, '', false, false);
+        qpItems.push(
+            {
+                label: 'Show local variables',
+                command: 'ats.showAllLocalVariables',
+                iconPath: new vscode.ThemeIcon('symbol-variable')
+            }
+        );
+
+        qpTools.showQuickPick(qpItems, `${alObject.description}`, '', false, false, '', false, false, '');
     }
 }
 
@@ -394,9 +401,9 @@ async function showObjectItems(alObject: ALObject,
 
                 groupItems.forEach(item => {
                     qpItems.push({
-                        label: (item.level > 0) ? `${'....'.repeat(item.level)} ${item.label}` : `${item.label}`,
+                        label: (item.level > 0) ? `${'•  '.repeat(item.level)} ${item.label}` : `${item.label}`,
                         description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
-                        detail: (item.detail && (item.level > 0)) ? `${'    '.repeat(item.level)} ${item.detail}` : item.detail,
+                        detail: (item.detail && (item.level > 0)) ? `${'      '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : qpTools.cmdGoToLine,
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
                         documentUri: alObject.objectFileUri,
@@ -417,7 +424,8 @@ async function showObjectItems(alObject: ALObject,
                 'Type to search symbols',
                 enableSearchOnDescription,
                 enableSearchOnDetails,
-                selectedText, false, true);
+                selectedText, false, true,
+                'ats.ALObjectExplorer');
         }
     }
 }
@@ -435,6 +443,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -617,6 +626,7 @@ export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?:
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -771,6 +781,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -818,6 +829,7 @@ export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -865,6 +877,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -912,6 +925,7 @@ export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -958,6 +972,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1005,6 +1020,7 @@ export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1051,6 +1067,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1100,19 +1117,51 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     if (currGroupName) {
                         let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
                         if (procedures && (procedures.length > 0)) {
+                            let lastRegionPath = '';
+                            let lastRegionCount = 0;
+                            let level = 0;
                             for (let i = 0; i < procedures.length; i++) {
+                                if ((procedures[i].regionPath !== lastRegionPath)) {
+                                    lastRegionPath = procedures[i].regionPath;
+                                    let regions = procedures[i].regionPath.split(' > ');
+                                    let currRegionName = regions[regions.length - 1];
+
+                                    if (i > 0) {
+                                        if (regions.length > lastRegionCount) {
+                                            level++;
+                                        }
+                                        if (regions.length < lastRegionCount) {
+                                            if (level > 0) { level--; }
+                                        }
+                                    }
+                                    lastRegionCount = regions.length;
+
+                                    if (currRegionName) {
+                                        items.push({
+                                            label: currRegionName,
+                                            description: 'Region',
+                                            detail: '',
+                                            groupID: currGroup,
+                                            groupName: currGroupName,
+                                            itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
+                                            itemEndLine: 0,
+                                            sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
+                                            level: level,
+                                            iconName: 'symbol-number'
+                                        });
+                                    }
+                                }
+
                                 items.push({
                                     label: procedures[i].name,
                                     description: procedures[i].scope,
-                                    detail: (procedures[i].regionPath && procedures[i].sourceEvent) ? `Region: ${procedures[i].regionPath} | Event: ${procedures[i].sourceEvent}` :
-                                        (procedures[i].regionPath) ? `Region: ${procedures[i].regionPath}` :
-                                            (procedures[i].sourceEvent) ? `Event: ${procedures[i].sourceEvent}` : '',
+                                    detail: (procedures[i].sourceEvent) ? `${procedures[i].sourceEvent}` : '',
                                     groupID: currGroup,
                                     groupName: currGroupName,
                                     itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
                                     itemEndLine: 0,
                                     sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                    level: 0,
+                                    level: procedures[i].regionPath ? level + 1 : level,
                                     iconName: procedures[i].iconName
                                 });
                             }
@@ -1125,7 +1174,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     showObjectItems(alObject,
                         items,
                         `${alObject.description}: ${title}`,
-                        false, true, 1);
+                        false, false, 1);
                     return;
                 }
             }
@@ -1145,6 +1194,7 @@ export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1244,6 +1294,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1291,6 +1342,7 @@ export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1338,6 +1390,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1386,6 +1439,7 @@ export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1433,6 +1487,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1480,6 +1535,7 @@ export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1525,6 +1581,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1579,6 +1636,7 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
     }
     else {
         const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
         document = editor.document;
     }
 
@@ -1616,6 +1674,47 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
             vscode.window.showInformationMessage(`No global variables found in ${alObject.objectType} ${alObject.objectName}`);
         }
     }
+}
+
+
+export async function showAllLocalVariables() {
+    TelemetryClient.logCommand('showAllLocalVariables');
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) { return; }
+
+    const alObject = new ALObject(editor.document, false);
+    const alObjectVariables = new ALObjectVariables(undefined);
+    alFileMgr.findLocalVariablesInCurrentScope(alObjectVariables);
+    if (alObjectVariables.variables) {
+        if (alObjectVariables.elementsCount > 0) {
+            let items: qpTools.atsQuickPickItem[] = alObjectVariables.variables.map(variable => ({
+                label: variable.name,
+                description:
+                    (variable.subtype && variable.attributes) ? `${variable.type} ${variable.subtype} ${variable.attributes}` :
+                        variable.subtype ? `${variable.type} ${variable.subtype}` :
+                            variable.size ? `${variable.type}[${variable.size}]` :
+                                variable.type,
+                detail: variable.value,
+                groupID: variable.groupIndex,
+                groupName: variable.groupName,
+                sortKey: alObjectVariables.getDefaultSortingIndex(variable.type).toString().padStart(10, "0") + variable.type + variable.name,
+                itemStartLine: variable.linePosition ? variable.linePosition : 0,
+                itemEndLine: 0,
+                sortIndex: variable.linePosition ? variable.linePosition : 0,
+                level: 0,
+                iconName: variable.iconName
+            }));
+
+            showObjectItems(alObject,
+                items,
+                `${alObjectVariables.variables[0].scope}: Local Variables`,
+                false, false, 2);
+            return;
+        }
+    }
+
+    vscode.window.showInformationMessage(`No local variables found in current position`);
 }
 //#endregion AL Object Variables
 
@@ -1690,7 +1789,7 @@ export async function showOpenALObjects() {
                 qpItems.push(...openFiles.filter(item => (item.groupName === group.name)));
             });
 
-            await qpTools.showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '', true, true);
+            await qpTools.showQuickPick(qpItems, 'Open AL Objects', 'Select a file to open', true, true, '', true, true, '');
         }
     }
 }
@@ -1741,7 +1840,7 @@ export async function gotoWorkspaceObjects() {
     }
     catch { }
 
-    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, selectedText, true, true);
+    await qpTools.showQuickPick(allItems, 'ATS: Go to AL object (workspace only)', 'Type to search', false, false, selectedText, true, true, '');
 
 }
 //#endregion Go to AL Object command

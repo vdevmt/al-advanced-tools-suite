@@ -93,6 +93,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.showAllGlobalVariables', alObjectExplorer.showAllGlobalVariables));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyGlobalVariablesAsText', alObjectExplorer.copyGlobalVariablesAsText));
 
+    context.subscriptions.push(vscode.commands.registerCommand('ats.showAllLocalVariables', alObjectExplorer.showAllLocalVariables));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.gotoWorkspaceObjects', alObjectExplorer.gotoWorkspaceObjects));
     //#endregion AL Objects Explorer
 

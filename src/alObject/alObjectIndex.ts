@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as typeHelper from '../typeHelper';
+import * as typeHelper from '../tools/typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import * as alFileMgr from './alObjectFileMgr';
 import * as gitInfo from '../tools/gitInfo';
