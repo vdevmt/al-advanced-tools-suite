@@ -3179,12 +3179,12 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
         scopeName = m[2];
     } else {
         // Caso multilinea: nome o "(" si trovano nelle righe successive
-        let header = currentLineText;
+        let headerSearch = currentLineText;
         for (let j = startLine + 1; j < Math.min(document.lineCount, startLine + 5); j++) {
-            header += " " + cleanObjectLineText(document.lineAt(j).text);
-            if (/\(/.test(header)) { break; }
+            headerSearch += " " + cleanObjectLineText(document.lineAt(j).text);
+            if (/\(/.test(headerSearch)) { break; }
         }
-        const m2 = header.match(defRegex);
+        const m2 = headerSearch.match(defRegex);
         if (m2) {
             scopeKind = m2[1].toLowerCase() as 'procedure' | 'trigger';
             scopeName = m2[2];
@@ -3237,6 +3237,56 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
             }
         }
 
+    }
+
+    // Ricerca valore di ritorno della funzione
+    const closingParenIndex = header.indexOf(')');
+    if (closingParenIndex >= 0) {
+        let afterParams = header.slice(closingParenIndex + 1).trim();
+
+        // Fermati se incontri "var" o "begin"
+        const stopMatchIndex = afterParams.search(/\b(var|begin)\b/i);
+        if (stopMatchIndex >= 0) {
+            afterParams = afterParams.slice(0, stopMatchIndex).trim();
+        }
+
+        if (afterParams.length > 0) {
+            let returnName: string | undefined;
+            let returnType: string | undefined;
+
+            // Caso: Valore di ritorno con nome variabile
+            let mNamed = afterParams.match(/^([A-Za-z_]\w*)\s*:\s*([^;]+)/);
+            // Caso: Valore di ritorno senza nome
+            let mAnon = afterParams.match(/^:\s*([^;]+)/);
+
+            if (mNamed) {
+                returnName = mNamed[1];
+                returnType = mNamed[2].trim();
+            } else if (mAnon) {
+                returnName = '<ReturnValue>'; // nessun identificatore esplicito
+                returnType = mAnon[1].trim();
+            }
+
+            if (returnType) {
+                alObjectVariables.variables.push({
+                    name: returnName || '',
+                    type: returnType,
+                    subtype: '',
+                    value: '',
+                    size: 0,
+                    attributes: '',
+                    isALObject: false,
+                    scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
+                        scopeName ? scopeName : 'return',
+                    linePosition: startLine,
+                    groupName: 'Return value',
+                    groupIndex: 0,
+                    iconName: alObjectVariables.getDefaultIconName(returnType, '')
+                });
+
+                alObjectVariables.elementsCount++;
+            }
+        }
     }
 
     // Ricerca variabili locali
