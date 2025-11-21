@@ -201,6 +201,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventSubscriber', specialCopyFunct.copySelectionAsEventSubscriber));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsEventIntegration', specialCopyFunct.copySelectionAsEventIntegration));
 
+    context.subscriptions.push(vscode.commands.registerCommand('ats.copySelectionAsProcedure', specialCopyFunct.copySelectionAsProcedure));
+
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordInsertStatement', specialCopyFunct.copyRecordInsertStatement));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordInsertStatementWithValidation', specialCopyFunct.copyRecordInsertStatementWithValidation));
     context.subscriptions.push(vscode.commands.registerCommand('ats.copyAsRecordModifyStatement', specialCopyFunct.copyRecordModifyStatement));

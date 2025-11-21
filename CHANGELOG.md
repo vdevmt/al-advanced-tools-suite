@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.9.5]
+- New special copy feature (Preview) `ATS: Copy as Procedure`
+
 ## [1.9.0]
 - New command `ATS: Show all local variables`
 - `ATS: Show all procedures` : Added regions to the list

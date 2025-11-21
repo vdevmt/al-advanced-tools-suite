@@ -348,6 +348,8 @@ export function makeBcClientURL(config: vscode.WorkspaceConfiguration, useForwar
 }
 
 function handleURLForwardingRules(clientURL: string, forwardingRules: { [key: string]: string }): string {
+    TelemetryClient.logCommand('forwardingRulesHandling');
+
     let newClientURL = clientURL;
 
     // Ordino i valori in base alla lunghezza della stringa in maniera decrescente
