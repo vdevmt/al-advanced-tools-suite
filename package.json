@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.9.3",
+  "version": "1.9.5",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -172,6 +172,11 @@
         "category": "ATS"
       },
       {
+        "command": "ats.copySelectionAsProcedure",
+        "title": "Copy as Procedure",
+        "category": "ATS"
+      },
+      {
         "command": "ats.copyAsRecordInsertStatement",
         "title": "Copy as Record Insert statement",
         "category": "ATS"
@@ -256,6 +261,12 @@
           "group": "Integration Event",
           "when": "editorTextFocus && resourceLangId == al",
           "title": "Copy as Event Integration"
+        },
+        {
+          "command": "ats.copySelectionAsProcedure",
+          "group": "Procedure",
+          "when": "editorTextFocus && resourceLangId == al",
+          "title": "Copy as Procedure"
         },
         {
           "command": "ats.copyAsRecordInsertStatement",
@@ -462,7 +473,7 @@
     "@typescript-eslint/type-utils": "^8.46.0",
     "@typescript-eslint/typescript-estree": "^8.46.0",
     "@typescript-eslint/utils": "^8.46.0",
-    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.4.1",
     "esbuild": "^0.25.0",
     "eslint": "^9.37.0",
