@@ -428,6 +428,7 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
                 const globalVariables = new ALObjectVariables(alObject);
                 globalVariables.findGlobalVariables(alObject);
 
+                let genParID = 0;
                 const args = match[1].split(",").map((el) => el.trim());
                 const args2 = args.map((el) => {
 
@@ -452,6 +453,13 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
                         return alVarDef;
                     }
 
+                    // Costanti
+                    const varType = tryToDetectParamType(el);
+                    if (varType) {
+                        genParID++;
+                        return `par${genParID}: ${varType}`;
+                    }
+
                     // Lascia invariato in tutti gli altri casi
                     return el;
                 });
@@ -472,6 +480,160 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
 //#endregion Event Integration
 
 //#endregion Integration Events
+
+//#region Procedure
+export async function copySelectionAsProcedure() {
+    TelemetryClient.logCommand('copySelectionAsProcedure');
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) { return; }
+    const document = editor.document;
+
+    if (editor.selections) {
+
+        const selection = editor.selection;
+        if (selection) {
+            if (selection.start.line > 0) {
+                let selectedText = '';
+                let openParens = 0;
+                let closeFound = false;
+
+                for (let i = selection.start.line; i <= selection.end.line; i++) {
+                    const line = document.lineAt(i).text.trim();
+                    selectedText += (selectedText ? " " : "") + line;
+
+                    // Conta le parentesi
+                    for (const ch of line) {
+                        if (ch === "(") {openParens++;}
+                        if (ch === ")") {openParens--;}
+
+                        // Se siamo tornati a 0 significa che la funzione è chiusa
+                        if (openParens === 0 && ch === ")") {
+                            closeFound = true;
+                            break;
+                        }
+                    }
+
+                    if (closeFound) {break;}
+                }
+
+                if (!closeFound) {
+                    vscode.window.showErrorMessage("No procedure call found in the current selection");
+                    return;
+                }
+
+                const procedureDefinitionText = createProcedureDefinitionText(document, selectedText);
+
+                if (!procedureDefinitionText) {
+                    vscode.window.showErrorMessage("No procedure call found in the current selection");
+                    return;
+                }
+
+                try {
+                    await vscode.env.clipboard.writeText(procedureDefinitionText);
+                    vscode.window.showInformationMessage(`The procedure definition is ready to paste!`);
+                } catch (error) {
+                    vscode.window.showErrorMessage(`Failed to create procedure definition: ${error.message}`);
+                }
+            }
+        }
+    }
+}
+
+function createProcedureDefinitionText(document: vscode.TextDocument, selectedText: string): string {
+    let eventIntText = '';
+
+    if (selectedText) {
+        if (alFileMgr.isALObjectDocument(document)) {
+            const callRegex =
+                /(?:\bif\s+)?(?:(?<scope>[A-Za-z_][A-Za-z0-9_]*)\s*\.\s*)?(?<funcName>"[^"]+"|[A-Za-z_][A-Za-z0-9_]*)\s*\((?<params>[\s\S]*?)\)/i;
+
+            const match = selectedText.match(callRegex);
+
+            if (!match || !match.groups) {
+                vscode.window.showErrorMessage("No procedure call found in the current selection");
+                return;
+            }
+
+            const procedureName = match.groups.funcName;
+            const params = match.groups.params;
+
+            const alObject = new ALObject(document, true);
+
+            // Ricerca variabili locali e parametri
+            const localVariables = new ALObjectVariables(alObject);
+            localVariables.findLocalVariablesInCurrentScope();
+
+            // Ricerca variabili globali
+            const globalVariables = new ALObjectVariables(alObject);
+            globalVariables.findGlobalVariables(alObject);
+
+            let genParID = 0;
+            const args = params.split(",").map((el) => el.trim());
+            const args2 = args.map((el) => {
+
+                // Gestione parametri "speciali" 
+                if (el.toLowerCase() === 'rec') {
+                    const currentTableName = alFileMgr.findObjectRecName(alObject);
+                    return `var ${el}: Record "${currentTableName}"`;
+                }
+
+                // Ricerca variabile locale
+                let alVarDef = alFileMgr.searchAndMakeVariableDefinitionText(localVariables, el);
+                if (alVarDef) {
+                    return alVarDef;
+                }
+
+                // Ricerca variabile globale
+                alVarDef = alFileMgr.searchAndMakeVariableDefinitionText(globalVariables, el);
+                if (alVarDef) {
+                    return alVarDef;
+                }
+
+                // Costanti
+                const varType = tryToDetectParamType(el);
+                if (varType) {
+                    genParID++;
+                    return `par${genParID}: ${varType}`;
+                }
+
+                // Lascia invariato in tutti gli altri casi
+                return el;
+            });
+
+            eventIntText = `local procedure ${procedureName}(${args2.join("; ")})\n`;
+            eventIntText += 'begin\n';
+            eventIntText += 'end;\n';
+        }
+    }
+
+    return eventIntText;
+}
+
+function tryToDetectParamType(par: string): string {
+    // Boolean
+    if (par.toLowerCase() === "true" || par.toLowerCase() === "false") {
+        return `Boolean`;
+    }
+
+    // Text
+    if (/^'([^']|'')*'$/.test(par)) {
+        return `Text`;
+    }
+
+    // Integer
+    if (/^[+-]?\d+$/.test(par)) {
+        return `Integer`;
+    }
+
+    // Decimal
+    if (/^[+-]?\d+\.\d+$/.test(par)) {
+        return `Decimal`;
+    }
+
+    return undefined;
+}
+//#endregion Procedure
 
 //#region Record insert statement
 export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFields?: boolean) {
