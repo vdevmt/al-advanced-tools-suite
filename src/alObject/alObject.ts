@@ -177,7 +177,7 @@ export class ALObject {
             this.extendedObjectName = this.extendedObjectName.trim().toString().replace(/["]/g, '');
             this.extendedObjectId = this.extendedObjectId.trim().toString();
             this.objectNamespace = this.objectNamespace.trim().toString().replace(/["]/g, '');
-            this.description = alFileMgr.makeObjectDescriptionText(this.objectType, this.objectId, this.objectName);
+            this.description = alFileMgr.makeObjectDescriptionText(this.objectType, this.objectId, this.objectName, this.objectFileUri);
             this.objectTypeIndex = typeHelper.getObjectTypeSortingKey(this.objectType);
             this.sortKey = `${this.objectTypeIndex.toString().padStart(10, '0')}${this.objectId?.toString().padStart(10, '0') ?? ''}${this.objectName.toLowerCase()}`;
 

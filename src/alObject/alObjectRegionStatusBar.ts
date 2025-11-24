@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as regionMgr from './alObjectRegionMgr';
+import * as appInfo from '../tools/appInfo';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject, ALObjectRegions } from './alObject';
 
@@ -8,7 +9,9 @@ var alObjectRegions: ALObjectRegions;
 var currDocumentKey: string;
 
 export function createRegionsStatusBarItem(): vscode.StatusBarItem {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+    const baseWorkspaceFolder = appInfo.getWorkspaceFolder(undefined);
+    const atsSettings = ATSSettings.GetConfigSettings(baseWorkspaceFolder.uri);
+
     if ((atsSettings[ATSSettings.RegionInfoOnStatusBar] !== 'Hide')) {
         var alignment = vscode.StatusBarAlignment.Left;
         if (atsSettings[ATSSettings.RegionInfoOnStatusBar] === 'Show on Right') {

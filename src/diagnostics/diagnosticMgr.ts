@@ -13,8 +13,8 @@ export const DIAGNOSTIC_CODE = {
     }
 };
 
-export function diagnosticRulesEnabled(): Boolean {
-    if (namespaceMgr.namespaceDiagnosticEnabled()) {
+function diagnosticRulesEnabled(uri: vscode.Uri): Boolean {
+    if (namespaceMgr.namespaceDiagnosticEnabled(uri)) {
         return true;
     }
 
@@ -39,47 +39,45 @@ export function CreateDiagnostic(range: vscode.Range, code: string, message: str
 
 
 export async function subscribeToDocumentChanges(context: vscode.ExtensionContext, atsDiagnostics: vscode.DiagnosticCollection) {
-    if (diagnosticRulesEnabled()) {
-        if (vscode.window.activeTextEditor) {
-            refreshDiagnostics(vscode.window.activeTextEditor.document, atsDiagnostics);
-        }
-
-        context.subscriptions.push(
-            vscode.window.onDidChangeActiveTextEditor(editor => {
-                if (editor) {
-                    refreshDiagnostics(editor.document, atsDiagnostics);
-                }
-            })
-        );
-
-        context.subscriptions.push(
-            vscode.workspace.onDidChangeTextDocument(e => refreshDiagnostics(e.document, atsDiagnostics))
-        );
-
-        // Aggiorna warnings quando il documento viene chiuso
-        context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((document) => {
-            if (document) {
-                refreshDiagnostics(document, atsDiagnostics);
-            }
-        }));
-
-        // Elimina warnings dopo eliminazione del file
-        context.subscriptions.push(vscode.workspace.onDidDeleteFiles((e) => {
-            e.files.forEach(file => {
-                atsDiagnostics.delete(file);
-                trackedUris.delete(file);
-            })
-        }));
-
-        // Aggiorna warnings dopo rename del file
-        vscode.workspace.onDidRenameFiles((event) => {
-            for (const file of event.files) {
-                atsDiagnostics.delete(file.oldUri);
-                trackedUris.delete(file.oldUri);
-                refreshDiagnosticsByUri(file.newUri, atsDiagnostics);
-            }
-        });
+    if (vscode.window.activeTextEditor) {
+        refreshDiagnostics(vscode.window.activeTextEditor.document, atsDiagnostics);
     }
+
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (editor) {
+                refreshDiagnostics(editor.document, atsDiagnostics);
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(e => refreshDiagnostics(e.document, atsDiagnostics))
+    );
+
+    // Aggiorna warnings quando il documento viene chiuso
+    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((document) => {
+        if (document) {
+            refreshDiagnostics(document, atsDiagnostics);
+        }
+    }));
+
+    // Elimina warnings dopo eliminazione del file
+    context.subscriptions.push(vscode.workspace.onDidDeleteFiles((e) => {
+        e.files.forEach(file => {
+            atsDiagnostics.delete(file);
+            trackedUris.delete(file);
+        });
+    }));
+
+    // Aggiorna warnings dopo rename del file
+    vscode.workspace.onDidRenameFiles((event) => {
+        for (const file of event.files) {
+            atsDiagnostics.delete(file.oldUri);
+            trackedUris.delete(file.oldUri);
+            refreshDiagnosticsByUri(file.newUri, atsDiagnostics);
+        }
+    });
 }
 
 async function refreshDiagnosticsByUri(uri: vscode.Uri, atsDiagnostics: vscode.DiagnosticCollection) {
@@ -93,27 +91,34 @@ async function refreshDiagnostics(document: vscode.TextDocument, atsDiagnostics:
     atsDiagnostics.delete(document.uri);
     trackedUris.delete(document.uri);
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        if (!namespaceMgr.ValidateObjectNamespace(document, atsDiagnostics)) {
-            trackedUris.add(document.uri);
+    if (diagnosticRulesEnabled(document.uri)) {
+        if (alFileMgr.isALObjectDocument(document)) {
+            if (!namespaceMgr.ValidateObjectNamespace(document, atsDiagnostics)) {
+                trackedUris.add(document.uri);
+            }
         }
-    }
 
-    cleanOrphanedDiagnostics(atsDiagnostics);
+        cleanOrphanedDiagnostics(atsDiagnostics);
+    }
 }
 
 export async function ValidateAllFiles(atsDiagnostics: vscode.DiagnosticCollection) {
-    if (diagnosticRulesEnabled()) {
-        // Trova tutti i file AL nel workspace corrente
-        const files = await vscode.workspace.findFiles('**/*.al');
-        for (const file of files) {
-            atsDiagnostics.delete(file);
-            trackedUris.delete(file);
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+        for (const folder of workspaceFolders) {
+            if (diagnosticRulesEnabled(folder.uri)) {
+                const pattern = new vscode.RelativePattern(folder, '**/*.al');
+                const files = await vscode.workspace.findFiles(pattern);
+                for (const file of files) {
+                    atsDiagnostics.delete(file);
+                    trackedUris.delete(file);
 
-            // Verifica dichiarazione namespace
-            const document = await vscode.workspace.openTextDocument(file);
-            if (!namespaceMgr.ValidateObjectNamespace(document, atsDiagnostics)) {
-                trackedUris.add(file);
+                    // Verifica dichiarazione namespace
+                    const document = await vscode.workspace.openTextDocument(file);
+                    if (!namespaceMgr.ValidateObjectNamespace(document, atsDiagnostics)) {
+                        trackedUris.add(file);
+                    }
+                }
             }
         }
     }

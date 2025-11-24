@@ -10,7 +10,11 @@ type ObjectRange = { from: number; to: number; count: number };
 export async function exportObjectsAssignmentDetailsAsCSV() {
     TelemetryClient.logCommand('exportObjectsAssignmentDetailsAsCSV');
 
-    const ranges = await findObjectIDRangesInWorkspace();
+    const workspaceFolder = await appInfo.pickWorkspaceFolder();
+    if (!workspaceFolder) {
+        return;
+    }
+    const ranges = await findObjectIDRangesInWorkspace(workspaceFolder);
 
     const csvLines: string[] = ['Object Type,From ID,To ID,Count'];
 
@@ -36,16 +40,22 @@ export async function viewALObjectsSummary() {
     TelemetryClient.logCommand('viewALObjectsSummary');
 
     // Estrai gli oggetti e ID dal workspace
-    const ranges = await findObjectIDRangesInWorkspace();
+    const workspaceFolder = await appInfo.pickWorkspaceFolder();
+    if (!workspaceFolder) {
+        return;
+    }
+
+    const ranges = await findObjectIDRangesInWorkspace(workspaceFolder);
     const objectsCount = countObjectsByType(ranges);
+    const appName = appInfo.appName(workspaceFolder);
 
     // Crea il contenuto HTML della tabella
-    const htmlContent = createObjectsSummaryWebView(appInfo.appName(), objectsCount, ranges);
+    const htmlContent = createObjectsSummaryWebView(appName, objectsCount, ranges);
 
     // Crea una WebView Panel
     const panel = vscode.window.createWebviewPanel(
         'ats.objectRanges', // Identificatore del tipo di webview
-        `${appInfo.appName()}`, // Titolo della webview
+        `${appName}`, // Titolo della webview
         vscode.ViewColumn.One, // Colonna in cui mostrare la webview
         {
             enableScripts: true,
@@ -57,57 +67,58 @@ export async function viewALObjectsSummary() {
     panel.webview.html = htmlContent;
 }
 
-
-async function findObjectIDRangesInWorkspace(): Promise<Map<string, ObjectRange[]>> {
+async function findObjectIDRangesInWorkspace(workspaceFolder: vscode.WorkspaceFolder): Promise<Map<string, ObjectRange[]>> {
     const objectRanges = new Map<string, number[]>();
+    if (workspaceFolder) {
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'AL Object analysis in progress..',
+                cancellable: false,
+            },
+            async (progress) => {
+                // Trova tutti i file AL nel workspace corrente
+                const pattern = new vscode.RelativePattern(workspaceFolder.uri, '**/*.al');
+                const files = await vscode.workspace.findFiles(pattern);
+                let processedFiles = 0;
+                let lastNoIDObjectID = 0;
 
-    await vscode.window.withProgress(
-        {
-            location: vscode.ProgressLocation.Notification,
-            title: 'AL Object analysis in progress..',
-            cancellable: false,
-        },
-        async (progress) => {
-            // Trova tutti i file AL nel workspace corrente
-            const files = await vscode.workspace.findFiles('**/*.al');
-            let processedFiles = 0;
-            let lastNoIDObjectID = 0;
+                for (const file of files) {
+                    if (file) {
+                        const document = await vscode.workspace.openTextDocument(file);
+                        if (alFileMgr.isALObjectDocument(document)) {
+                            const alObject: ALObject = new ALObject(document, false);
+                            if (alObject.objectType) {
+                                let objectId = parseInt(alObject.objectId, 10);
+                                if (isNaN(objectId)) {
+                                    lastNoIDObjectID--;
+                                    objectId = lastNoIDObjectID;
+                                }
 
-            for (const file of files) {
-                if (file) {
-                    const document = await vscode.workspace.openTextDocument(file);
-                    if (alFileMgr.isALObjectDocument(document)) {
-                        const alObject: ALObject = new ALObject(document, false);
-                        if (alObject.objectType) {
-                            let objectId = parseInt(alObject.objectId, 10);
-                            if (isNaN(objectId)) {
-                                lastNoIDObjectID--;
-                                objectId = lastNoIDObjectID;
-                            }
+                                if (!objectRanges.has(alObject.objectType)) {
+                                    objectRanges.set(alObject.objectType, []);
+                                }
 
-                            if (!objectRanges.has(alObject.objectType)) {
-                                objectRanges.set(alObject.objectType, []);
-                            }
-
-                            const ids = objectRanges.get(alObject.objectType);
-                            if (ids && !ids.includes(objectId)) {
-                                ids.push(objectId);
+                                const ids = objectRanges.get(alObject.objectType);
+                                if (ids && !ids.includes(objectId)) {
+                                    ids.push(objectId);
+                                }
                             }
                         }
-                    }
 
-                    processedFiles++;
-                    progress.report({
-                        message: `Processed ${processedFiles} of ${files.length} files`,
-                        increment: (100 / files.length),
-                    });
+                        processedFiles++;
+                        progress.report({
+                            message: `Processed ${processedFiles} of ${files.length} files`,
+                            increment: (100 / files.length),
+                        });
+                    }
                 }
             }
-        }
-    );
+        );
 
-    // Calcola i range
-    return calculateObjectIDRanges(objectRanges);
+        // Calcola i range
+        return calculateObjectIDRanges(objectRanges);
+    }
 }
 
 function calculateObjectIDRanges(objectRanges: Map<string, number[]>): Map<string, ObjectRange[]> {

@@ -77,7 +77,7 @@ function makeNamespaceByCurrentFilePath(): string | undefined {
 }
 
 function makeNamespaceFromPath(file: vscode.Uri): string {
-    let rootNamespace = getDefaultRootNamespace();
+    let rootNamespace = getDefaultRootNamespace(file);
     let relativePath = alFileMgr.getRelativePath(file, true);
 
     if (relativePath) {
@@ -92,7 +92,7 @@ function makeNamespaceFromPath(file: vscode.Uri): string {
             }
         }
 
-        const atsSettings = ATSSettings.GetConfigSettings(null);
+        const atsSettings = ATSSettings.GetConfigSettings(file);
         const MaxNamespaceSize = atsSettings[ATSSettings.MaxNamespaceSize];
         return truncateNamespace(namespace, MaxNamespaceSize);
     }
@@ -100,14 +100,14 @@ function makeNamespaceFromPath(file: vscode.Uri): string {
     return '';
 }
 
-function getDefaultRootNamespace(): string | undefined {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+function getDefaultRootNamespace(uri: vscode.Uri): string | undefined {
+    const atsSettings = ATSSettings.GetConfigSettings(uri);
 
     if (atsSettings[ATSSettings.RootNamespace]) {
         return atsSettings[ATSSettings.RootNamespace];
     }
     else {
-        const alSettings = ALSettings.GetConfigSettings(null);
+        const alSettings = ALSettings.GetConfigSettings(uri);
         return alSettings[ALSettings.rootNamespace];
     }
 }
@@ -124,23 +124,23 @@ function truncateNamespace(namespace: string, maxPositions: number): string {
     return parts.slice(0, maxPositions).join('.');
 }
 
-function useObjectFilePathAsNamespace(): boolean {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+function useObjectFilePathAsNamespace(uri: vscode.Uri): boolean {
+    const atsSettings = ATSSettings.GetConfigSettings(uri);
     return Boolean(atsSettings[ATSSettings.UseObjectFilePathAsNamespace]);
 }
 
 function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpace[] {
     let defaultNamespaces: atsNameSpace[] = [];
-    let defaultRootNamespace = getDefaultRootNamespace();
+    let defaultRootNamespace = getDefaultRootNamespace(currDocument.uri);
 
-    if (useObjectFilePathAsNamespace) {
+    if (useObjectFilePathAsNamespace(currDocument.uri)) {
         const nsFromPath = makeNamespaceFromPath(currDocument.uri);
         if (nsFromPath) {
             addNamespaceToList(defaultNamespaces, nsFromPath, 'ATS: Namespace by current file path', 1);
 
             const alObject = new ALObject(currDocument, false);
             if (alObject.isControlAddin()) {
-                let normalizedObjName = alFileMgr.removeObjectNamePrefix(alObject.objectName, false);
+                let normalizedObjName = alFileMgr.removeObjectNamePrefix(alObject.objectName, currDocument.uri, false);
                 normalizedObjName = typeHelper.toPascalCase(normalizedObjName);
 
                 if (nsFromPath.endsWith(`.${normalizedObjName}`)) {
@@ -153,7 +153,7 @@ function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpa
 
     addNamespaceToList(defaultNamespaces, defaultRootNamespace, 'ATS: Default root namespace', 2);
 
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+    const atsSettings = ATSSettings.GetConfigSettings(currDocument.uri);
     let DefaultNamespaces = atsSettings[ATSSettings.DefaultNamespaces];
 
     if ((DefaultNamespaces) && (DefaultNamespaces.length > 0)) {
@@ -235,8 +235,8 @@ function collectExpectedNamespacesForDoc(currDocument: vscode.TextDocument): str
     return expectedNamespaces;
 }
 
-function isNamespaceMandatory(): boolean {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+function isNamespaceMandatory(uri: vscode.Uri): boolean {
+    const atsSettings = ATSSettings.GetConfigSettings(uri);
     if (atsSettings) {
         if (atsSettings[ATSSettings.NamespaceMandatory]) {
             return true;
@@ -262,7 +262,7 @@ function isValidNamespaceForObject(namespace: string, document: vscode.TextDocum
         }
     }
     else {
-        if (isNamespaceMandatory()) {
+        if (isNamespaceMandatory(document.uri)) {
             return false;
         }
     }
@@ -322,8 +322,8 @@ export class AtsNameSpaceDiagnosticsCodeActionProvider implements vscode.CodeAct
     }
 }
 
-export function namespaceDiagnosticEnabled(): Boolean {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+export function namespaceDiagnosticEnabled(uri: vscode.Uri): Boolean {
+    const atsSettings = ATSSettings.GetConfigSettings(uri);
 
     if (atsSettings) {
         return atsSettings[ATSSettings.EnableNamespaceDiagnostics];
@@ -334,9 +334,9 @@ export function namespaceDiagnosticEnabled(): Boolean {
 }
 
 export function ValidateObjectNamespace(document: vscode.TextDocument, collection: vscode.DiagnosticCollection): boolean {
-    if (namespaceDiagnosticEnabled()) {
+    if (namespaceDiagnosticEnabled(document.uri)) {
         if (alFileMgr.isALObjectDocument(document)) {
-            const atsSettings = ATSSettings.GetConfigSettings(null);
+            const atsSettings = ATSSettings.GetConfigSettings(document.uri);
             const diagnostics: vscode.Diagnostic[] = [];
 
             // Verifico se per l'oggetto è stato dichiarato un Namespace
@@ -365,7 +365,7 @@ export function ValidateObjectNamespace(document: vscode.TextDocument, collectio
             }
             else {
                 // Attivazione warning per Namespace non dichiarato
-                if (isNamespaceMandatory()) {
+                if (isNamespaceMandatory(document.uri)) {
                     const range = new vscode.Range(nsDeclarationLineNo, 0, nsDeclarationLineNo, 0);
                     const message = `Missing namespace declaration.`;
                     const diagnostic = CreateDiagnostic(range, DIAGNOSTIC_CODE.NAMESPACE.MISSING, message);

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as appInfo from '../tools/appInfo';
 
 export class ATSSettings {
     private static CONFIGKEY: string = 'ATS';
@@ -28,12 +29,14 @@ export class ATSSettings {
     }
 
     private static getConfigSettings(ResourceUri: vscode.Uri) {
+        const workspaceFolder = appInfo.getWorkspaceFolder(ResourceUri);
+
         this.config = ResourceUri ?
             vscode.workspace.getConfiguration(this.CONFIGKEY, ResourceUri) :
             vscode.window.activeTextEditor ?
                 vscode.workspace.getConfiguration(this.CONFIGKEY, vscode.window.activeTextEditor.document.uri) :
-                vscode.workspace.workspaceFolders ?
-                    vscode.workspace.getConfiguration(this.CONFIGKEY, vscode.workspace.workspaceFolders[0].uri) :
+                workspaceFolder.uri ?
+                    vscode.workspace.getConfiguration(this.CONFIGKEY, workspaceFolder.uri) :
                     vscode.workspace.getConfiguration(this.CONFIGKEY, null);
 
         this.SettingCollection[this.DefaultLaunchArchiveFolder] = this.getSetting(this.DefaultLaunchArchiveFolder);
