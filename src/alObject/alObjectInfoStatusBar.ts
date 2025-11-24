@@ -2,11 +2,14 @@ import * as vscode from 'vscode';
 import * as alFileMgr from './alObjectFileMgr';
 import * as alObjectExplorer from './alObjectExplorer';
 import * as typeHelper from '../tools/typeHelper';
+import * as appInfo from '../tools/appInfo';
 import { ALObject } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 
 export function createObjectInfoStatusBarItem(): vscode.StatusBarItem {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+    const baseWorkspaceFolder = appInfo.getWorkspaceFolder(undefined);
+    const atsSettings = ATSSettings.GetConfigSettings(baseWorkspaceFolder.uri);
+
     if ((atsSettings[ATSSettings.ObjectInfoOnStatusBar] !== 'Hide')) {
         var alignment = vscode.StatusBarAlignment.Left;
         if (atsSettings[ATSSettings.ObjectInfoOnStatusBar] === 'Show on Right') {

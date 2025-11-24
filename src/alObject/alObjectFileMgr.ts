@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as regExpr from '../tools/regExpressions';
 import * as alRegionMgr from './alObjectRegionMgr';
 import * as typeHelper from '../tools/typeHelper';
+import * as appInfo from '../tools/appInfo';
 import { ATSSettings } from '../settings/atsSettings';
 import { CRSSettings } from '../settings/crsSettings';
 import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
@@ -102,13 +103,9 @@ export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): st
     let relativePath = file.fsPath;
 
     // Verifico se esiste un workspace aperto
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-
-    if (workspaceFolders) {
-        const workspacePath = workspaceFolders[0].uri.fsPath;
-        if (workspacePath) {
-            relativePath = path.relative(workspacePath, file.fsPath);
-        }
+    const workspaceFolder = appInfo.getWorkspaceFolder(file);
+    if (workspaceFolder) {
+        relativePath = path.relative(workspaceFolder.uri.fsPath, file.fsPath);
     }
 
     relativePath = path.dirname(relativePath);  // Escludo il nome del file
@@ -209,9 +206,9 @@ export function getObjectNamespace(document: vscode.TextDocument): string {
 //#endregion Namespace tools
 
 //#region Object Name tools
-export function makeObjectDescriptionText(objectType: string, objectId: string, objectName: string): string {
+export function makeObjectDescriptionText(objectType: string, objectId: string, objectName: string, uri: vscode.Uri): string {
     if (objectName) {
-        objectName = removeObjectNamePrefix(objectName, false);
+        objectName = removeObjectNamePrefix(objectName, uri, false);
         objectName = typeHelper.addQuotesIfNeeded(objectName);
 
         if (objectType && (objectId) && objectName) {
@@ -227,15 +224,15 @@ export function makeObjectDescriptionText(objectType: string, objectId: string, 
     return '';
 }
 
-export function removeObjectNamePrefix(objectName: string, force: boolean): string {
+export function removeObjectNamePrefix(objectName: string, uri: vscode.Uri, force: boolean): string {
     if (!force) {
-        const atsSettings = ATSSettings.GetConfigSettings(null);
+        const atsSettings = ATSSettings.GetConfigSettings(uri);
         if (!atsSettings[ATSSettings.RemoveObjectNamePrefixes]) {
             return objectName;
         }
     }
 
-    const prefixes = collectObjectNamePrefixes();
+    const prefixes = collectObjectNamePrefixes(uri);
     for (const prefix of prefixes) {
         if (objectName.toLowerCase().startsWith(prefix.toLowerCase())) {
             objectName = objectName.slice(prefix.length);
@@ -249,14 +246,14 @@ export function removeObjectNamePrefix(objectName: string, force: boolean): stri
     return objectName;
 }
 
-function collectObjectNamePrefixes(): string[] {
+function collectObjectNamePrefixes(uri: vscode.Uri): string[] {
     const result: string[] = [];
 
     try {
         // Cerca il file AppSourceCop.json nella root della workspace
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && workspaceFolders.length > 0) {
-            const workspacePath = workspaceFolders[0].uri.fsPath;
+        const workspaceFolder = appInfo.getWorkspaceFolder(uri);
+        if (workspaceFolder) {
+            const workspacePath = workspaceFolder.uri.fsPath;
             const filePath = path.join(workspacePath, 'AppSourceCop.json');
 
             if (fs.existsSync(filePath)) {
@@ -274,7 +271,7 @@ function collectObjectNamePrefixes(): string[] {
 
     // Origine: CRS Extension (se installata)
     try {
-        const crsSettings = CRSSettings.GetConfigSettings(null);
+        const crsSettings = CRSSettings.GetConfigSettings(uri);
         if (crsSettings && crsSettings[CRSSettings.ObjectNamePrefix]) {
             result.push(crsSettings[CRSSettings.ObjectNamePrefix]);
         }

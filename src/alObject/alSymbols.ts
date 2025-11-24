@@ -1,29 +1,29 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import * as appInfo from '../tools/appInfo';
 import { ATSSettings } from '../settings/atsSettings';
 import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Import/Export utilities
-function getDefaultSymbolsArchiveFolder(): string {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+function getDefaultSymbolsArchiveFolder(uri: vscode.Uri): string {
+    const atsSettings = ATSSettings.GetConfigSettings(uri);
     let defaultFolder = atsSettings[ATSSettings.DefaultSymbolsArchiveFolder];
 
     return defaultFolder;
 }
-export async function importAlSymbols(): Promise<void> {
+export async function importAlSymbols() {
     TelemetryClient.logCommand('importAlSymbols');
 
     try {
 
         // Ricerca Path principale del workspace corrente
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            vscode.window.showErrorMessage("No workspace is open.");
+        const workspaceFolder = await appInfo.pickWorkspaceFolder();
+        if (!workspaceFolder) {
             return;
         }
 
-        const workspacePath = workspaceFolders[0].uri.fsPath;
+        const workspacePath = workspaceFolder.uri.fsPath;
         const workspaceName = vscode.workspace.name?.replace(" (Workspace)", "");
         const importDialogTitle = `Select AL Symbols for ${workspaceName} workspace`;
 
@@ -40,8 +40,8 @@ export async function importAlSymbols(): Promise<void> {
         const copyByFolder = (copyMode === "Copy all symbols in folder");
         let sourceFiles: string[] = [];
 
-        let defaultImportUri = vscode.Uri.file(`${workspaceFolders[0].uri.fsPath}`);
-        let defaultFolder = getDefaultSymbolsArchiveFolder();
+        let defaultImportUri = vscode.Uri.file(`${workspaceFolder.uri.fsPath}`);
+        let defaultFolder = getDefaultSymbolsArchiveFolder(workspaceFolder.uri);
         if (defaultFolder) {
             defaultImportUri = vscode.Uri.file(defaultFolder);
         }

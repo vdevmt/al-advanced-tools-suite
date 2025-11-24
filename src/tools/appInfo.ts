@@ -4,22 +4,83 @@ import * as path from 'path';
 import * as externalTools from './externalTools';
 import { TelemetryClient } from '../telemetry/telemetry';
 
-function getAppJsonFilePath(): string {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    const workspacePath = workspaceFolders[0].uri.fsPath;
+export function getWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder {
+    if (uri) {
+        return vscode.workspace.getWorkspaceFolder(uri);
+    }
 
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+        return vscode.workspace.getWorkspaceFolder(editor.document.uri);
+    }
+
+    if (vscode.workspace.workspaceFolders) {
+        return vscode.workspace.workspaceFolders[0];
+    }
+
+    return undefined;
+}
+
+export async function pickWorkspaceFolder(): Promise<vscode.WorkspaceFolder | undefined> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage("No workspace folder is open.");
+        return undefined;
+    }
+
+    // Solo una folder → la restituiamo direttamente
+    if (workspaceFolders.length === 1) {
+        return workspaceFolders[0];
+    }
+
+    // Più folder → QuickPick
+    const items = workspaceFolders.map(folder => ({
+        label: appName(folder) || folder.name,
+        description: folder.uri.fsPath,
+        folder
+    }));
+
+    const selection = await vscode.window.showQuickPick(items, {
+        placeHolder: "Select the workspace folder",
+        canPickMany: false
+    });
+
+    if (!selection) {
+        // Utente ha annullato
+        vscode.window.showErrorMessage("No workspace selected.");
+        return undefined;
+    }
+
+    return selection.folder;
+}
+
+function getAppJsonFilePath(workspaceFolder: vscode.WorkspaceFolder): string | undefined {
+    if (!workspaceFolder) {
+        workspaceFolder = getWorkspaceFolder(undefined);
+    }
+
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage("No workspace is open.");
+        return undefined;
+    }
+
+    const workspacePath = workspaceFolder.uri.fsPath;
     const filePath = path.join(workspacePath, 'app.json');
+
     if (!fs.existsSync(filePath)) {
-        vscode.window.showErrorMessage("app.json not found in the workspace directory.");
+        vscode.window.showErrorMessage(`app.json not found in: ${workspacePath}`);
         return undefined;
     }
 
     return filePath;
 }
 
-export function appName(): string {
+
+
+export function appName(workspaceFolder: vscode.WorkspaceFolder): string {
     // Search app.json file in current workspace
-    const filePath = getAppJsonFilePath();
+    const filePath = getAppJsonFilePath(workspaceFolder);
 
     // Read content of file
     let fileContent: string;
@@ -47,9 +108,10 @@ export function appName(): string {
 
     return appName;
 }
-export function appVersion(): string {
+
+export function appVersion(workspaceFolder: vscode.WorkspaceFolder): string {
     // Search app.json file in current workspace
-    const filePath = getAppJsonFilePath();
+    const filePath = getAppJsonFilePath(workspaceFolder);
 
     // Read content of file
     let fileContent: string;
@@ -82,15 +144,17 @@ export function appVersion(): string {
 export async function packageNewVersion() {
     TelemetryClient.logCommand('packageNewVersion');
 
-    if (await increaseAppVersion()) {
-        externalTools.execAlPackage(true);
+    const workspaceFolder = await pickWorkspaceFolder();
+    if (workspaceFolder) {
+        if (await increaseAppVersion(workspaceFolder)) {
+            externalTools.execAlPackage(true);
+        }
     }
-
 }
 
-async function increaseAppVersion(): Promise<Boolean> {
+async function increaseAppVersion(workspaceFolder: vscode.WorkspaceFolder): Promise<Boolean> {
     // Search app.json file in current workspace
-    const filePath = getAppJsonFilePath();
+    const filePath = getAppJsonFilePath(workspaceFolder);
 
     // Read content of file
     let fileContent: string;
@@ -130,7 +194,7 @@ async function increaseAppVersion(): Promise<Boolean> {
     items.push({ label: `Set manual version number`, description: '<Manual>' });
 
     const selectedOption = await vscode.window.showQuickPick(items,
-        { placeHolder: `Set the new version number (current: ${currentVersion}):` }
+        { placeHolder: `[${appInfo.name}] Set the new version number (current: ${currentVersion}):` }
     );
 
     if (!selectedOption) {

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as store from './store';
+import * as appInfo from '../tools/appInfo';
 import { ATSSettings } from '../settings/atsSettings';
 import { TelemetryReporter } from '@vscode/extension-telemetry';
 
@@ -49,7 +50,8 @@ export class TelemetryClient {
 
         if (isDisabled) { return false; }
 
-        const atsSettings = ATSSettings.GetConfigSettings(null);
+        const baseWorkspaceFolder = appInfo.getWorkspaceFolder(undefined);
+        const atsSettings = ATSSettings.GetConfigSettings(baseWorkspaceFolder.uri);
         if (atsSettings[ATSSettings.EnableTelemetry]) {
             return true;
         }

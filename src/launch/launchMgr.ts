@@ -3,13 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as jsonc from 'jsonc-parser';
 import * as alFileMgr from '../alObject/alObjectFileMgr';
+import * as appInfo from '../tools/appInfo';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject } from '../alObject/alObject';
 import { TelemetryClient } from '../telemetry/telemetry';
 
 //#region Import/Export utilities
-function getDefaultLaunchArchiveFolder(): string {
-    const atsSettings = ATSSettings.GetConfigSettings(null);
+function getDefaultLaunchArchiveFolder(uri: vscode.Uri): string {
+    const atsSettings = ATSSettings.GetConfigSettings(uri);
     let defaultFolder = atsSettings[ATSSettings.DefaultLaunchArchiveFolder];
 
     return defaultFolder;
@@ -18,22 +19,20 @@ function getDefaultLaunchArchiveFolder(): string {
 export async function importLaunchFile() {
     TelemetryClient.logCommand('importLaunchFile');
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage("No workspace is open.");
+    const workspaceFolder = await appInfo.pickWorkspaceFolder();
+    if (!workspaceFolder) {
         return;
     }
 
-    const workspacePath = workspaceFolders[0].uri.fsPath;
+    const workspacePath = workspaceFolder.uri.fsPath;
     const launchJsonPath = path.join(workspacePath, '.vscode', 'launch.json');
 
     // Path di origine di default
     const workspaceName = vscode.workspace.name?.replace(" (Workspace)", "");
-    let defaultImportUri = vscode.Uri.file(`${workspaceFolders[0].uri.fsPath}`);
+    let defaultImportUri = vscode.Uri.file(`${workspaceFolder.uri.fsPath}`);
 
     // Verifica presenza di una cartella di default
-    let defaultFolder = getDefaultLaunchArchiveFolder();
+    let defaultFolder = getDefaultLaunchArchiveFolder(workspaceFolder.uri);
     if (defaultFolder) {
         defaultImportUri = vscode.Uri.file(defaultFolder);
     }
@@ -77,14 +76,12 @@ export async function importLaunchFile() {
 export async function exportLaunchFile() {
     TelemetryClient.logCommand('exportLaunchFile');
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage("No workspace is open.");
+    const workspaceFolder = await appInfo.pickWorkspaceFolder();
+    if (workspaceFolder) {
         return;
     }
 
-    const workspacePath = workspaceFolders[0].uri.fsPath;
+    const workspacePath = workspaceFolder.uri.fsPath;
     const launchJsonPath = path.join(workspacePath, '.vscode', 'launch.json');
 
     // Verifica se il file launch.json esiste
@@ -95,10 +92,10 @@ export async function exportLaunchFile() {
 
     // Destinazione di default
     const defaultDestFileName = vscode.workspace.name?.replace(" (Workspace)", "");
-    let defaultDestFileUri = vscode.Uri.file(`${workspaceFolders[0].uri.fsPath}/${defaultDestFileName}.json`);
+    let defaultDestFileUri = vscode.Uri.file(`${workspaceFolder.uri.fsPath}/${defaultDestFileName}.json`);
 
     // Verifica presenza di una cartella di default
-    let defaultFolder = getDefaultLaunchArchiveFolder();
+    let defaultFolder = getDefaultLaunchArchiveFolder(workspaceFolder.uri);
     if (defaultFolder) {
         defaultDestFileUri = vscode.Uri.file(`${defaultFolder}/${defaultDestFileName}.json`);
     }
@@ -129,14 +126,12 @@ export async function exportLaunchFile() {
 export async function openLaunchFile() {
     TelemetryClient.logCommand('openLaunchFile');
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-
-    if (!workspaceFolders) {
-        vscode.window.showErrorMessage("No workspace is open.");
+    const workspaceFolder = await appInfo.pickWorkspaceFolder();
+    if (!workspaceFolder) {
         return;
     }
 
-    const workspacePath = workspaceFolders[0].uri.fsPath;
+    const workspacePath = workspaceFolder.uri.fsPath;
     const launchJsonPath = path.join(workspacePath, '.vscode', 'launch.json');
 
     if (launchJsonPath) {
@@ -187,7 +182,7 @@ export async function selectAndRunBusinessCentral(changeStartupObject: boolean) 
             alObject = new ALObject(editor.document, true);
 
             if (alFileMgr.isValidObjectToRun(alObject)) {
-                bcClientURL = await selectBusinessCentralURL(null, alObject, changeStartupObject);
+                bcClientURL = await selectBusinessCentralURL(editor.document.uri, alObject, changeStartupObject);
                 useDefaultSettings = false;
             }
         }
@@ -207,22 +202,23 @@ export async function selectAndRunBusinessCentral(changeStartupObject: boolean) 
 
 export function getWorkspaceConfigurations(resourceUri: vscode.Uri): vscode.WorkspaceConfiguration {
     const configKey = 'launch';
+    const workspaceFolder = appInfo.getWorkspaceFolder(resourceUri);
 
     const workspaceConfigurations: vscode.WorkspaceConfiguration = resourceUri ?
         vscode.workspace.getConfiguration(configKey, resourceUri) :
         (vscode.window.activeTextEditor && (!alFileMgr.IsPreviewALObject(vscode.window.activeTextEditor.document))) ?
             vscode.workspace.getConfiguration(configKey, vscode.window.activeTextEditor.document.uri) :
-            vscode.workspace.getConfiguration(configKey, vscode.workspace.workspaceFolders[0].uri);
+            vscode.workspace.getConfiguration(configKey, workspaceFolder.uri);
 
     return workspaceConfigurations.configurations;
 }
 
-export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject: ALObject, changeStartupObject: boolean): Promise<string> {
+async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject: ALObject, changeStartupObject: boolean): Promise<string> {
     const workspaceConfigurations = getWorkspaceConfigurations(resourceUri);
 
     if (workspaceConfigurations) {
         if ((workspaceConfigurations.length === 1) && (!alObject)) {
-            return makeBcClientURL(workspaceConfigurations[0], true, null);
+            return makeBcClientURL(resourceUri, workspaceConfigurations[0], true, null);
         } else {
             const items: QuickPickItem[] = [];
 
@@ -233,7 +229,7 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
                     items.push({
                         label: config.name,
                         description: 'Default configuration',
-                        detail: makeBcClientURL(config, true, null),
+                        detail: makeBcClientURL(resourceUri, config, true, null),
                         config
                     });
                 }
@@ -243,7 +239,7 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
                     const currObjectConfig = {
                         label: `${config.name}`,
                         description: 'Current object',
-                        detail: makeBcClientURL(config, true, alObject),
+                        detail: makeBcClientURL(resourceUri, config, true, alObject),
                         config
                     };
 
@@ -261,7 +257,7 @@ export async function selectBusinessCentralURL(resourceUri: vscode.Uri, alObject
             }
 
             if (changeStartupObject) {
-                setNewStartupObject(selectedItem.config.name, alObject);
+                await setNewStartupObject(selectedItem.config.name, alObject);
             }
 
             return selectedItem.detail;
@@ -280,7 +276,7 @@ export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscod
         if (workspaceConfigurations.length > 1) {
             const items: QuickPickItem[] = workspaceConfigurations.map((config: vscode.WorkspaceConfiguration) => ({
                 label: config.name,
-                detail: makeBcClientURL(config, true, null),
+                detail: makeBcClientURL(resourceUri, config, true, null),
                 config
             }));
 
@@ -305,11 +301,11 @@ export async function selectCofiguration(resourceUri: vscode.Uri): Promise<vscod
     return undefined;
 }
 
-export function makeBcClientURL(config: vscode.WorkspaceConfiguration, useForwardingRules: boolean, alObjectToRun: ALObject): string {
+function makeBcClientURL(resourceUri: vscode.Uri, config: vscode.WorkspaceConfiguration, useForwardingRules: boolean, alObjectToRun: ALObject): string {
     let clientUrl = config.server;
 
     if (useForwardingRules) {
-        const atsSettings = ATSSettings.GetConfigSettings(null);
+        const atsSettings = ATSSettings.GetConfigSettings(resourceUri);
         let forwardingRules = atsSettings[ATSSettings.URLForwardingRules];
         if (forwardingRules) {
             clientUrl = handleURLForwardingRules(clientUrl, forwardingRules);
@@ -372,16 +368,15 @@ function handleURLForwardingRules(clientURL: string, forwardingRules: { [key: st
     return newClientURL;
 }
 
-function setNewStartupObject(configName: string, alObject: ALObject) {
+async function setNewStartupObject(configName: string, alObject: ALObject) {
     if (alObject && configName) {
         if (!alFileMgr.isValidObjectToRun(alObject)) {
             vscode.window.showErrorMessage(`The object ${alObject.objectType} ${alObject.objectId} is not a valid object to run`);
         }
         else {
             // Search launch.json in current workspace
-            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            const workspaceFolder = await appInfo.pickWorkspaceFolder();
             if (!workspaceFolder) {
-                vscode.window.showErrorMessage("No workspace is open.");
                 return;
             }
 
