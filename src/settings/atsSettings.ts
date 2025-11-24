@@ -35,7 +35,7 @@ export class ATSSettings {
             vscode.workspace.getConfiguration(this.CONFIGKEY, ResourceUri) :
             vscode.window.activeTextEditor ?
                 vscode.workspace.getConfiguration(this.CONFIGKEY, vscode.window.activeTextEditor.document.uri) :
-                vscode.workspace.workspaceFolders ?
+                workspaceFolder.uri ?
                     vscode.workspace.getConfiguration(this.CONFIGKEY, workspaceFolder.uri) :
                     vscode.workspace.getConfiguration(this.CONFIGKEY, null);
 

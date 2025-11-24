@@ -11,7 +11,9 @@ export function getWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder {
 
     const editor = vscode.window.activeTextEditor;
     if (editor) {
-        return vscode.workspace.getWorkspaceFolder(editor.document.uri);
+        if (editor.document.uri) {
+            return vscode.workspace.getWorkspaceFolder(editor.document.uri);
+        }
     }
 
     if (vscode.workspace.workspaceFolders) {
