@@ -1,7 +1,7 @@
 # Change Log
 
 ## [1.9.7]
-- Enhancements: Improve multi-root workspace handling
+- Enhancements: Improved handling of multi-root workspaces
 
 ## [1.9.5]
 - New special copy feature (Preview) `ATS: Copy as Procedure`
