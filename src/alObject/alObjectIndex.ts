@@ -15,7 +15,7 @@ export class ALObjectIndex implements vscode.Disposable {
     private watcher: vscode.FileSystemWatcher | undefined;
     private disposables: vscode.Disposable[] = [];
     private static instance: ALObjectIndex | undefined;
-    private gitBranchName: string;
+    private gitBranchSignature: string;
 
     constructor() { }
 
@@ -25,10 +25,10 @@ export class ALObjectIndex implements vscode.Disposable {
             await this.instance.init();
         }
         else {
-            const currBranchName = await gitInfo.getCurrentGitBranchName();
-            if (this.instance.gitBranchName !== currBranchName) {
+            const currBranchSignature = await gitInfo.getGitBranchesSignature();
+            if (this.instance.gitBranchSignature !== currBranchSignature) {
                 const output = ATSOutputChannel.getInstance();
-                output.writeInfoMessage(`Branch switched to: ${currBranchName}. Rebuilding AL object index...`);
+                output.writeInfoMessage(`Rebuilding AL object index...`);
 
                 this.instance.dispose();
                 this.instance = new ALObjectIndex();
@@ -43,7 +43,7 @@ export class ALObjectIndex implements vscode.Disposable {
         const output = ATSOutputChannel.getInstance();
 
         await this.buildFullIndex();
-        this.gitBranchName = await gitInfo.getCurrentGitBranchName();
+        this.gitBranchSignature = await gitInfo.getGitBranchesSignature();
 
         // Watch only *.al files in the workspace
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.al', false, false, false);
@@ -51,9 +51,6 @@ export class ALObjectIndex implements vscode.Disposable {
         // Add
         this.disposables.push(
             this.watcher.onDidCreate(async (uri) => {
-                const currBranchName = await gitInfo.getCurrentGitBranchName();
-                if ((!currBranchName) || (this.gitBranchName !== currBranchName)) { return; }
-
                 if (this.isExcluded(uri)) { return; }
                 const item = await this.parseFile(uri);
                 if (item) {
@@ -66,9 +63,6 @@ export class ALObjectIndex implements vscode.Disposable {
         // Delete
         this.disposables.push(
             this.watcher.onDidDelete(async (uri) => {
-                const currBranchName = await gitInfo.getCurrentGitBranchName();
-                if ((!currBranchName) || (this.gitBranchName !== currBranchName)) { return; }
-
                 const existingItem = this.items.get(uri.fsPath);
                 output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
                 this.items.delete(uri.fsPath);
@@ -81,9 +75,6 @@ export class ALObjectIndex implements vscode.Disposable {
             vscode.workspace.onDidSaveTextDocument(async (document) => {
                 if (document.languageId !== 'al') { return; }
                 const uri = document.uri;
-
-                const currBranchName = await gitInfo.getCurrentGitBranchName();
-                if ((!currBranchName) || (this.gitBranchName !== currBranchName)) { return; }
 
                 if (this.isExcluded(uri)) { return; }
 
