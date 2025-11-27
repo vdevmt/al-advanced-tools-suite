@@ -438,7 +438,9 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
                     }
                     if (el.toLowerCase() === 'rec') {
                         const currentTableName = alFileMgr.findObjectRecName(alObject);
-                        return `var ${el}: Record "${currentTableName}"`;
+                        if (currentTableName) {
+                            return `var ${el}: Record ${typeHelper.addQuotesIfNeeded(currentTableName)}`;
+                        }
                     }
 
                     // Ricerca variabile locale
@@ -504,8 +506,8 @@ export async function copySelectionAsProcedure() {
 
                     // Conta le parentesi
                     for (const ch of line) {
-                        if (ch === "(") {openParens++;}
-                        if (ch === ")") {openParens--;}
+                        if (ch === "(") { openParens++; }
+                        if (ch === ")") { openParens--; }
 
                         // Se siamo tornati a 0 significa che la funzione è chiusa
                         if (openParens === 0 && ch === ")") {
@@ -514,7 +516,7 @@ export async function copySelectionAsProcedure() {
                         }
                     }
 
-                    if (closeFound) {break;}
+                    if (closeFound) { break; }
                 }
 
                 if (!closeFound) {
@@ -575,7 +577,9 @@ function createProcedureDefinitionText(document: vscode.TextDocument, selectedTe
                 // Gestione parametri "speciali" 
                 if (el.toLowerCase() === 'rec') {
                     const currentTableName = alFileMgr.findObjectRecName(alObject);
-                    return `var ${el}: Record "${currentTableName}"`;
+                    if (currentTableName) {
+                        return `var ${el}: Record ${typeHelper.addQuotesIfNeeded(currentTableName)}`;
+                    }
                 }
 
                 // Ricerca variabile locale

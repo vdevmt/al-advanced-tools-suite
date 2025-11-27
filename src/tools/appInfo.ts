@@ -44,17 +44,18 @@ export async function pickWorkspaceFolder(): Promise<vscode.WorkspaceFolder | un
     }));
 
     const selection = await vscode.window.showQuickPick(items, {
-        placeHolder: "Select the workspace folder",
+        placeHolder: "Select a workspace folder",
         canPickMany: false
     });
 
-    if (!selection) {
-        // Utente ha annullato
-        vscode.window.showErrorMessage("No workspace selected.");
-        return undefined;
+    const selectedFolder = selection.folder;
+
+    if (selectedFolder && selectedFolder.uri.scheme !== 'file') {
+        return selectedFolder;
     }
 
-    return selection.folder;
+    vscode.window.showErrorMessage("No valid workspace selected.");
+    return undefined;
 }
 
 function getAppJsonFilePath(workspaceFolder: vscode.WorkspaceFolder): string | undefined {
@@ -77,8 +78,6 @@ function getAppJsonFilePath(workspaceFolder: vscode.WorkspaceFolder): string | u
 
     return filePath;
 }
-
-
 
 export function appName(workspaceFolder: vscode.WorkspaceFolder): string {
     // Search app.json file in current workspace
