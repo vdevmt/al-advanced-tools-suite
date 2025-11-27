@@ -50,7 +50,7 @@ export async function pickWorkspaceFolder(): Promise<vscode.WorkspaceFolder | un
 
     const selectedFolder = selection.folder;
 
-    if (selectedFolder && selectedFolder.uri.scheme !== 'file') {
+    if (selectedFolder && selectedFolder.uri.scheme === 'file') {
         return selectedFolder;
     }
 
