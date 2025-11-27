@@ -249,6 +249,11 @@ function isNamespaceMandatory(uri: vscode.Uri): boolean {
 function isValidNamespaceForObject(namespace: string, document: vscode.TextDocument): boolean {
     if (namespace) {
         if (alFileMgr.isALObjectDocument(document)) {
+            const alObject = new ALObject(document, false);
+            if (alObject?.isTestCodeunit()) {
+                return true;
+            }
+
             // Ricerca Namespace abilitati per il progetto corrente
             const expectedNamespaces = collectExpectedNamespacesForDoc(document);
 

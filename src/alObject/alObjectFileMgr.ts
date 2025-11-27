@@ -12,14 +12,14 @@ import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTabl
 //#region AL Object file tools
 export function isALObjectFile(file: vscode.Uri | undefined, previewObjectAllowed: boolean): boolean {
     const lower = file?.fsPath?.toLowerCase();
-    if (!lower) {return false;}
+    if (!lower) { return false; }
 
     return lower.endsWith('.al') || (previewObjectAllowed && lower.endsWith('.dal'));
 }
 
 export function isPreviewALObjectFile(file: vscode.Uri): boolean {
     const lower = file?.fsPath?.toLowerCase();
-    if (!lower) {return false;}
+    if (!lower) { return false; }
 
     return lower.endsWith('.dal');
 }
@@ -94,7 +94,8 @@ export function getFirstNonEmptyObjectLinePos(document: vscode.TextDocument): nu
 }
 
 export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): string {
-    let relativePath = file.fsPath;
+    let relativePath = file?.fsPath;
+    if (!relativePath) {return '';}
 
     // Verifico se esiste un workspace aperto
     const workspaceFolder = appInfo.getWorkspaceFolder(file);
@@ -104,14 +105,19 @@ export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): st
 
     relativePath = path.dirname(relativePath);  // Escludo il nome del file
 
-    if (excludeSrcFolder) {
+    if (relativePath && excludeSrcFolder) {
         // Rimuovi il prefisso "src/" se presente
         if (relativePath === "src") {
             relativePath = '';
         }
         else {
-            if (relativePath.startsWith("src" + path.sep)) {
-                relativePath = relativePath.substring(4);
+            // verifica la presenza della cartella "src"
+            const normalized = relativePath.split(path.sep);
+            const srcIndex = normalized.indexOf("src");
+
+            if (srcIndex !== -1) {
+                // se esiste prendo la path dopo "src"
+                relativePath = normalized.slice(srcIndex + 1).join(path.sep);
             }
         }
     }
