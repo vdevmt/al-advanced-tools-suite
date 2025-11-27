@@ -184,10 +184,12 @@ function getFullEventDeclaration(document: vscode.TextDocument, startLine: numbe
     // Scendi verso il basso per trovare le righe successive
     for (let i = startLine + 1; i < document.lineCount; i++) {
         const line = document.lineAt(i).text;
-        blockText += '\n' + line;
+        if (line) {
+            blockText += '\n' + line;
 
-        if (line.trim().endsWith(')') || line.trim() === 'begin' || line.trim() === '{') {
-            break; // Fine del blocco
+            if (line.trim().endsWith(')') || line.trim() === 'begin' || line.trim() === '{') {
+                break; // Fine del blocco
+            }
         }
     }
 

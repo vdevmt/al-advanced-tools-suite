@@ -2,8 +2,32 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as appInfo from '../tools/appInfo';
+import * as alFileMgr from './alObjectFileMgr';
+import { ALObject } from './alObject';
 import { ATSSettings } from '../settings/atsSettings';
 import { TelemetryClient } from '../telemetry/telemetry';
+
+
+//#region Symbols List
+export async function findAllSymbols(): Promise<vscode.SymbolInformation[]> {
+    const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+        'vscode.executeWorkspaceSymbolProvider',
+        'Sales Line' // stringa di ricerca (obbligatoria)
+    );
+
+    if (!symbols || symbols.length === 0) {
+        return [];
+    }
+
+    const doc = await vscode.workspace.openTextDocument(symbols[0].location.uri);
+    if (alFileMgr.isALObjectDocument(doc)) {
+        const alObject = new ALObject(doc, true);
+    }
+
+    return symbols;
+}
+//#endregion Symbols List
+
 
 //#region Import/Export utilities
 function getDefaultSymbolsArchiveFolder(uri: vscode.Uri): string {
@@ -64,10 +88,17 @@ export async function importAlSymbols() {
             const sourceFolder = folderUri[0].fsPath;
             console.log(`Selected source folder: ${sourceFolder}`);
 
-            sourceFiles = fs.readdirSync(sourceFolder, { withFileTypes: true })
-                .filter(dirent => dirent.isFile() && dirent.name.toLowerCase().endsWith(".app"))
-                .map(dirent => path.join(sourceFolder, dirent.name));
-
+            try {
+                sourceFiles = fs.readdirSync(sourceFolder, { withFileTypes: true })
+                    .filter(dirent =>
+                        dirent.isFile() &&
+                        typeof dirent.name === 'string' &&
+                        dirent.name.toLowerCase().endsWith('.app')
+                    )
+                    .map(dirent => path.join(sourceFolder, dirent.name));
+            } catch (err) {
+                console.error('Error reading selected folder:', err);
+            }
         } else {
             // Selezione manuale di uno o più file .app
             const fileUris = await vscode.window.showOpenDialog({

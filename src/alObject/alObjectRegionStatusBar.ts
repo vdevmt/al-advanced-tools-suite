@@ -52,7 +52,7 @@ export async function clearRegionsCache(fileName: string) {
 
 export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusBarItem, rebuildCache: boolean) {
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    if (!editor?.document) {
         regionStatusBarItem.text = '';
         regionStatusBarItem.tooltip = makeTooltip('');
 

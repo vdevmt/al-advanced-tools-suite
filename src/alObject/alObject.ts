@@ -206,118 +206,56 @@ export class ALObject {
     }
 
     public isTable(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'table');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'table';
     }
     public isTemporaryTable(): boolean {
         if (this.isTable()) {
-            if (this.properties['tabletype']) {
-                return (this.properties['tabletype'].toLowerCase() === 'temporary');
-            }
+            return (this.properties['tabletype']?.toLowerCase() === 'temporary');
         }
 
         return false;
     }
     public isTableExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'tableextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'tableextension';
     }
     public isPage(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'page');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'page';
     }
     public isPageExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'pageextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'pageextension';
     }
     public isReport(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'report');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'report';
     }
     public isReportExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'reportextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'reportextension';
     }
     public isCodeunit(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'codeunit');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'codeunit';
     }
     public isEnum(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'enum');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'enum';
     }
     public isEnumExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'enumextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'enumextension';
     }
     public isQuery(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'query');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'query';
     }
     public isXmlPort(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'xmlport');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'xmlport';
     }
     public isInterface(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'interface');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'interface';
     }
     public isEntitlement(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'entitlement');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'entitlement';
     }
     public isControlAddin(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'controladdin');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'controladdin';
     }
     public isPermissionSet(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'permissionset');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'permissionset';
     }
 
     public getDefaultIconName(): string {

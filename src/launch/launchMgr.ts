@@ -312,30 +312,32 @@ function makeBcClientURL(resourceUri: vscode.Uri, config: vscode.WorkspaceConfig
         }
     }
 
-    if (!clientUrl.endsWith("/")) {
-        clientUrl = `${clientUrl}/`;
-    }
-
-    if (config.tenant) {
-        clientUrl = `${clientUrl}?tenant=${config.tenant.trim()}`;
-    }
-    else {
-        clientUrl = `${clientUrl}?tenant=default`;
-    }
-
-    if (config.startupCompany) {
-        clientUrl = `${clientUrl}&company=${encodeURI(config.startupCompany.trim())}`;
-    }
-
-    if (alObjectToRun) {
-        if (alFileMgr.isValidObjectToRun(alObjectToRun)) {
-            clientUrl = `${clientUrl}&${alObjectToRun.objectType}=${alObjectToRun.objectId}`;
+    if (clientUrl) {
+        if (!clientUrl.endsWith("/")) {
+            clientUrl = `${clientUrl}/`;
         }
-    }
-    else {
-        if (config.startupObjectId) {
-            if (config.startupObjectId !== 0) {
-                clientUrl = `${clientUrl}&${config.startupObjectType}=${config.startupObjectId}`;
+
+        if (config.tenant) {
+            clientUrl = `${clientUrl}?tenant=${config.tenant.trim()}`;
+        }
+        else {
+            clientUrl = `${clientUrl}?tenant=default`;
+        }
+
+        if (config.startupCompany) {
+            clientUrl = `${clientUrl}&company=${encodeURI(config.startupCompany.trim())}`;
+        }
+
+        if (alObjectToRun) {
+            if (alFileMgr.isValidObjectToRun(alObjectToRun)) {
+                clientUrl = `${clientUrl}&${alObjectToRun.objectType}=${alObjectToRun.objectId}`;
+            }
+        }
+        else {
+            if (config.startupObjectId) {
+                if (config.startupObjectId !== 0) {
+                    clientUrl = `${clientUrl}&${config.startupObjectType}=${config.startupObjectId}`;
+                }
             }
         }
     }
