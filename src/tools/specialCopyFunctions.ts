@@ -928,14 +928,28 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
 
             fields.forEach(field => {
                 let isValidField = true;
+
+                let properties: string[] = [];
+
+                if (applicationArea) {
+                    properties.push(`ApplicationArea = ${applicationArea}`);
+                }
+
                 if (field.properties['fieldclass']) {
                     if (['flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
                         isValidField = false;
                     }
+                    if (['flowfield'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        properties.push(`Editable = false`);
+
+                        if (field.type?.toLowerCase().startsWith('text')) {
+                            properties.push(`DrillDown = false`);
+                        }
+                    }
                 }
 
                 if (isValidField) {
-                    statementText += `${createPageFieldStatement(recVariableName, field.name, applicationArea)}\n`;
+                    statementText += `${createPageFieldStatement(recVariableName, field.name, properties)}\n`;
                 }
             });
         }
@@ -954,14 +968,16 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
     }
 }
 
-function createPageFieldStatement(recVariableName: string, fieldName: string, applicationArea: string): string {
+function createPageFieldStatement(recVariableName: string, fieldName: string, properties: string[]): string {
     const pageFieldName = typeHelper.addQuotesIfNeeded(fieldName);
     let statementText = '';
     statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName})\n`;
     statementText += `{\n`;
-    if (applicationArea) {
-        statementText += `ApplicationArea = ${applicationArea};\n`;
-    }
+
+    properties.forEach(property => {
+        statementText += `\t${property};\n`;
+    });
+
     statementText += `}`;
 
     return statementText;
