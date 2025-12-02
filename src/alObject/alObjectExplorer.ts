@@ -500,7 +500,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
                             groupID = 0;
                             groupName = 'Primary Key';
 
-                            description += ` (PK${field.pkIndex})`;
+                            description += `, PK${field.pkIndex}`;
                         }
 
                         if (field.properties) {
@@ -508,10 +508,13 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
                                 if (field.properties['fieldclass'].toLowerCase() === 'flowfield') {
                                     groupID = 10;
                                     groupName = 'FlowFields';
+
+                                    description += `, FlowField`;
                                 }
                                 if (field.properties['fieldclass'].toLowerCase() === 'flowfilter') {
                                     groupID = 11;
                                     groupName = 'FlowFilters';
+                                    description += `, FlowFilter`;
                                 }
                             }
                         }

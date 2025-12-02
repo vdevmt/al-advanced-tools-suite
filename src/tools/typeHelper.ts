@@ -109,13 +109,13 @@ export function getObjectTypeSortingKey(objectType: string): number {
                 return 10;
 
             case 'tableextension':
-                return 11;
+                return 15;
 
             case 'page':
                 return 20;
 
             case 'pageextension':
-                return 21;
+                return 25;
 
             case 'codeunit':
                 return 30;
@@ -124,7 +124,7 @@ export function getObjectTypeSortingKey(objectType: string): number {
                 return 40;
 
             case 'reportextension':
-                return 41;
+                return 45;
 
             case 'xmlport':
                 return 50;
@@ -136,22 +136,22 @@ export function getObjectTypeSortingKey(objectType: string): number {
                 return 70;
 
             case 'enumextension':
-                return 71;
+                return 75;
 
             case 'profile':
                 return 80;
 
             case 'profileextension':
-                return 81;
+                return 85;
 
             case 'permissionset':
                 return 90;
 
             case 'permissionsetextension':
-                return 91;
+                return 95;
 
             case 'interface':
-                return 95;
+                return 98;
 
         }
     }

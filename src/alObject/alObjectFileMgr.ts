@@ -10,26 +10,18 @@ import { CRSSettings } from '../settings/crsSettings';
 import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
 
 //#region AL Object file tools
-export function isALObjectFile(file: vscode.Uri, previewObjectAllowed: boolean): boolean {
-    if (file.fsPath.toLowerCase().endsWith('.al')) {
-        return true;
-    }
+export function isALObjectFile(file: vscode.Uri | undefined, previewObjectAllowed: boolean): boolean {
+    const lower = file?.fsPath?.toLowerCase();
+    if (!lower) { return false; }
 
-    if (previewObjectAllowed) {
-        if (file.fsPath.toLowerCase().endsWith('.dal')) {
-            return true;
-        }
-    }
-
-    return false;
+    return lower.endsWith('.al') || (previewObjectAllowed && lower.endsWith('.dal'));
 }
 
 export function isPreviewALObjectFile(file: vscode.Uri): boolean {
-    if (file.fsPath.toLowerCase().endsWith('.dal')) {
-        return true;
-    }
+    const lower = file?.fsPath?.toLowerCase();
+    if (!lower) { return false; }
 
-    return false;
+    return lower.endsWith('.dal');
 }
 
 export function isALObjectDocument(document: vscode.TextDocument): boolean {
@@ -41,18 +33,20 @@ export function isALObjectDocument(document: vscode.TextDocument): boolean {
 }
 
 export function IsPreviewALObject(document: vscode.TextDocument): boolean {
-    if (document.fileName.toLowerCase().endsWith('.dal')) {
-        return true;
+    if (document) {
+        return isPreviewALObjectFile(document.uri);
     }
 
     return false;
 }
 
 export function isFirstObjectLine(document: vscode.TextDocument, position: vscode.Position): boolean {
-    let firstNonEmptyLinePosition = getFirstNonEmptyObjectLinePos(document);
+    if (position?.line >= 0) {
+        let firstNonEmptyLinePosition = getFirstNonEmptyObjectLinePos(document);
 
-    if (firstNonEmptyLinePosition >= 0) {
-        return (position.line === firstNonEmptyLinePosition);
+        if (firstNonEmptyLinePosition >= 0) {
+            return (position.line === firstNonEmptyLinePosition);
+        }
     }
 
     return false;
@@ -100,24 +94,25 @@ export function getFirstNonEmptyObjectLinePos(document: vscode.TextDocument): nu
 }
 
 export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): string {
-    let relativePath = file.fsPath;
+    let relativePath = file?.fsPath;
+    if (!relativePath) { return ''; }
 
-    // Verifico se esiste un workspace aperto
-    const workspaceFolder = appInfo.getWorkspaceFolder(file);
-    if (workspaceFolder) {
-        relativePath = path.relative(workspaceFolder.uri.fsPath, file.fsPath);
-    }
-
+    relativePath = vscode.workspace.asRelativePath(file.fsPath);
     relativePath = path.dirname(relativePath);  // Escludo il nome del file
 
-    if (excludeSrcFolder) {
+    if (relativePath && excludeSrcFolder) {
         // Rimuovi il prefisso "src/" se presente
         if (relativePath === "src") {
             relativePath = '';
         }
         else {
-            if (relativePath.startsWith("src" + path.sep)) {
-                relativePath = relativePath.substring(4);
+            // verifica la presenza della cartella "src"
+            const normalized = relativePath.split(/[\\/]/);
+            const srcIndex = normalized.indexOf("src");
+
+            if (srcIndex >= 0) {
+                // se esiste prendo la path dopo "src"
+                relativePath = normalized.slice(srcIndex + 1).join(path.sep);
             }
         }
     }
@@ -625,9 +620,9 @@ export function isTableExternalFieldDefinition(objectLines: string[], currPositi
         const currLineText = cleanObjectLineText(objectLines[currPosition].trim());
         const nextLineText = cleanObjectLineText(objectLines[currPosition + 1].trim());
 
-        if (currLineText.endsWith('{') || nextLineText.startsWith('{')) {
+        if (currLineText?.endsWith('{') || nextLineText?.startsWith('{')) {
 
-            const match = currLineText.match(regExpr.tableExtField);
+            const match = currLineText?.match(regExpr.tableExtField);
             if (match) {
                 fieldInfo.name = match[1].trim();
                 return true;
@@ -987,9 +982,9 @@ export function isPageExternalFieldDefinition(objectLines: string[], currPositio
         const currLineText = cleanObjectLineText(objectLines[currPosition].trim());
         const nextLineText = cleanObjectLineText(objectLines[currPosition + 1].trim());
 
-        if (currLineText.endsWith('{') || nextLineText.startsWith('{')) {
+        if (currLineText?.endsWith('{') || nextLineText?.startsWith('{')) {
 
-            const match = currLineText.match(regExpr.pageExtField);
+            const match = currLineText?.match(regExpr.pageExtField);
             if (match) {
                 fieldInfo.name = match[1].trim();
                 return true;
@@ -3147,15 +3142,17 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
         let found = false;
         for (let i = caretLine - 1; i >= 0; i--) {
             currentLineText = cleanObjectLineText(document.lineAt(i).text);
-            if (isProcOrTrig(currentLineText)) {
-                startLine = i;
-                found = true;
-                break;
-            }
-            else {
-                if (currentLineText.startsWith('{') || currentLineText.endsWith('}')) {
-                    // Se entro in altro contesto (field, acttion, area, group ecc..): esco (niente da scansionare)
-                    return;
+            if (currentLineText) {
+                if (isProcOrTrig(currentLineText)) {
+                    startLine = i;
+                    found = true;
+                    break;
+                }
+                else {
+                    if (currentLineText.startsWith('{') || currentLineText.endsWith('}')) {
+                        // Se entro in altro contesto (field, acttion, area, group ecc..): esco (niente da scansionare)
+                        return;
+                    }
                 }
             }
         }

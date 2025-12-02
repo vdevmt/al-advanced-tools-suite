@@ -116,12 +116,33 @@ export class ALObjectIndex implements vscode.Disposable {
                 alObject.objectNamespace ?? ''
             ].filter(Boolean).join('; ');
 
+            let groupName = alObject.objectType;
+            let groupId = alObject.objectTypeIndex;
+
+            switch (true) {
+                case alObject.isTemporaryTable(): {
+                    groupName = 'Table-Temporary';
+                    groupId++;
+                    break;
+                }
+                case alObject.isProcessingOnlyReport(): {
+                    groupName = 'Report-Processing';
+                    groupId++;
+                    break;
+                }
+                case alObject.isTestCodeunit(): {
+                    groupName = 'Codeunit-Test';
+                    groupId++;
+                    break;
+                }
+            }
+
             return {
                 label: alObject.description,
                 description: vscode.workspace.asRelativePath(alObject.objectFileUri.fsPath),
                 detail,
-                groupName: alObject.objectType,
-                groupID: alObject.objectTypeIndex,
+                groupName: groupName,
+                groupID: groupId,
                 documentUri: alObject.objectFileUri,
                 iconPath: new vscode.ThemeIcon(alObject.getDefaultIconName()),
                 sortKey: `${alObject.objectType.toLowerCase().padEnd(20)}${alObject.objectName.toLowerCase()}`,

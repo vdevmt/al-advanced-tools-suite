@@ -5,6 +5,7 @@ import * as typeHelper from '../tools/typeHelper';
 //#region AL Object Definition
 export class ALObject {
     public objectType: string;
+    public objectSubType: string;
     public objectTypeIndex: number;
     public objectId: string;
     public objectName: string;
@@ -44,6 +45,7 @@ export class ALObject {
 
     private initObjectProperties() {
         this.objectType = "";
+        this.objectSubType = "";
         this.objectTypeIndex = 0;
         this.objectId = "";
         this.objectName = "";
@@ -171,6 +173,7 @@ export class ALObject {
         }
 
         this.objectType = typeHelper.objectTypeToPascalCase(this.objectType.trim());
+        this.objectSubType = '';
         if (alFileMgr.IsValidALObjectType(this.objectType)) {
             this.objectId = this.objectId.trim().toString();
             this.objectName = this.objectName.trim().toString().replace(/["]/g, '');
@@ -181,21 +184,47 @@ export class ALObject {
             this.objectTypeIndex = typeHelper.getObjectTypeSortingKey(this.objectType);
             this.sortKey = `${this.objectTypeIndex.toString().padStart(10, '0')}${this.objectId?.toString().padStart(10, '0') ?? ''}${this.objectName.toLowerCase()}`;
 
-            if (loadAllInfos) {
-                let objectDefTxt = '';
-                if (["permissionset", "permissionsetextension", "profile", "controladdin"].includes(this.objectType.toLowerCase())) {
-                    objectDefTxt = objectTxt;
-                }
-                else {
-                    objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
-                }
 
-                alFileMgr.findObjectProperties(this.objectType, objectDefTxt, this.properties);
+            let objectDefTxt = '';
+            if (["permissionset", "permissionsetextension", "profile", "controladdin"].includes(this.objectType.toLowerCase())) {
+                objectDefTxt = objectTxt;
+            }
+            else {
+                objectDefTxt = alFileMgr.extractElementDefinitionFromObjectText(objectTxt, 0, false);
+            }
 
-                if (this.isPage()) {
-                    if (this.properties['sourcetable']) {
-                        this.sourceTableName = this.properties['sourcetable'];
+            alFileMgr.findObjectProperties(this.objectType, objectDefTxt, this.properties);
+
+            switch (true) {
+                case this.isTable(): {
+                    if (this.properties['tabletype']) {
+                        this.objectSubType = this.properties['tabletype'];
                     }
+
+                    break;
+                }
+
+                case this.isReport(): {
+                    if (this.properties['processingonly']) {
+                        if (Boolean(this.properties['processingonly']) === true) {
+                            this.objectSubType = 'ProcessingOnly';
+                        }
+                    }
+
+                    break;
+                }
+
+                default: {
+                    if (this.properties['subtype']) {
+                        this.objectSubType = this.properties['subtype'];
+                    }
+
+                }
+            }
+
+            if (this.isPage()) {
+                if (this.properties['sourcetable']) {
+                    this.sourceTableName = this.properties['sourcetable'];
                 }
             }
         }
@@ -206,127 +235,110 @@ export class ALObject {
     }
 
     public isTable(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'table');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'table';
     }
     public isTemporaryTable(): boolean {
         if (this.isTable()) {
-            if (this.properties['tabletype']) {
-                return (this.properties['tabletype'].toLowerCase() === 'temporary');
-            }
+            return (this.properties['tabletype']?.toLowerCase() === 'temporary');
         }
 
         return false;
     }
     public isTableExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'tableextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'tableextension';
     }
     public isPage(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'page');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'page';
     }
     public isPageExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'pageextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'pageextension';
     }
     public isReport(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'report');
+        return this?.objectType?.toLowerCase() === 'report';
+    }
+    public isProcessingOnlyReport(): boolean {
+        if (this.isReport()) {
+            if (this.properties['processingonly']) {
+                if (Boolean(this.properties['processingonly']) === true) {
+                    return true;
+                }
+            }
         }
 
         return false;
     }
     public isReportExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'reportextension');
+        return this?.objectType?.toLowerCase() === 'reportextension';
+    }
+    public isCodeunit(): boolean {
+        return this?.objectType?.toLowerCase() === 'codeunit';
+    }
+    public isTestCodeunit(): boolean {
+        if (this.isCodeunit()) {
+            return ((this.properties['subtype']?.toLowerCase() === 'test') ||
+                (this.properties['subtype']?.toLowerCase() === 'testrunner'));
         }
 
         return false;
     }
-    public isCodeunit(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'codeunit');
+    public isInstallCodeunit(): boolean {
+        if (this.isCodeunit()) {
+            return (this.properties['subtype']?.toLowerCase() === 'install');
+        }
+
+        return false;
+    }
+    public isUpgradeCodeunit(): boolean {
+        if (this.isCodeunit()) {
+            return (this.properties['subtype']?.toLowerCase() === 'upgrade');
         }
 
         return false;
     }
     public isEnum(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'enum');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'enum';
     }
     public isEnumExt(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'enumextension');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'enumextension';
     }
     public isQuery(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'query');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'query';
     }
     public isXmlPort(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'xmlport');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'xmlport';
     }
     public isInterface(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'interface');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'interface';
     }
     public isEntitlement(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'entitlement');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'entitlement';
     }
     public isControlAddin(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'controladdin');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'controladdin';
     }
     public isPermissionSet(): boolean {
-        if (this) {
-            return (this.objectType.toLowerCase() === 'permissionset');
-        }
-
-        return false;
+        return this?.objectType?.toLowerCase() === 'permissionset';
     }
 
     public getDefaultIconName(): string {
         switch (true) {
+            case this.isTemporaryTable(): {
+                return 'clock';
+            }
             case this.isTable(): {
                 return 'database';
             }
             case this.isTableExt(): {
                 return 'database';
+            }
+            case this.isTestCodeunit(): {
+                return 'test-view-icon';
+            }
+            case this.isInstallCodeunit(): {
+                return 'run';
+            }
+            case this.isUpgradeCodeunit(): {
+                return 'sync';
             }
             case this.isCodeunit(): {
                 return 'code';
@@ -339,6 +351,9 @@ export class ALObject {
             }
             case this.isQuery(): {
                 return 'graph';
+            }
+            case this.isProcessingOnlyReport(): {
+                return 'gear';
             }
             case this.isReport(): {
                 return 'file-pdf';

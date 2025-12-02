@@ -184,10 +184,12 @@ function getFullEventDeclaration(document: vscode.TextDocument, startLine: numbe
     // Scendi verso il basso per trovare le righe successive
     for (let i = startLine + 1; i < document.lineCount; i++) {
         const line = document.lineAt(i).text;
-        blockText += '\n' + line;
+        if (line) {
+            blockText += '\n' + line;
 
-        if (line.trim().endsWith(')') || line.trim() === 'begin' || line.trim() === '{') {
-            break; // Fine del blocco
+            if (line.trim().endsWith(')') || line.trim() === 'begin' || line.trim() === '{') {
+                break; // Fine del blocco
+            }
         }
     }
 
@@ -438,7 +440,9 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
                     }
                     if (el.toLowerCase() === 'rec') {
                         const currentTableName = alFileMgr.findObjectRecName(alObject);
-                        return `var ${el}: Record "${currentTableName}"`;
+                        if (currentTableName) {
+                            return `var ${el}: Record ${typeHelper.addQuotesIfNeeded(currentTableName)}`;
+                        }
                     }
 
                     // Ricerca variabile locale
@@ -504,8 +508,8 @@ export async function copySelectionAsProcedure() {
 
                     // Conta le parentesi
                     for (const ch of line) {
-                        if (ch === "(") {openParens++;}
-                        if (ch === ")") {openParens--;}
+                        if (ch === "(") { openParens++; }
+                        if (ch === ")") { openParens--; }
 
                         // Se siamo tornati a 0 significa che la funzione è chiusa
                         if (openParens === 0 && ch === ")") {
@@ -514,7 +518,7 @@ export async function copySelectionAsProcedure() {
                         }
                     }
 
-                    if (closeFound) {break;}
+                    if (closeFound) { break; }
                 }
 
                 if (!closeFound) {
@@ -575,7 +579,9 @@ function createProcedureDefinitionText(document: vscode.TextDocument, selectedTe
                 // Gestione parametri "speciali" 
                 if (el.toLowerCase() === 'rec') {
                     const currentTableName = alFileMgr.findObjectRecName(alObject);
-                    return `var ${el}: Record "${currentTableName}"`;
+                    if (currentTableName) {
+                        return `var ${el}: Record ${typeHelper.addQuotesIfNeeded(currentTableName)}`;
+                    }
                 }
 
                 // Ricerca variabile locale
@@ -922,14 +928,28 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
 
             fields.forEach(field => {
                 let isValidField = true;
+
+                let properties: string[] = [];
+
+                if (applicationArea) {
+                    properties.push(`ApplicationArea = ${applicationArea}`);
+                }
+
                 if (field.properties['fieldclass']) {
                     if (['flowfilter'].includes(field.properties['fieldclass'].toLowerCase())) {
                         isValidField = false;
                     }
+                    if (['flowfield'].includes(field.properties['fieldclass'].toLowerCase())) {
+                        properties.push(`Editable = false`);
+
+                        if (field.type?.toLowerCase().startsWith('text')) {
+                            properties.push(`DrillDown = false`);
+                        }
+                    }
                 }
 
                 if (isValidField) {
-                    statementText += `${createPageFieldStatement(recVariableName, field.name, applicationArea)}\n`;
+                    statementText += `${createPageFieldStatement(recVariableName, field.name, properties)}\n`;
                 }
             });
         }
@@ -948,14 +968,16 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
     }
 }
 
-function createPageFieldStatement(recVariableName: string, fieldName: string, applicationArea: string): string {
+function createPageFieldStatement(recVariableName: string, fieldName: string, properties: string[]): string {
     const pageFieldName = typeHelper.addQuotesIfNeeded(fieldName);
     let statementText = '';
     statementText = `field(${pageFieldName}; ${recVariableName}.${pageFieldName})\n`;
     statementText += `{\n`;
-    if (applicationArea) {
-        statementText += `ApplicationArea = ${applicationArea};\n`;
-    }
+
+    properties.forEach(property => {
+        statementText += `\t${property};\n`;
+    });
+
     statementText += `}`;
 
     return statementText;
