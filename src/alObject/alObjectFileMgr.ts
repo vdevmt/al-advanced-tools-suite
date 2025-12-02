@@ -110,7 +110,7 @@ export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): st
             const normalized = relativePath.split(/[\\/]/);
             const srcIndex = normalized.indexOf("src");
 
-            if (srcIndex !== -1) {
+            if (srcIndex >= 0) {
                 // se esiste prendo la path dopo "src"
                 relativePath = normalized.slice(srcIndex + 1).join(path.sep);
             }
