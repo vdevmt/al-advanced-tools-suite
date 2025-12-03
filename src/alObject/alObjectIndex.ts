@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as typeHelper from '../tools/typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import * as alFileMgr from './alObjectFileMgr';
+import * as appInfo from '../tools/appInfo';
 import * as gitInfo from '../tools/gitInfo';
 import { ATSOutputChannel } from '../tools/outputChannel';
 import { ALObject } from './alObject';
@@ -16,6 +17,7 @@ export class ALObjectIndex implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
     private static instance: ALObjectIndex | undefined;
     private gitBranchSignature: string;
+    private multiRoot: boolean;
 
     constructor() { }
 
@@ -25,8 +27,14 @@ export class ALObjectIndex implements vscode.Disposable {
             await this.instance.init();
         }
         else {
+            let rebuildRequired = false;
+
             const currBranchSignature = await gitInfo.getGitBranchesSignature();
             if (this.instance.gitBranchSignature !== currBranchSignature) {
+                rebuildRequired = true;
+            }
+
+            if (rebuildRequired) {
                 const output = ATSOutputChannel.getInstance();
                 output.writeInfoMessage(`Rebuilding AL object index...`);
 
@@ -63,9 +71,11 @@ export class ALObjectIndex implements vscode.Disposable {
         // Delete
         this.disposables.push(
             this.watcher.onDidDelete(async (uri) => {
-                const existingItem = this.items.get(uri.fsPath);
-                output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
-                this.items.delete(uri.fsPath);
+                const existingItem = this.items?.get(uri.fsPath);
+                if (existingItem) {
+                    output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
+                    this.items.delete(uri.fsPath);
+                }
             })
         );
 
@@ -89,8 +99,6 @@ export class ALObjectIndex implements vscode.Disposable {
                     const updatedItem = await this.parseFile(uri);
                     if (updatedItem) {
                         this.items.set(uri.fsPath, updatedItem);
-                    } else {
-                        output.writeInfoMessage(`[AL Object Index] No AL object found after save: ${uri.fsPath}`);
                     }
                 } catch (err) {
                     output.writeInfoMessage(`[AL Object Index] Failed to update ${uri.fsPath} on save: ${String(err)}`);
@@ -111,27 +119,35 @@ export class ALObjectIndex implements vscode.Disposable {
         const quickPickItems: qpTools.atsQuickPickItem[] = [...this.items.values()].map(alObject => {
             const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
 
-            const detail = [
+            let detail = [
                 alObject.extendedObjectName ? `extends ${extendedObjectName}` : '',
                 alObject.objectNamespace ?? ''
             ].filter(Boolean).join('; ');
+
+            if (this.multiRoot) {
+                const workspaceFolder = vscode.workspace.getWorkspaceFolder(alObject.objectFileUri);
+                const wfDescription = appInfo.appName(workspaceFolder) || workspaceFolder.name;
+                if (wfDescription) {
+                    detail = `[${wfDescription}] ${detail}`;
+                }
+            }
 
             let groupName = alObject.objectType;
             let groupId = alObject.objectTypeIndex;
 
             switch (true) {
                 case alObject.isTemporaryTable(): {
-                    groupName = 'Table-Temporary';
+                    groupName = 'Table (Temporary)';
                     groupId++;
                     break;
                 }
                 case alObject.isProcessingOnlyReport(): {
-                    groupName = 'Report-Processing';
+                    groupName = 'Report (ProcessingOnly)';
                     groupId++;
                     break;
                 }
                 case alObject.isTestCodeunit(): {
-                    groupName = 'Codeunit-Test';
+                    groupName = 'Codeunit (Test)';
                     groupId++;
                     break;
                 }
@@ -175,13 +191,15 @@ export class ALObjectIndex implements vscode.Disposable {
         output.writeInfoMessage('Searching AL objects in the current workspace...');
 
         this.items.clear();
+        this.multiRoot = false;
 
         const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
         const uris = await vscode.workspace.findFiles('**/*.al', excludePattern);
-        const tasks = uris.map((uri) => this.parseFile(uri));
-        const results = await Promise.all(tasks);
+        const results = await Promise.all(uris.map(uri => this.parseFile(uri)));
 
         let objectCount = 0;
+        let workspaceFolder = undefined;
+
         const objectTypeCount = new Map<string, number>();
         for (const item of results) {
             if (item) {
@@ -190,6 +208,13 @@ export class ALObjectIndex implements vscode.Disposable {
 
                 const current = objectTypeCount.get(item.objectType) || 0;
                 objectTypeCount.set(item.objectType, current + 1);
+
+                if (!this.multiRoot) {
+                    if (workspaceFolder && (workspaceFolder !== vscode.workspace.getWorkspaceFolder(item.objectFileUri))) {
+                        this.multiRoot = true;
+                    }
+                    workspaceFolder = vscode.workspace.getWorkspaceFolder(item.objectFileUri);
+                }
             }
         }
 
