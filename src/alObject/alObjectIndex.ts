@@ -137,17 +137,17 @@ export class ALObjectIndex implements vscode.Disposable {
 
             switch (true) {
                 case alObject.isTemporaryTable(): {
-                    groupName = 'Table-Temporary';
+                    groupName = 'Table (Temporary)';
                     groupId++;
                     break;
                 }
                 case alObject.isProcessingOnlyReport(): {
-                    groupName = 'Report-Processing';
+                    groupName = 'Report (ProcessingOnly)';
                     groupId++;
                     break;
                 }
                 case alObject.isTestCodeunit(): {
-                    groupName = 'Codeunit-Test';
+                    groupName = 'Codeunit (Test)';
                     groupId++;
                     break;
                 }
