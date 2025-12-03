@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 export async function getCurrentGitBranchName(): Promise<string | undefined> {
-    const gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
+    const gitExtension = vscode.extensions.getExtension('vscode.git');
     if (!gitExtension || !gitExtension.isActive) {
         return undefined;
     }
@@ -13,7 +13,7 @@ export async function getCurrentGitBranchName(): Promise<string | undefined> {
 }
 
 export async function getGitBranchesSignature(): Promise<string | undefined> {
-    const gitExtension = vscode.extensions.getExtension<any>('vscode.git');
+    const gitExtension = vscode.extensions.getExtension('vscode.git');
     if (!gitExtension || !gitExtension.isActive) {
         return undefined;
     }

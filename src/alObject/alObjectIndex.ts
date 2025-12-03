@@ -25,7 +25,7 @@ export class ALObjectIndex implements vscode.Disposable {
             await this.instance.init();
         }
         else {
-            const currBranchSignature = await gitInfo.getGitBranchesSignature();
+            const currBranchSignature = await gitInfo.getCurrentGitBranchName();
             if (this.instance.gitBranchSignature !== currBranchSignature) {
                 const output = ATSOutputChannel.getInstance();
                 output.writeInfoMessage(`Rebuilding AL object index...`);
@@ -43,7 +43,7 @@ export class ALObjectIndex implements vscode.Disposable {
         const output = ATSOutputChannel.getInstance();
 
         await this.buildFullIndex();
-        this.gitBranchSignature = await gitInfo.getGitBranchesSignature();
+        this.gitBranchSignature = await gitInfo.getCurrentGitBranchName();
 
         // Watch only *.al files in the workspace
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.al', false, false, false);
@@ -63,9 +63,11 @@ export class ALObjectIndex implements vscode.Disposable {
         // Delete
         this.disposables.push(
             this.watcher.onDidDelete(async (uri) => {
-                const existingItem = this.items.get(uri.fsPath);
-                output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
-                this.items.delete(uri.fsPath);
+                const existingItem = this.items?.get(uri.fsPath);
+                if (existingItem) {
+                    output.writeInfoMessage(`[AL Object Index] AL object removed: ${existingItem.objectType} ${existingItem.objectId} ${existingItem.objectName}`);
+                    this.items.delete(uri.fsPath);
+                }
             })
         );
 
@@ -89,8 +91,6 @@ export class ALObjectIndex implements vscode.Disposable {
                     const updatedItem = await this.parseFile(uri);
                     if (updatedItem) {
                         this.items.set(uri.fsPath, updatedItem);
-                    } else {
-                        output.writeInfoMessage(`[AL Object Index] No AL object found after save: ${uri.fsPath}`);
                     }
                 } catch (err) {
                     output.writeInfoMessage(`[AL Object Index] Failed to update ${uri.fsPath} on save: ${String(err)}`);
@@ -178,8 +178,8 @@ export class ALObjectIndex implements vscode.Disposable {
 
         const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
         const uris = await vscode.workspace.findFiles('**/*.al', excludePattern);
-        const tasks = uris.map((uri) => this.parseFile(uri));
-        const results = await Promise.all(tasks);
+        const parseResults = await Promise.all(uris.map(uri => this.parseFile(uri)));
+        const results = parseResults.filter((r): r is NonNullable<typeof r> => r !== undefined);
 
         let objectCount = 0;
         const objectTypeCount = new Map<string, number>();
