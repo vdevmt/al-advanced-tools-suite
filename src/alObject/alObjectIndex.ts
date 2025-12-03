@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as typeHelper from '../tools/typeHelper';
 import * as qpTools from '../tools/quickPickTools';
 import * as alFileMgr from './alObjectFileMgr';
+import * as appInfo from '../tools/appInfo';
 import * as gitInfo from '../tools/gitInfo';
 import { ATSOutputChannel } from '../tools/outputChannel';
 import { ALObject } from './alObject';
@@ -16,6 +17,7 @@ export class ALObjectIndex implements vscode.Disposable {
     private disposables: vscode.Disposable[] = [];
     private static instance: ALObjectIndex | undefined;
     private gitBranchSignature: string;
+    private multiRoot: boolean;
 
     constructor() { }
 
@@ -25,8 +27,14 @@ export class ALObjectIndex implements vscode.Disposable {
             await this.instance.init();
         }
         else {
-            const currBranchSignature = await gitInfo.getCurrentGitBranchName();
+            let rebuildRequired = false;
+
+            const currBranchSignature = await gitInfo.getGitBranchesSignature();
             if (this.instance.gitBranchSignature !== currBranchSignature) {
+                rebuildRequired = true;
+            }
+
+            if (rebuildRequired) {
                 const output = ATSOutputChannel.getInstance();
                 output.writeInfoMessage(`Rebuilding AL object index...`);
 
@@ -43,7 +51,7 @@ export class ALObjectIndex implements vscode.Disposable {
         const output = ATSOutputChannel.getInstance();
 
         await this.buildFullIndex();
-        this.gitBranchSignature = await gitInfo.getCurrentGitBranchName();
+        this.gitBranchSignature = await gitInfo.getGitBranchesSignature();
 
         // Watch only *.al files in the workspace
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.al', false, false, false);
@@ -111,10 +119,18 @@ export class ALObjectIndex implements vscode.Disposable {
         const quickPickItems: qpTools.atsQuickPickItem[] = [...this.items.values()].map(alObject => {
             const extendedObjectName = typeHelper.addQuotesIfNeeded(alObject.extendedObjectName);
 
-            const detail = [
+            let detail = [
                 alObject.extendedObjectName ? `extends ${extendedObjectName}` : '',
                 alObject.objectNamespace ?? ''
             ].filter(Boolean).join('; ');
+
+            if (this.multiRoot) {
+                const workspaceFolder = vscode.workspace.getWorkspaceFolder(alObject.objectFileUri);
+                const wfDescription = appInfo.appName(workspaceFolder) || workspaceFolder.name;
+                if (wfDescription) {
+                    detail = `[${wfDescription}] ${detail}`;
+                }
+            }
 
             let groupName = alObject.objectType;
             let groupId = alObject.objectTypeIndex;
@@ -175,13 +191,15 @@ export class ALObjectIndex implements vscode.Disposable {
         output.writeInfoMessage('Searching AL objects in the current workspace...');
 
         this.items.clear();
+        this.multiRoot = false;
 
         const excludePattern = `{${EXCLUDE_GLOBS.join(',')}}`;
         const uris = await vscode.workspace.findFiles('**/*.al', excludePattern);
-        const parseResults = await Promise.all(uris.map(uri => this.parseFile(uri)));
-        const results = parseResults.filter((r): r is NonNullable<typeof r> => r !== undefined);
+        const results = await Promise.all(uris.map(uri => this.parseFile(uri)));
 
         let objectCount = 0;
+        let workspaceFolder = undefined;
+
         const objectTypeCount = new Map<string, number>();
         for (const item of results) {
             if (item) {
@@ -190,6 +208,13 @@ export class ALObjectIndex implements vscode.Disposable {
 
                 const current = objectTypeCount.get(item.objectType) || 0;
                 objectTypeCount.set(item.objectType, current + 1);
+
+                if (!this.multiRoot) {
+                    if (workspaceFolder && (workspaceFolder !== vscode.workspace.getWorkspaceFolder(item.objectFileUri))) {
+                        this.multiRoot = true;
+                    }
+                    workspaceFolder = vscode.workspace.getWorkspaceFolder(item.objectFileUri);
+                }
             }
         }
 
