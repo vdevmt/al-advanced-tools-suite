@@ -121,21 +121,21 @@ export function getRelativePath(file: vscode.Uri, excludeSrcFolder: boolean): st
 }
 
 export function cleanObjectFileContent(objectContentText: string): string {
-    var newObjectTxt = objectContentText;
+    let newObjectTxt = objectContentText;
 
-    // Remove comments between /* and */
-    var patternIgnoreRange = new RegExp('/\\*.*?\\*/', 'gs');
-    newObjectTxt = newObjectTxt.replace(patternIgnoreRange, "");
+    // 1. Rimuovi TUTTI i commenti singola linea (// ...)
+    newObjectTxt = newObjectTxt.replace(/\/\/.*$/gm, "");
 
-    // Get all lines excluding commented and empty lines
-    var lines = newObjectTxt.split('\n');
-    var filteredlines = lines.filter(function (line) {
-        return line.trim() !== '' && line.trimStart().indexOf('//') !== 0;
-    });
+    // 2. Rimuovi commenti /* ... */
+    newObjectTxt = newObjectTxt.replace(/\/\*[\s\S]*?\*\//g, "");
 
-    newObjectTxt = filteredlines.toString();
+    // 3. Split e rimuovi linee vuote
+    const filteredLines = newObjectTxt
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
 
-    return newObjectTxt;
+    return filteredLines.join('\n');
 }
 
 export function IsValidALObjectType(objectType: string): boolean {

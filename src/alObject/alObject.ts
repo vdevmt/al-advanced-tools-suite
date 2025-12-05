@@ -88,10 +88,7 @@ export class ALObject {
 
                 var patternObject = new RegExp(`(${ObjectTypeArr[0].trim().toLowerCase()}) +([0-9]+) +(${ObjectNamePattern}|${ObjectNameNoQuotesPattern})([^"\n]*"[^"\n]*)?`, "i");
                 let currObject = objectTxt.match(patternObject);
-                if (currObject === null) {
-                    vscode.window.showErrorMessage(`File '${this.objectFileName}' does not have valid object name. Maybe it got double quotes (") in the object name?`);
-                    return null;
-                }
+                if (!currObject) { return null; }
 
                 this.objectType = currObject[1];
                 this.objectId = currObject[2];
@@ -106,10 +103,7 @@ export class ALObject {
             case 'enumextension': {
                 var patternObject = new RegExp(`(${ObjectTypeArr[0].trim().toLowerCase()}) +([0-9]+) +(${ObjectNamePattern}|${ObjectNameNoQuotesPattern}) +extends +(${ObjectNamePattern}|${ObjectNameNoQuotesPattern})\\s*(\\/\\/\\s*)?([0-9]+)?`, "i");
                 let currObject = objectTxt.match(patternObject);
-                if (currObject === null) {
-                    vscode.window.showErrorMessage(`File '${this.objectFileName}' does not have valid object name. Maybe it got double quotes (") in the object name?`);
-                    return null;
-                }
+                if (!currObject) { return null; }
 
                 this.objectType = currObject[1];
                 this.objectId = currObject[2];
@@ -123,6 +117,7 @@ export class ALObject {
             case 'interface': {
                 var patternObject = new RegExp(`(${objectType})( +"?[ a-zA-Z0-9._/&-]+"?)`, "i");
                 let currObject = objectTxt.match(patternObject);
+                if (!currObject) { return null; }
 
                 this.objectType = currObject[1];
                 this.objectName = currObject[2];
@@ -133,6 +128,7 @@ export class ALObject {
 
                 var patternObject = new RegExp('(profile)( +"?[ a-zA-Z0-9._/&-]+"?)', "i");
                 let currObject = objectTxt.match(patternObject);
+                if (!currObject) { return null; }
 
                 this.objectType = currObject[1];
                 this.objectName = currObject[2];
@@ -142,6 +138,7 @@ export class ALObject {
             case 'controladdin': {
                 var patternObject = new RegExp('(controladdin)( +"?[ a-zA-Z0-9._/&-]+"?)', "i");
                 let currObject = objectTxt.match(patternObject);
+                if (!currObject) { return null; }
 
                 this.objectType = currObject[1];
                 this.objectName = currObject[2];
@@ -149,9 +146,9 @@ export class ALObject {
                 break;
             }
             case 'pagecustomization': {
-
                 var patternObject = new RegExp(`(${ObjectTypeArr[0].trim().toLowerCase()})( +"?[ a-zA-Z0-9._/&-]+"?) +customizes( +"?[ a-zA-Z0-9._&-]+\\/?[ a-zA-Z0-9._&-]+"?) (\\/\\/+ *)?([0-9]+)?`, "i");
                 let currObject = objectTxt.match(patternObject);
+                if (!currObject) { return null; }
 
                 this.objectType = currObject[1];
                 this.objectName = currObject[2];
@@ -161,8 +158,6 @@ export class ALObject {
                 break;
             }
             default: {
-                vscode.window.showErrorMessage('Not able to parse this file');
-
                 return null;
             }
         }
