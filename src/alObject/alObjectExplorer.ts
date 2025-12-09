@@ -343,7 +343,8 @@ async function showObjectItems(alObject: ALObject,
     title: string,
     enableSearchOnDescription: boolean,
     enableSearchOnDetails: boolean,
-    sortingMethod: number
+    sortingMethod: number,
+    showStartLine: boolean
 ) {
     if (items) {
         const editor = vscode.window.activeTextEditor;
@@ -359,7 +360,8 @@ async function showObjectItems(alObject: ALObject,
             const currentItem = [...items]
                 .reverse()             // Inverte l'array
                 .find(item => ((item.itemStartLine <= currentLine) &&
-                    (item.itemEndLine === 0 || item.itemEndLine >= currentLine)));  // Trova il primo che soddisfa la condizione
+                    (item.itemEndLine === 0 || item.itemEndLine >= currentLine) &&
+                    (!item.additionalItem)));  // Trova il primo che soddisfa la condizione
             currItemStartLine = currentItem.itemStartLine;
         }
         catch {
@@ -397,9 +399,19 @@ async function showObjectItems(alObject: ALObject,
                 }
 
                 groupItems.forEach(item => {
+                    let description = item.description;
+                    if ((item.itemStartLine) && (!item.additionalItem)) {
+                        if (showStartLine) {
+                            description = `[${item.itemStartLine + 1}] ${description}`;
+                        }
+                        if (item.itemStartLine === currItemStartLine) {
+                            description = `${description} $(eye)`;
+                        }
+                    }
+
                     qpItems.push({
                         label: (item.level > 0) ? `${'•  '.repeat(item.level)} ${item.label}` : `${item.label}`,
-                        description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
+                        description: description,
                         detail: (item.detail && (item.level > 0)) ? `${'      '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : qpTools.cmdGoToLine,
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
@@ -602,7 +614,8 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
                     `${alObject.description}: Fields`,
                     enableSearchOnDescription,
                     enableSearchOnDetails,
-                    1);
+                    1,
+                    false);
                 return;
             }
         }
@@ -797,7 +810,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Keys`,
-                    true, false, 1);
+                    true, false, 1, false);
                 return;
             }
         }
@@ -885,7 +898,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Field Groups`,
-                    false, true, 1);
+                    false, true, 1, false);
                 return;
             }
         }
@@ -973,7 +986,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Triggers`,
-                    false, true, 1);
+                    false, true, 1, false);
                 return;
             }
         }
@@ -1111,7 +1124,8 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                                                 itemEndLine: 0,
                                                 sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
                                                 level: level,
-                                                iconName: 'symbol-number'
+                                                iconName: 'symbol-number',
+                                                additionalItem: true
                                             });
                                         }
                                     }
@@ -1139,7 +1153,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     showObjectItems(alObject,
                         items,
                         `${alObject.description}: ${title}`,
-                        false, false, 1);
+                        false, false, 1, true);
                     return;
                 }
             }
@@ -1280,7 +1294,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Dataitems`,
-                    true, false, 1);
+                    true, false, 1, true);
                 return;
             }
         }
@@ -1369,7 +1383,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Page Actions`,
-                    true, true, 1);
+                    true, true, 1, true);
                 return;
             }
         }
@@ -1457,7 +1471,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Regions`,
-                    false, false, 1);
+                    false, false, 1, true);
                 return;
             }
         }
@@ -1550,7 +1564,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Global Variables`,
-                    false, false, 2);
+                    false, false, 2, false);
                 return;
             }
         }
@@ -1641,7 +1655,7 @@ export async function showAllLocalVariables() {
             showObjectItems(alObject,
                 items,
                 `${alObjectVariables.variables[0].scope}: Local Variables`,
-                false, false, 2);
+                false, false, 2, false);
             return;
         }
     }

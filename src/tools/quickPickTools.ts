@@ -28,6 +28,7 @@ export interface atsQuickPickItem extends vscode.QuickPickItem {
     command?: string;
     commandArgs?: any;
     alwaysShow?: boolean;
+    additionalItem?: boolean;
 }
 
 //#region Quick Pick Functions
