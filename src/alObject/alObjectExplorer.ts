@@ -1083,50 +1083,50 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                         let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
                         if (procedures && (procedures.length > 0)) {
                             let lastRegionPath = '';
-                            let lastRegionCount = 0;
                             let level = 0;
                             for (let i = 0; i < procedures.length; i++) {
                                 if ((procedures[i].regionPath !== lastRegionPath)) {
-                                    lastRegionPath = procedures[i].regionPath;
                                     let regions = procedures[i].regionPath.split(' > ');
-                                    let currRegionName = regions[regions.length - 1];
+                                    let prevRegions = lastRegionPath.split(' > ');
+                                    lastRegionPath = procedures[i].regionPath;
 
-                                    if (i > 0) {
-                                        if (regions.length > lastRegionCount) {
-                                            level++;
+                                    let newRegionsFound = false;
+                                    for (let r = 0; r < regions.length; r++) {
+                                        let newRegion = newRegionsFound;
+                                        if (!newRegion) {
+                                            newRegion = (regions[r] != prevRegions[r]);
                                         }
-                                        if (regions.length < lastRegionCount) {
-                                            if (level > 0) { level--; }
-                                        }
-                                    }
-                                    lastRegionCount = regions.length;
 
-                                    if (currRegionName) {
-                                        items.push({
-                                            label: currRegionName,
-                                            description: 'Region',
-                                            detail: '',
-                                            groupID: currGroup,
-                                            groupName: currGroupName,
-                                            itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
-                                            itemEndLine: 0,
-                                            sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                            level: level,
-                                            iconName: 'symbol-number'
-                                        });
+                                        if (newRegion) {
+                                            newRegionsFound = true;
+                                            level = r;
+
+                                            items.push({
+                                                label: regions[r],
+                                                description: 'Region',
+                                                detail: '',
+                                                groupID: currGroup,
+                                                groupName: currGroupName,
+                                                itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
+                                                itemEndLine: 0,
+                                                sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
+                                                level: level,
+                                                iconName: 'symbol-number'
+                                            });
+                                        }
                                     }
                                 }
 
                                 items.push({
                                     label: procedures[i].name,
-                                    description: procedures[i].scope,
-                                    detail: (procedures[i].sourceEvent) ? `${procedures[i].sourceEvent}` : '',
+                                    description: (procedures[i].sourceEvent) ? `${procedures[i].sourceEvent}` : procedures[i].scope,
+                                    detail: '',
                                     groupID: currGroup,
                                     groupName: currGroupName,
                                     itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
                                     itemEndLine: 0,
                                     sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                    level: procedures[i].regionPath ? level + 1 : level,
+                                    level: procedures[i].regionPath ? level + 1 : 0,
                                     iconName: procedures[i].iconName
                                 });
                             }
