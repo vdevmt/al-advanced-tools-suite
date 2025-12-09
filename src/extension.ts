@@ -10,6 +10,7 @@ import * as namespaceMgr from './alObject/alObjectNamespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 import *  as specialCopyFunct from './tools/specialCopyFunctions';
 import *  as appInfo from './tools/appInfo';
+import *  as alFileMgr from './alObject/alObjectFileMgr';
 import { AtsEventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
 import { AtsNameSpaceDiagnosticsCodeActionProvider } from './alObject/alObjectNamespaceMgr';
 import { ALObject } from './alObject/alObject';
@@ -245,6 +246,8 @@ export function deactivate() {
 
     vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
     vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+
+    alFileMgr.clearALObjectCache();
 
     const output = ATSOutputChannel.getInstance();
     output.writeInfoMessage('ATS Extension deactivated.');

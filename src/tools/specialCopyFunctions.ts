@@ -17,27 +17,25 @@ export class AtsEventIntegrationCodeActionProvider implements vscode.CodeActionP
         token: vscode.CancellationToken
     ): vscode.CodeAction[] | undefined {
         try {
-            if (alFileMgr.isALObjectDocument(document)) {
-                let alObject = new ALObject(document, true);
-                if (alObject && alObject.objectName) {
-                    let startPosition = findCodeActionsStartPosByCurrentLine(document, range.start.line);
-                    if (startPosition > 0) {
-                        const fullText = getFullEventDeclaration(document, startPosition);
+            const alObject = alFileMgr.parseALObject(document);
+            if (alObject && alObject.objectName) {
+                let startPosition = findCodeActionsStartPosByCurrentLine(alObject, document, range.start.line);
+                if (startPosition > 0) {
+                    const fullText = getFullEventDeclaration(document, startPosition);
 
-                        const codeAction = new vscode.CodeAction(
-                            'Copy as event subscriber (ATS)',
-                            vscode.CodeActionKind.QuickFix
-                        );
+                    const codeAction = new vscode.CodeAction(
+                        'Copy as event subscriber (ATS)',
+                        vscode.CodeActionKind.QuickFix
+                    );
 
-                        codeAction.command = {
-                            command: 'ats.copyAsEventSubscriber',
-                            title: 'Copy as Event Subscriber',
-                            arguments: [alObject, fullText],
-                        };
-
-                        return [codeAction];
+                    codeAction.command = {
+                        command: 'ats.copyAsEventSubscriber',
+                        title: 'Copy as Event Subscriber',
+                        arguments: [alObject, fullText],
                     };
-                }
+
+                    return [codeAction];
+                };
             }
             return undefined;
         }
@@ -47,37 +45,34 @@ export class AtsEventIntegrationCodeActionProvider implements vscode.CodeActionP
     }
 }
 
-function findCodeActionsStartPosByCurrentLine(document: vscode.TextDocument, currentLine: number): number {
+function findCodeActionsStartPosByCurrentLine(alObject: ALObject, document: vscode.TextDocument, currentLine: number): number {
     let startPosition = -1;
 
     if (document && (currentLine > 0)) {
-        if (alFileMgr.isALObjectDocument(document)) {
-            let alObject = new ALObject(document, true);
-            if (alObject && alObject.objectName) {
-                let currentLineText = document.lineAt(currentLine).text.trim();
+        if (alObject && alObject.objectName) {
+            let currentLineText = document.lineAt(currentLine).text.trim();
 
-                if (alObject.isTable() || alObject.isTableExt()) {
-                    if (regExpr.tableField.test(currentLineText)) {
-                        startPosition = currentLine;
-                    }
+            if (alObject.isTable() || alObject.isTableExt()) {
+                if (regExpr.tableField.test(currentLineText)) {
+                    startPosition = currentLine;
                 }
-                if (alObject.isPage() || alObject.isPageExt()) {
-                    if (regExpr.pageField.test(currentLineText)) {
-                        startPosition = currentLine;
-                    }
+            }
+            if (alObject.isPage() || alObject.isPageExt()) {
+                if (regExpr.pageField.test(currentLineText)) {
+                    startPosition = currentLine;
                 }
+            }
 
-                if (startPosition < 0) {
-                    if (regExpr.integrationEvent.test(currentLineText)) {
-                        startPosition = currentLine;
-                    }
-                    else {
-                        if (currentLine > 0) {
-                            if (regExpr.procedure.test(currentLineText)) {
-                                currentLineText = document.lineAt(currentLine - 1).text.trim();
-                                if (regExpr.integrationEvent.test(currentLineText)) {
-                                    startPosition = currentLine - 1;
-                                }
+            if (startPosition < 0) {
+                if (regExpr.integrationEvent.test(currentLineText)) {
+                    startPosition = currentLine;
+                }
+                else {
+                    if (currentLine > 0) {
+                        if (regExpr.procedure.test(currentLineText)) {
+                            currentLineText = document.lineAt(currentLine - 1).text.trim();
+                            if (regExpr.integrationEvent.test(currentLineText)) {
+                                startPosition = currentLine - 1;
                             }
                         }
                     }
@@ -99,9 +94,8 @@ export function copySelectionAsEventSubscriber() {
     const document = editor.document;
     let eventStartPos = -1;
 
-    const alObject = new ALObject(document, true);
-
-    if (editor.selections) {
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject && editor.selections) {
         editor.selections.forEach(selection => {
             if (eventStartPos < 0) {
                 if (selection.start.line > 0) {
@@ -361,8 +355,8 @@ export async function copySelectionAsEventIntegration() {
     const document = editor.document;
 
     if (editor.selections) {
-        const alObject = new ALObject(document, true);
-        if (isValidObjectTypeForSubscription(alObject)) {
+        const alObject = alFileMgr.parseALObject(document);
+        if (alObject && isValidObjectTypeForSubscription(alObject)) {
             const selection = editor.selection;
             if (selection) {
                 let isValidSelection = false;
@@ -411,7 +405,8 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
     let eventIntText = '';
 
     if (selectedText) {
-        if (alFileMgr.isALObjectDocument(document)) {
+        const alObject = alFileMgr.parseALObject(document);
+        if (alObject) {
             // Elimino un eventuale ';' finale
             if (selectedText.endsWith(";")) {
                 selectedText = selectedText.slice(0, -1);
@@ -419,9 +414,6 @@ function createEventIntegrationText(document: vscode.TextDocument, selection: vs
 
             const match = selectedText.match(/\((.*?)\)/);
             if (match) {
-
-                const alObject = new ALObject(document, true);
-
                 // Ricerca variabili locali e parametri
                 const localVariables = new ALObjectVariables(alObject);
                 localVariables.findLocalVariablesInCurrentScope();
@@ -548,7 +540,8 @@ function createProcedureDefinitionText(document: vscode.TextDocument, selectedTe
     let eventIntText = '';
 
     if (selectedText) {
-        if (alFileMgr.isALObjectDocument(document)) {
+        const alObject = alFileMgr.parseALObject(document);
+        if (alObject) {
             const callRegex =
                 /(?:\bif\s+)?(?:(?<scope>[A-Za-z_][A-Za-z0-9_]*)\s*\.\s*)?(?<funcName>"[^"]+"|[A-Za-z_][A-Za-z0-9_]*)\s*\((?<params>[\s\S]*?)\)/i;
 
@@ -561,8 +554,6 @@ function createProcedureDefinitionText(document: vscode.TextDocument, selectedTe
 
             const procedureName = match.groups.funcName;
             const params = match.groups.params;
-
-            const alObject = new ALObject(document, true);
 
             // Ricerca variabili locali e parametri
             const localVariables = new ALObjectVariables(alObject);
@@ -656,11 +647,9 @@ export async function copyRecordInsertStatement(docUri?: vscode.Uri, validateFie
         document = editor.document;
     }
 
-    const alObject = new ALObject(document, true);
-
     let statementText = '';
-
-    if (alObject.isTable() || alObject.isTableExt()) {
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject?.isTable() || alObject?.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
@@ -764,11 +753,9 @@ export async function copyRecordModifyStatement(docUri?: vscode.Uri, validateFie
         document = editor.document;
     }
 
-    const alObject = new ALObject(document, true);
-
     let statementText = '';
-
-    if (alObject.isTable() || alObject.isTableExt()) {
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject?.isTable() || alObject?.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
@@ -849,11 +836,9 @@ export async function copyRecordDeleteStatement(docUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    const alObject = new ALObject(document, true);
-
     let statementText = '';
-
-    if (alObject.isTable() || alObject.isTableExt()) {
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject?.isTable() || alObject?.isTableExt()) {
         const alTableFields = new ALObjectFields(alObject);
         const recVariableName = await askRecordVariableName(typeHelper.toPascalCase(alObject.objectName));
 
@@ -912,11 +897,9 @@ export async function copyRecordAsPageFields(docUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    const alObject = new ALObject(document, true);
-
     let statementText = '';
-
-    if (alObject.isTable() || alObject.isTableExt()) {
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject?.isTable() || alObject?.isTableExt()) {
         const alTableFields = new ALObjectFields(undefined);
         alFileMgr.findTableFieldsFromSelection(alObject, alTableFields);
         const recVariableName = await askRecordVariableName('Rec');
@@ -999,11 +982,9 @@ export async function copyRecordAsReportColumns(docUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    const alObject = new ALObject(document, true);
-
     let statementText = '';
-
-    if (alObject.isTable() || alObject.isTableExt()) {
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject?.isTable() || alObject?.isTableExt()) {
         const alTableFields = new ALObjectFields(undefined);
         alFileMgr.findTableFieldsFromSelection(alObject, alTableFields);
 

@@ -38,12 +38,16 @@ export async function updateObjectInfoStatusBarByDocument(objectInfoStatusBarIte
     objectInfoStatusBarItem.tooltip = makeTooltip(null, '');
 
     if (document) {
-        if (alFileMgr.isALObjectDocument(document)) {
-            let alObject: ALObject;
-            alObject = new ALObject(document, true);
+        const alObject = alFileMgr.parseALObject(document);
+        if (alObject) {
             let objectInfoText = alObject.description;
             objectInfoStatusBarItem.tooltip = makeTooltip(alObject, objectInfoText);
-            objectInfoStatusBarItem.text = `$(info) ${objectInfoText}`;
+
+            let iconName = alObject.getDefaultIconName();
+            if (!iconName) {
+                iconName = 'info';
+            }
+            objectInfoStatusBarItem.text = `$(${iconName}) ${objectInfoText}`;
         }
     }
 }

@@ -8,8 +8,42 @@ import * as appInfo from '../tools/appInfo';
 import { ATSSettings } from '../settings/atsSettings';
 import { CRSSettings } from '../settings/crsSettings';
 import { ALObject, ALObjectDataItems, ALObjectFields, ALTableFieldGroups, ALTableKeys, ALObjectRegions, ALObjectProcedures, ALObjectActions, ALObjectTriggers, ALObjectVariables } from './alObject';
+import { DocumentCacheManager } from '../cache/documentCacheMgr';
 
 //#region AL Object file tools
+const alObjectCache = new DocumentCacheManager<ALObject>();
+
+export function clearALObjectCache() {
+    alObjectCache.clearCache();
+}
+
+export function parseALObject(document: vscode.TextDocument): ALObject | null {
+    if (isALObjectDocument(document)) {
+        // 1. Tenta di recuperare l'oggetto dalla cache
+        const cached = alObjectCache.getCachedALObject(document);
+        if (cached) {
+            return cached;
+        }
+
+        // 2. Crea nuovo oggetto
+        try {
+            // Esegue l'operazione costosa: parsing del file
+            let alObject = new ALObject(document, true);
+
+            // Aggiorna la cache
+            alObjectCache.setCache(document, alObject);
+
+            return alObject;
+        }
+        catch {
+            return null;
+        }
+    }
+
+
+    return null;
+}
+
 export function isALObjectFile(file: vscode.Uri | undefined, previewObjectAllowed: boolean): boolean {
     const lower = file?.fsPath?.toLowerCase();
     if (!lower) { return false; }
@@ -190,9 +224,8 @@ export function getCurrentObjectNamespace(): string {
 }
 
 export function getObjectNamespace(document: vscode.TextDocument): string {
-    if (isALObjectDocument(document)) {
-        let alObject: ALObject;
-        alObject = new ALObject(document, false);
+    const alObject = parseALObject(document);
+    if (alObject) {
         return alObject.objectNamespace;
     }
 
