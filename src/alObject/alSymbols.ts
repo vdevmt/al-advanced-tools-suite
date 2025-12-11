@@ -19,9 +19,10 @@ export async function findAllSymbols(): Promise<vscode.SymbolInformation[]> {
         return [];
     }
 
-    const doc = await vscode.workspace.openTextDocument(symbols[0].location.uri);
-    if (alFileMgr.isALObjectDocument(doc)) {
-        const alObject = new ALObject(doc, true);
+    const document = await vscode.workspace.openTextDocument(symbols[0].location.uri);
+    const alObject = alFileMgr.parseALObject(document);
+    if (alObject) {
+
     }
 
     return symbols;

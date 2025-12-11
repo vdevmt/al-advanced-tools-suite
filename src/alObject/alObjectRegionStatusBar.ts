@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as regionMgr from './alObjectRegionMgr';
 import * as appInfo from '../tools/appInfo';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
 import { ATSSettings } from '../settings/atsSettings';
 import { ALObject, ALObjectRegions } from './alObject';
 
@@ -69,7 +70,7 @@ export async function updateRegionsStatusBar(regionStatusBarItem: vscode.StatusB
     }
 
     if (rebuildCache) {
-        alObject = new ALObject(document, true);
+        const alObject = alFileMgr.parseALObject(document);
         alObjectRegions = new ALObjectRegions(alObject);
         currDocumentKey = makeDocumentKey(document);
     }

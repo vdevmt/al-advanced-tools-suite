@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ALObject } from '../alObject/alObject';
 import * as ALObjectExplorer from '../alObject/alObjectExplorer';
+import * as alFileMgr from '../alObject/alObjectFileMgr';
 
 export const cmdGoToLine = 'GoToLine';
 export const cmdGoToLineOnSide = 'GoToLineOnSide';
@@ -27,6 +28,7 @@ export interface atsQuickPickItem extends vscode.QuickPickItem {
     command?: string;
     commandArgs?: any;
     alwaysShow?: boolean;
+    additionalItem?: boolean;
 }
 
 //#region Quick Pick Functions
@@ -84,7 +86,7 @@ export async function showQuickPick(
 
     const refreshButtons = () => {
         const btns: vscode.QuickInputButton[] = [];
-        if (goBackCommand) {btns.push(BTN_GOBACK);}
+        if (goBackCommand) { btns.push(BTN_GOBACK); }
         if (enableFilterByGroup) {
             btns.push(BTN_FILTER);
             qp.title = originalTitle;
@@ -137,7 +139,7 @@ export async function showQuickPick(
 
     disposables.push(
         qp.onDidChangeValue((value) => {
-            if (debounceHandle) {clearTimeout(debounceHandle);}
+            if (debounceHandle) { clearTimeout(debounceHandle); }
             qp.busy = true;
             debounceHandle = setTimeout(() => {
                 try {
@@ -165,7 +167,7 @@ export async function showQuickPick(
                 return;
             }
             const selectedItem = qp.selectedItems[0] as atsQuickPickItem | undefined;
-            if (!selectedItem) {return;}
+            if (!selectedItem) { return; }
             await executeQuickPickItemCommand(selectedItem);
             qp.hide();
         })
@@ -175,7 +177,7 @@ export async function showQuickPick(
     disposables.push(
         qp.onDidTriggerItemButton(async (selected) => {
             const selectedItem = selected.item as atsQuickPickItem | undefined;
-            if (!selectedItem) {return;}
+            if (!selectedItem) { return; }
             qp.hide();
 
             // preferisci id stabile sul bottone se disponibile; fallback a tooltip per retrocompatibilità
@@ -241,7 +243,7 @@ export async function showQuickPick(
     // ——— lifecycle ———
     disposables.push(
         qp.onDidHide(() => {
-            if (debounceHandle) {clearTimeout(debounceHandle);}
+            if (debounceHandle) { clearTimeout(debounceHandle); }
             disposables.forEach(d => { try { d.dispose(); } catch { /* noop */ } });
             qp.dispose();
         })
@@ -325,8 +327,10 @@ async function executeQuickPickItemCommand(selectedItem: atsQuickPickItem) {
                 case cmdExecALObjectExplorer: {
                     if (selectedItem.commandArgs) {
                         const document = await vscode.workspace.openTextDocument(selectedItem.commandArgs);
-                        const alObject: ALObject = new ALObject(document, true);
-                        ALObjectExplorer.execALObjectExplorer(alObject);
+                        const alObject = alFileMgr.parseALObject(document);
+                        if (alObject) {
+                            ALObjectExplorer.execALObjectExplorer(alObject);
+                        }
                     }
 
                     break;

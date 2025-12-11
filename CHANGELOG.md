@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.10.0]
+- Performance improvements
+
 ## [1.9.7]
 - Enhancements: Improved handling of multi-root workspaces
 

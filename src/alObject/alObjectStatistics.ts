@@ -86,8 +86,8 @@ async function findObjectIDRangesInWorkspace(workspaceFolder: vscode.WorkspaceFo
                 for (const file of files) {
                     if (file) {
                         const document = await vscode.workspace.openTextDocument(file);
-                        if (alFileMgr.isALObjectDocument(document)) {
-                            const alObject: ALObject = new ALObject(document, false);
+                        const alObject = alFileMgr.parseALObject(document);
+                        if (alObject) {
                             if (alObject.objectType) {
                                 let objectId = parseInt(alObject.objectId, 10);
                                 if (isNaN(objectId)) {

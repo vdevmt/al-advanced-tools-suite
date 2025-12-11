@@ -10,6 +10,7 @@ import * as namespaceMgr from './alObject/alObjectNamespaceMgr';
 import * as diagnosticMgr from './diagnostics/diagnosticMgr';
 import *  as specialCopyFunct from './tools/specialCopyFunctions';
 import *  as appInfo from './tools/appInfo';
+import *  as alFileMgr from './alObject/alObjectFileMgr';
 import { AtsEventIntegrationCodeActionProvider } from './tools/specialCopyFunctions';
 import { AtsNameSpaceDiagnosticsCodeActionProvider } from './alObject/alObjectNamespaceMgr';
 import { ALObject } from './alObject/alObject';
@@ -62,6 +63,18 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }
     }
+
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(e => {
+            // Clear AL Object Cache
+            alFileMgr.clearALObjectCache();
+        }),
+
+        vscode.workspace.onDidCloseTextDocument(doc => {
+            // Clear AL Object Cache
+            alFileMgr.clearALObjectCache();
+        }),
+    );
 
     context.subscriptions.push(vscode.commands.registerCommand('ats.ALObjectExplorer', alObjectExplorer.execALObjectExplorer));
     context.subscriptions.push(vscode.commands.registerCommand('ats.showOpenALObjects', alObjectExplorer.showOpenALObjects));
@@ -245,6 +258,8 @@ export function deactivate() {
 
     vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
     vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
+
+    alFileMgr.clearALObjectCache();
 
     const output = ATSOutputChannel.getInstance();
     output.writeInfoMessage('ATS Extension deactivated.');

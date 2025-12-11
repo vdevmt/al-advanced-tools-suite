@@ -138,8 +138,8 @@ function collectDefaultNamespaces(currDocument: vscode.TextDocument): atsNameSpa
         if (nsFromPath) {
             addNamespaceToList(defaultNamespaces, nsFromPath, 'ATS: Namespace by current file path', 1);
 
-            const alObject = new ALObject(currDocument, false);
-            if (alObject.isControlAddin()) {
+            const alObject = alFileMgr.parseALObject(currDocument);
+            if (alObject?.isControlAddin()) {
                 let normalizedObjName = alFileMgr.removeObjectNamePrefix(alObject.objectName, currDocument.uri, false);
                 normalizedObjName = typeHelper.toPascalCase(normalizedObjName);
 
@@ -248,9 +248,9 @@ function isNamespaceMandatory(uri: vscode.Uri): boolean {
 
 function isValidNamespaceForObject(namespace: string, document: vscode.TextDocument): boolean {
     if (namespace) {
-        if (alFileMgr.isALObjectDocument(document)) {
-            const alObject = new ALObject(document, false);
-            if (alObject?.isTestCodeunit()) {
+        const alObject = alFileMgr.parseALObject(document);
+        if (alObject) {
+            if (alObject.isTestCodeunit()) {
                 return true;
             }
 

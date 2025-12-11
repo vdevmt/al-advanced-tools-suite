@@ -248,7 +248,7 @@ export class ALObjectIndex implements vscode.Disposable {
         try {
             if (alFileMgr.isALObjectFile(uri, false)) {
                 const document = await vscode.workspace.openTextDocument(uri);
-                const alObject = new ALObject(document, false);
+                const alObject = alFileMgr.parseALObject(document);
 
                 if (alObject) {
                     if (alObject.objectName) {

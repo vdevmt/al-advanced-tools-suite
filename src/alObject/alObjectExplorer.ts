@@ -20,10 +20,7 @@ export async function execALObjectExplorer(alObject?: ALObject) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
         const document = editor.document;
-
-        if (alFileMgr.isALObjectDocument(document)) {
-            alObject = new ALObject(document, true);
-        }
+        alObject = alFileMgr.parseALObject(document);
     }
 
     let qpItems: qpTools.atsQuickPickItem[] = [];
@@ -91,8 +88,8 @@ export async function execALObjectExplorer(alObject?: ALObject) {
 async function execALObjectExplorerByUri(docUri: vscode.Uri) {
     if (docUri) {
         const document = await vscode.workspace.openTextDocument(docUri);
-        if (alFileMgr.isALObjectDocument(document)) {
-            const alObject: ALObject = new ALObject(document, true);
+        const alObject = alFileMgr.parseALObject(document);
+        if (alObject) {
             execALObjectExplorer(alObject);
         }
     }
@@ -346,7 +343,8 @@ async function showObjectItems(alObject: ALObject,
     title: string,
     enableSearchOnDescription: boolean,
     enableSearchOnDetails: boolean,
-    sortingMethod: number
+    sortingMethod: number,
+    showStartLine: boolean
 ) {
     if (items) {
         const editor = vscode.window.activeTextEditor;
@@ -362,7 +360,8 @@ async function showObjectItems(alObject: ALObject,
             const currentItem = [...items]
                 .reverse()             // Inverte l'array
                 .find(item => ((item.itemStartLine <= currentLine) &&
-                    (item.itemEndLine === 0 || item.itemEndLine >= currentLine)));  // Trova il primo che soddisfa la condizione
+                    (item.itemEndLine === 0 || item.itemEndLine >= currentLine) &&
+                    (!item.additionalItem)));  // Trova il primo che soddisfa la condizione
             currItemStartLine = currentItem.itemStartLine;
         }
         catch {
@@ -400,9 +399,19 @@ async function showObjectItems(alObject: ALObject,
                 }
 
                 groupItems.forEach(item => {
+                    let description = item.description;
+                    if ((item.itemStartLine) && (!item.additionalItem)) {
+                        if (showStartLine) {
+                            description = `[${item.itemStartLine + 1}] ${description}`;
+                        }
+                        if (item.itemStartLine === currItemStartLine) {
+                            description = `${description} $(eye)`;
+                        }
+                    }
+
                     qpItems.push({
                         label: (item.level > 0) ? `${'•  '.repeat(item.level)} ${item.label}` : `${item.label}`,
-                        description: (item.itemStartLine === currItemStartLine) ? `${item.description} $(eye)` : item.description,
+                        description: description,
                         detail: (item.detail && (item.level > 0)) ? `${'      '.repeat(item.level)} ${item.detail}` : item.detail,
                         command: item.command ? item.command : qpTools.cmdGoToLine,
                         commandArgs: item.command ? item.commandArgs : item.itemStartLine,
@@ -435,7 +444,6 @@ async function showObjectItems(alObject: ALObject,
 export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: string) {
     TelemetryClient.logCommand('showAllFields');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -447,10 +455,7 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let enableSearchOnDescription = true;
         let enableSearchOnDetails = true;
@@ -609,7 +614,8 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
                     `${alObject.description}: Fields`,
                     enableSearchOnDescription,
                     enableSearchOnDetails,
-                    1);
+                    1,
+                    false);
                 return;
             }
         }
@@ -621,7 +627,6 @@ export async function showAllFields(alObjectUri?: vscode.Uri, sectionFilter?: st
 export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?: string) {
     TelemetryClient.logCommand('copyFieldsAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -633,11 +638,7 @@ export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?:
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         var fullText = '';
 
@@ -776,7 +777,6 @@ export async function copyFieldsAsText(alObjectUri?: vscode.Uri, sectionFilter?:
 export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllTableKeys');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -788,10 +788,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alTableKeys: ALTableKeys;
         alTableKeys = new ALTableKeys(alObject);
@@ -813,7 +810,7 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Keys`,
-                    true, false, 1);
+                    true, false, 1, false);
                 return;
             }
         }
@@ -824,7 +821,6 @@ export async function showAllTableKeys(alObjectUri?: vscode.Uri) {
 export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyTableKeysAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -836,10 +832,7 @@ export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         var fullText = '';
 
@@ -872,7 +865,6 @@ export async function copyTableKeysAsText(alObjectUri?: vscode.Uri) {
 export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllTableFieldGroups');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -884,10 +876,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alTableFieldGroups: ALTableFieldGroups;
         alTableFieldGroups = new ALTableFieldGroups(alObject);
@@ -909,7 +898,7 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Field Groups`,
-                    false, true, 1);
+                    false, true, 1, false);
                 return;
             }
         }
@@ -920,7 +909,6 @@ export async function showAllTableFieldGroups(alObjectUri?: vscode.Uri) {
 export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyTableFieldGroupsAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -932,10 +920,7 @@ export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         var fullText = '';
 
@@ -967,7 +952,6 @@ export async function copyTableFieldGroupsAsText(alObjectUri?: vscode.Uri) {
 export async function showAllTriggers(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllTriggers');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -979,9 +963,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alObjectTriggers: ALObjectTriggers;
         alObjectTriggers = new ALObjectTriggers(alObject);
@@ -1004,7 +986,7 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Triggers`,
-                    false, true, 1);
+                    false, true, 1, false);
                 return;
             }
         }
@@ -1015,7 +997,6 @@ export async function showAllTriggers(alObjectUri?: vscode.Uri) {
 export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyTriggersAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1027,10 +1008,7 @@ export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         var fullText = '';
 
@@ -1062,7 +1040,6 @@ export async function copyTriggersAsText(alObjectUri?: vscode.Uri) {
 export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: string) {
     TelemetryClient.logCommand('showAllProcedures');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1074,9 +1051,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alObjectProceduresFull: ALObjectProcedures;
         alObjectProceduresFull = new ALObjectProcedures(alObject);
@@ -1121,50 +1096,51 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                         let procedures = alObjectProcedures.procedures.filter(item => item.groupName.toLowerCase() === currGroupName.toLowerCase());
                         if (procedures && (procedures.length > 0)) {
                             let lastRegionPath = '';
-                            let lastRegionCount = 0;
                             let level = 0;
                             for (let i = 0; i < procedures.length; i++) {
                                 if ((procedures[i].regionPath !== lastRegionPath)) {
-                                    lastRegionPath = procedures[i].regionPath;
                                     let regions = procedures[i].regionPath.split(' > ');
-                                    let currRegionName = regions[regions.length - 1];
+                                    let prevRegions = lastRegionPath.split(' > ');
+                                    lastRegionPath = procedures[i].regionPath;
 
-                                    if (i > 0) {
-                                        if (regions.length > lastRegionCount) {
-                                            level++;
+                                    let newRegionsFound = false;
+                                    for (let r = 0; r < regions.length; r++) {
+                                        let newRegion = newRegionsFound;
+                                        if (!newRegion) {
+                                            newRegion = (regions[r] != prevRegions[r]);
                                         }
-                                        if (regions.length < lastRegionCount) {
-                                            if (level > 0) { level--; }
-                                        }
-                                    }
-                                    lastRegionCount = regions.length;
 
-                                    if (currRegionName) {
-                                        items.push({
-                                            label: currRegionName,
-                                            description: 'Region',
-                                            detail: '',
-                                            groupID: currGroup,
-                                            groupName: currGroupName,
-                                            itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
-                                            itemEndLine: 0,
-                                            sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                            level: level,
-                                            iconName: 'symbol-number'
-                                        });
+                                        if (newRegion) {
+                                            newRegionsFound = true;
+                                            level = r;
+
+                                            items.push({
+                                                label: regions[r],
+                                                description: 'Region',
+                                                detail: '',
+                                                groupID: currGroup,
+                                                groupName: currGroupName,
+                                                itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
+                                                itemEndLine: 0,
+                                                sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
+                                                level: level,
+                                                iconName: 'symbol-number',
+                                                additionalItem: true
+                                            });
+                                        }
                                     }
                                 }
 
                                 items.push({
                                     label: procedures[i].name,
-                                    description: procedures[i].scope,
-                                    detail: (procedures[i].sourceEvent) ? `${procedures[i].sourceEvent}` : '',
+                                    description: (procedures[i].sourceEvent) ? `${procedures[i].sourceEvent}` : procedures[i].scope,
+                                    detail: '',
                                     groupID: currGroup,
                                     groupName: currGroupName,
                                     itemStartLine: procedures[i].startLine ? procedures[i].startLine : 0,
                                     itemEndLine: 0,
                                     sortIndex: procedures[i].startLine ? procedures[i].startLine : 0,
-                                    level: procedures[i].regionPath ? level + 1 : level,
+                                    level: procedures[i].regionPath ? level + 1 : 0,
                                     iconName: procedures[i].iconName
                                 });
                             }
@@ -1177,7 +1153,7 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
                     showObjectItems(alObject,
                         items,
                         `${alObject.description}: ${title}`,
-                        false, false, 1);
+                        false, false, 1, true);
                     return;
                 }
             }
@@ -1189,7 +1165,6 @@ export async function showAllProcedures(alObjectUri?: vscode.Uri, groupFilter?: 
 export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter?: string) {
     TelemetryClient.logCommand('copyProceduresAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1201,10 +1176,7 @@ export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let fullText = '';
         let exportSourceEventDet = false;
@@ -1289,7 +1261,6 @@ export async function copyProceduresAsText(alObjectUri?: vscode.Uri, groupFilter
 export async function showAllDataItems(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllDataItems');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1301,10 +1272,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alObjectDataItems: ALObjectDataItems;
         alObjectDataItems = new ALObjectDataItems(alObject);
@@ -1326,7 +1294,7 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Dataitems`,
-                    true, false, 1);
+                    true, false, 1, true);
                 return;
             }
         }
@@ -1337,7 +1305,6 @@ export async function showAllDataItems(alObjectUri?: vscode.Uri) {
 export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyDataItemsAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1349,10 +1316,7 @@ export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let fullText = '';
 
@@ -1385,7 +1349,6 @@ export async function copyDataItemsAsText(alObjectUri?: vscode.Uri) {
 export async function showAllActions(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllActions');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1397,10 +1360,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alObjectActions: ALObjectActions;
         alObjectActions = new ALObjectActions(alObject);
@@ -1423,7 +1383,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Page Actions`,
-                    true, true, 1);
+                    true, true, 1, true);
                 return;
             }
         }
@@ -1434,7 +1394,6 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
 export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyActionsAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1446,10 +1405,7 @@ export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let fullText = '';
 
@@ -1482,7 +1438,6 @@ export async function copyActionsAsText(alObjectUri?: vscode.Uri) {
 export async function showAllRegions(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllRegions');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1494,10 +1449,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alObjectRegions: ALObjectRegions;
         alObjectRegions = new ALObjectRegions(alObject);
@@ -1519,7 +1471,7 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Regions`,
-                    false, false, 1);
+                    false, false, 1, true);
                 return;
             }
         }
@@ -1530,7 +1482,6 @@ export async function showAllRegions(alObjectUri?: vscode.Uri) {
 export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyRegionsAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1542,10 +1493,8 @@ export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
 
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let fullText = '';
 
@@ -1576,7 +1525,6 @@ export async function copyRegionsAsText(alObjectUri?: vscode.Uri) {
 export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('showAllGlobalVariables');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1588,10 +1536,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let alObjectVariables: ALObjectVariables;
         alObjectVariables = new ALObjectVariables(alObject);
@@ -1619,7 +1564,7 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Global Variables`,
-                    false, false, 2);
+                    false, false, 2, false);
                 return;
             }
         }
@@ -1631,7 +1576,6 @@ export async function showAllGlobalVariables(alObjectUri?: vscode.Uri) {
 export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
     TelemetryClient.logCommand('copyGlobalVariablesAsText');
 
-    let alObject: ALObject;
     let document: vscode.TextDocument;
 
     if (alObjectUri) {
@@ -1643,10 +1587,7 @@ export async function copyGlobalVariablesAsText(alObjectUri?: vscode.Uri) {
         document = editor.document;
     }
 
-    if (alFileMgr.isALObjectDocument(document)) {
-        alObject = new ALObject(document, true);
-    }
-
+    const alObject = alFileMgr.parseALObject(document);
     if (alObject) {
         let fullText = '';
 
@@ -1686,7 +1627,9 @@ export async function showAllLocalVariables() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) { return; }
 
-    const alObject = new ALObject(editor.document, false);
+    const alObject = alFileMgr.parseALObject(editor.document);
+    if (!alObject) { return; }
+
     const alObjectVariables = new ALObjectVariables(undefined);
     alFileMgr.findLocalVariablesInCurrentScope(alObjectVariables);
     if (alObjectVariables.variables) {
@@ -1712,7 +1655,7 @@ export async function showAllLocalVariables() {
             showObjectItems(alObject,
                 items,
                 `${alObjectVariables.variables[0].scope}: Local Variables`,
-                false, false, 2);
+                false, false, 2, false);
             return;
         }
     }
@@ -1740,9 +1683,7 @@ export async function showOpenALObjects() {
             if (alFileMgr.isALObjectFile(documentUri, true)) {
                 const doc = await vscode.workspace.openTextDocument(documentUri);
 
-                let alObject: ALObject;
-                alObject = new ALObject(doc, true);
-
+                const alObject = alFileMgr.parseALObject(doc);
                 const isCurrentEditor = (doc.uri.toString() === activeUri);
                 const isLocked = alFileMgr.isPreviewALObjectFile(documentUri);
 
