@@ -1371,8 +1371,8 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
                     description: item.sourceAction ? `Ref: ${item.sourceAction}` :
                         (item.properties && item.properties['caption']) ? `${item.properties['caption']}` : '',
                     detail: '',
-                    groupID: 0,
-                    groupName: '',
+                    groupID: item.areaIndex,
+                    groupName: item.area,
                     itemStartLine: item.startLine ? item.startLine : 0,
                     itemEndLine: 0,
                     sortIndex: item.startLine ? item.startLine : 0,
@@ -1383,7 +1383,7 @@ export async function showAllActions(alObjectUri?: vscode.Uri) {
                 showObjectItems(alObject,
                     items,
                     `${alObject.description}: Page Actions`,
-                    true, true, 1, true);
+                    true, true, 1, false);
                 return;
             }
         }

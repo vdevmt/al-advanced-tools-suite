@@ -56,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('setContext', 'ats.isAlObject', false);
         vscode.commands.executeCommand('setContext', 'ats.alObjectType', '');
         if (editor && editor.document) {
-            const alObject = new ALObject(editor.document, false);
+            const alObject = alFileMgr.parseALObject(editor.document);
             if (alObject.objectType) {
                 vscode.commands.executeCommand('setContext', 'ats.isAlObject', true);
                 vscode.commands.executeCommand('setContext', 'ats.alObjectType', alObject.objectType);

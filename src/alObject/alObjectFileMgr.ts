@@ -1074,6 +1074,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
     if (alObject) {
         if (alObject.objectContentText) {
             if (alObject.isPage() || alObject.isPageExt) {
+                let areaIndex = 0;
                 let codeSectionsInfo: { startLine: number, content: string }[] = [];
                 if (extractCodeSection('actions', alObject.objectContentText, false, codeSectionsInfo)) {
                     for (const section of codeSectionsInfo) {
@@ -1100,12 +1101,15 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                             const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
                             if (!commentedLine) {
                                 if (isActionAreaDefinition(lineText, actionAreaInfo)) {
+                                    areaIndex++;
+
                                     alPageActions.actions.push({
                                         kind: 'area',
                                         name: actionAreaInfo.name,
                                         level: 0,
                                         sourceAction: '',
-                                        area: '',
+                                        area: actionAreaInfo.name,
+                                        areaIndex: areaIndex,
                                         isAction: false,
                                         iconName: actionAreaInfo.extAnchor ? 'plug' : 'location',
                                         startLine: lineNumber
@@ -1129,6 +1133,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                             level: currentLevel,
                                             sourceAction: '',
                                             area: actionAreaInfo.name,
+                                            areaIndex: areaIndex,
                                             isAction: false,
                                             properties: properties,
                                             iconName: 'array',
@@ -1154,6 +1159,7 @@ export function findPageActions(alObject: ALObject, alPageActions: ALObjectActio
                                             level: currentLevel,
                                             sourceAction: actionInfo.sourceAction,
                                             area: actionAreaInfo.name,
+                                            areaIndex: areaIndex,
                                             actionGroupRef: lastGroupName ? lastGroupName.name : '',
                                             isAction: true,
                                             properties: properties,
