@@ -635,6 +635,7 @@ export class ALObjectActions {
         sourceAction?: string,
         isAction: boolean,
         area?: string,
+        areaIndex?: number,
         actionGroupRef?: string,
         properties?: { [key: string]: string },
         iconName?: string,
