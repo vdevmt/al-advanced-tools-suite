@@ -1,0 +1,27 @@
+# Exclude everything by default
+*
+.git/
+.husky/
+.snapshots/
+.vscode/
+images/
+node_modules/
+src/
+AzureInsights/
+
+# Include only packaged assets and metadata
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+
+# Localizations
+!package.nls.json
+!package.nls.*.json
+
+# Built extension output
+!dist/**
+
+# Snippets and required images used by the extension
+!snippets/**
+!images/logo.png

@@ -1,0 +1,12 @@
+{
+    "Snippet (ATS): AL Region": {
+        "prefix": "tregion",
+        "description": "Snippet (ATS): creates region for AL objects",
+        "scope": "al",
+        "body": [
+            "#region ${1:regionName}",
+            "\t$0",
+            "#endregion ${1:regionName}"
+        ]        
+    }
+}

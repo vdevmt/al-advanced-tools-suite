@@ -1,0 +1,459 @@
+{
+  "name": "al-advanced-tools-suite",
+  "displayName": "Advanced Tools Suite for AL Language",
+  "description": "Advanced Tools Suite for AL Language",
+  "version": "1.11.1",
+  "publisher": "vdevmt",
+  "icon": "images/logo.png",
+  "author": {
+    "name": "Vito Iacovone",
+    "email": "vdevmt@outlook.it"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "preview": false,
+  "keywords": [
+    "Dynamics 365 Business Central",
+    "AL",
+    "launch",
+    "region"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vdevmt/al-advanced-tools-suite.git"
+  },
+  "categories": [
+    "Other",
+    "Extension Packs",
+    "Snippets",
+    "Programming Languages"
+  ],
+  "license": "MIT",
+  "activationEvents": [
+    "onLanguage:al",
+    "workspaceContains:**/*.al"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "codeActions": [
+      {
+        "language": "al",
+        "kind": "quickfix",
+        "title": "Copy as Event Subscriber",
+        "command": "ats.copySelectionAsEventSubscriber"
+      },
+      {
+        "language": "al",
+        "kind": "quickfix",
+        "title": "Set object namespace",
+        "command": "ats.setObjectNamespace"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ats.gotoWorkspaceObjects",
+        "title": "Go to AL Object (Workspace Only)",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.alPackageNewVersion",
+        "title": "AL Package new version",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.importLaunchFile",
+        "title": "Import 'launch.json'",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.exportLaunchFile",
+        "title": "Export 'launch.json'",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.openLaunchFile",
+        "title": "Open 'launch.json'",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.importAlSymbols",
+        "title": "Import AL Symbols",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.runBusinessCentral",
+        "title": "Run Business Central",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.changeStartupObjectAndRunBusinessCentral",
+        "title": "Change default startup object and run Business Central",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.createRegionBySelection",
+        "title": "Create region by selection",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.setNamespaceByFilePath",
+        "title": "Set object namespace based on file path",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.ALObjectExplorer",
+        "title": "AL Object Explorer",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.showOpenALObjects",
+        "title": "Show open AL objects",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.showAllFields",
+        "title": "Show all fields",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllTableKeys",
+        "title": "Show all table keys",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllTableFieldGroups",
+        "title": "Show all table field groups",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllTriggers",
+        "title": "Show all triggers",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllProcedures",
+        "title": "Show all procedures",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllDataItems",
+        "title": "Show all dataitems",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllRegions",
+        "title": "Show all regions",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllGlobalVariables",
+        "title": "Show all global variables",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllLocalVariables",
+        "title": "Show all local variables",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.showAllActions",
+        "title": "Show all page actions",
+        "category": "ATS AL Object Explorer"
+      },
+      {
+        "command": "ats.copySelectionAsEventSubscriber",
+        "title": "Copy as Event Subscriber",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copySelectionAsEventIntegration",
+        "title": "Copy as Event Integration",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copySelectionAsProcedure",
+        "title": "Copy as Procedure",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyAsRecordInsertStatement",
+        "title": "Copy as Record Insert statement",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyAsRecordInsertStatementWithValidation",
+        "title": "Copy as Record Insert statement with validation",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyAsRecordModifyStatement",
+        "title": "Copy as Record Modify statement",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyAsRecordModifyStatementWithValidation",
+        "title": "Copy as Record Modify statement with validation",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyAsRecordDeleteStatement",
+        "title": "Copy as Record Delete statement",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyRecordAsPageFields",
+        "title": "Copy as Page Fields",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.copyRecordAsReportColumns",
+        "title": "Copy as Report/Query Columns",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.viewALObjectsSummary",
+        "title": "AL objects summary",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.exportObjectsAssignmentDetailsAsCSV",
+        "title": "Export AL objects assignment details as csv",
+        "category": "ATS"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "al",
+        "path": "./snippets/alSingleLineFields.json"
+      },
+      {
+        "language": "al",
+        "path": "./snippets/alSingleLineFieldsWithCaptionTop.json"
+      },
+      {
+        "language": "al",
+        "path": "./snippets/alRegion.json"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "ats.specialCopy",
+        "label": "Special Copy (ATS)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "ats.specialCopy",
+          "group": "9_cutcopypaste"
+        }
+      ],
+      "ats.specialCopy": [
+        {
+          "command": "ats.copySelectionAsEventSubscriber",
+          "group": "Integration Event",
+          "when": "editorTextFocus && resourceLangId == al",
+          "title": "Copy as Event Subscriber"
+        },
+        {
+          "command": "ats.copySelectionAsEventIntegration",
+          "group": "Integration Event",
+          "when": "editorTextFocus && resourceLangId == al",
+          "title": "Copy as Event Integration"
+        },
+        {
+          "command": "ats.copySelectionAsProcedure",
+          "group": "Procedure",
+          "when": "editorTextFocus && resourceLangId == al",
+          "title": "Copy as Procedure"
+        },
+        {
+          "command": "ats.copyAsRecordInsertStatement",
+          "group": "Record Assignment",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy Record Insert statement"
+        },
+        {
+          "command": "ats.copyAsRecordInsertStatementWithValidation",
+          "group": "Record Assignment",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy Record Insert statement with validation"
+        },
+        {
+          "command": "ats.copyAsRecordModifyStatement",
+          "group": "Record Assignment",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy Record Modify statement"
+        },
+        {
+          "command": "ats.copyAsRecordModifyStatementWithValidation",
+          "group": "Record Assignment",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy Record Modify statement with validation"
+        },
+        {
+          "command": "ats.copyAsRecordDeleteStatement",
+          "group": "Record Assignment",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy Record Delete statement"
+        },
+        {
+          "command": "ats.copyRecordAsPageFields",
+          "group": "Object Field List",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy as Page Fields"
+        },
+        {
+          "command": "ats.copyRecordAsReportColumns",
+          "group": "Object Field List",
+          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "title": "Copy as Report/Query Columns"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Advanced Tools Suite for AL Language (ATS)",
+        "properties": {
+          "ATS.DefaultSymbolsArchiveFolder": {
+            "type": "string",
+            "description": "Default archive folder for import/export utiltities of AL Symbols files",
+            "default": "",
+            "order": 1,
+            "scope": "resource"
+          },
+          "ATS.DefaultLaunchArchiveFolder": {
+            "type": "string",
+            "description": "Default archive folder for import/export utiltities of launch.json file",
+            "default": "",
+            "order": 1,
+            "scope": "resource"
+          },
+          "ATS.UseObjectFilePathAsNamespace": {
+            "type": "boolean",
+            "description": "Allow usage of object file path for namespace declarations (default = false)",
+            "default": false,
+            "order": 2,
+            "scope": "resource"
+          },
+          "ATS.RootNamespace": {
+            "type": "string",
+            "description": "Namespace prefix to use for diagnositc rules and suggestions (if specified overrides the use of the al.rootNamespace setting)",
+            "default": "",
+            "order": 3,
+            "scope": "resource"
+          },
+          "ATS.DefaultNamespaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of default namespaces that can be used for AL objects",
+            "default": "",
+            "order": 4,
+            "scope": "resource"
+          },
+          "ATS.MaxNamespaceSize": {
+            "type": "number",
+            "description": "No. of max elements expected for namespace declaration in AL objects (default = 5)",
+            "default": 5,
+            "order": 5,
+            "scope": "resource"
+          },
+          "ATS.EnableNamespaceDiagnostics": {
+            "type": "boolean",
+            "description": "Enable or disable warnings for wrong or missing namespace declarations in AL objects (default = false)",
+            "default": false,
+            "order": 6,
+            "scope": "resource"
+          },
+          "ATS.NamespaceMandatory": {
+            "type": "boolean",
+            "description": "Enable or disable errors for missing namespace declarations in AL objects (default = false)",
+            "default": false,
+            "order": 7,
+            "scope": "resource"
+          },
+          "ATS.URLForwardingRules": {
+            "type": "object",
+            "description": "URL forwarding rules used by command `ATS: Run Business Central` to run Business Central Client with different URL instead of the URL defined into launch.json for each configuration (Public URL or http to https conversion).",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "order": 8,
+            "scope": "resource"
+          },
+          "ATS.ObjectInfoOnStatusBar": {
+            "type": "string",
+            "default": "Show on Left",
+            "enum": [
+              "Hide",
+              "Show on Left",
+              "Show on Right"
+            ],
+            "description": "Enable visibility of status bar with AL object info",
+            "order": 9,
+            "scope": "resource"
+          },
+          "ATS.RegionInfoOnStatusBar": {
+            "type": "string",
+            "default": "Hide",
+            "enum": [
+              "Hide",
+              "Show on Left",
+              "Show on Right"
+            ],
+            "description": "Enable visibility of status bar with region details for current line in active editor",
+            "order": 10,
+            "scope": "resource"
+          },
+          "ATS.RemoveObjectNamePrefixes": {
+            "type": "boolean",
+            "description": "Remove prefixes from object names (as defined in AppSourceCop.json or CRS extension settings) in ATS Object Explorer Tools.",
+            "default": true,
+            "order": 15,
+            "scope": "resource"
+          },
+          "ATS.EnableTelemetry": {
+            "type": "boolean",
+            "description": "Enables anonymous usage telemetry for this extension.",
+            "default": true,
+            "order": 20,
+            "scope": "resource"
+          }
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ats.runBusinessCentral",
+        "key": "ctrl+f6",
+        "when": "atsExtensionActive"
+      },
+      {
+        "command": "ats.changeStartupObjectAndRunBusinessCentral",
+        "key": "ctrl+shift+f6",
+        "when": "atsExtensionActive"
+      },
+      {
+        "command": "ats.alPackageNewVersion",
+        "key": "ctrl+shift+v",
+        "when": "atsExtensionActive"
+      },
+      {
+        "command": "ats.gotoWorkspaceObjects",
+        "key": "ctrl+alt+t",
+        "when": "atsExtensionActive"
+      },
+      {
+        "command": "ats.ALObjectExplorer",
+        "key": "alt+x",
+        "when": "atsExtensionActive"
+      }
+    ]
+  },
+  "extensionDependencies": [
+    "ms-dynamics-smb.al"
+  ]
+}
