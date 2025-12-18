@@ -60,7 +60,7 @@ export const eventSubscriber = /^\[EventSubscriber\(\s*ObjectType::([^,]+),\s*([
 // Variables
 export const variable = /^\s*(?:var\s+)?(\w+)\s*:\s*(\w+)(?:\s+(?:"([^"]+)"|[\w\s,]+))?(?:\[(\d+)\])?(?:\s+(temporary))?\s*;?\s*/gmi;
 export const label = /^\s*(\w+)\s*:\s*(Label)\s+'((?:''|[^'])*)'?(.*);/gim;
-export const array = /^\s*(?:var\s+)?(\w+)\s*:\s*Array\[(\d+(?:,\s*\d+)*)\]\s*of\s*(\w+)\s*;?\s*/gmi;
+export const array = /^\s*(?:var\s+)?(\w+)\s*:\s*Array\s*\[(\d+(?:,\s*\d+)*)\]\s*of\s+([^;]+)/gmi;
 export const listDictionary = /^\s*(?:var\s+)?(\w+)\s*:\s*(List|Dictionary)(?:\[(\d+(?:,\s*\d+)*)\])?\s*of\s*\[(.*?)\]\s*;?\s*/gmi;
 
 // Object Properties

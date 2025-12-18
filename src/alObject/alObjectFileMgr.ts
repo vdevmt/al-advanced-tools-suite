@@ -3060,7 +3060,7 @@ export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectR
 
 //#region Variables
 export function findObjectGlobalVariables(alObject: ALObject, alObjectVariables: ALObjectVariables) {
-    if (!alObject || !alObject.objectContentText) {return;}
+    if (!alObject || !alObject.objectContentText) { return; }
 
     const lines = alObject.objectContentText.split('\n');
     let insideMultiLineComment = false;
@@ -3072,13 +3072,13 @@ export function findObjectGlobalVariables(alObject: ALObject, alObjectVariables:
         const lineNumber = linePos;
 
         // Gestione commenti multi-riga
-        if (isMultiLineCommentStart(lineText)) {insideMultiLineComment = true;}
+        if (isMultiLineCommentStart(lineText)) { insideMultiLineComment = true; }
 
         // Verifico se la riga è commentata
         const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
 
         // Aggiornamento stato commento dopo il controllo per includere la riga di chiusura
-        if (isMultiLineCommentEnd(lineText)) {insideMultiLineComment = false;}
+        if (isMultiLineCommentEnd(lineText)) { insideMultiLineComment = false; }
 
         if (!commentedLine) {
             // Controlla se siamo in una sezione "procedure" o "trigger"
@@ -3134,7 +3134,7 @@ function getVariablesFromLine(lineText: string, isProcParameters: boolean): any[
     const results: any[] = [];
 
     // Verifica preliminare: deve esserci il separatore di tipo
-    if (!lineText || !lineText.includes(':')) {return results;}
+    if (!lineText || !lineText.includes(':')) { return results; }
 
     // Divisione tra Nomi e Definizione (Tipo/Sottotipo)
     const separatorIndex = lineText.indexOf(':');
@@ -3156,7 +3156,7 @@ function getVariablesFromLine(lineText: string, isProcParameters: boolean): any[
 
     const names = cleanNamesPart.split(',').map(n => n.trim()).filter(n => n !== '');
 
-    if (names.length === 0) {return results;}
+    if (names.length === 0) { return results; }
 
     let baseInfo = {
         name: '', // Verrà sovrascritto nel loop finale
@@ -3177,12 +3177,21 @@ function getVariablesFromLine(lineText: string, isProcParameters: boolean): any[
         baseInfo.value = labelMatch[3];
     }
     // B. Controllo Array
-    else if (regExpr.array.test(dummyDefinition)) {
-        regExpr.array.lastIndex = 0;
-        const arrayMatch = regExpr.array.exec(dummyDefinition);
-        if (arrayMatch) {
+    else if (/\bArray\s*\[/i.test(dummyDefinition)) {
+        const ofMatch = /\bof\b/i.exec(dummyDefinition);
+        if (ofMatch) {
             baseInfo.type = 'Array';
-            baseInfo.subtype = arrayMatch[3] ? `[${arrayMatch[2]}] of ${arrayMatch[3]}` : arrayMatch[4];
+            const ofIndex = ofMatch.index;
+
+            const dimMatch = dummyDefinition.match(/Array\s*\[(.*?)\]/i);
+            const dimensions = dimMatch ? dimMatch[1] : '';
+
+            let arrayType = dummyDefinition.substring(ofIndex + ofMatch[0].length).trim();
+            if (arrayType.endsWith(';')) {
+                arrayType = arrayType.substring(0, arrayType.length - 1).trim();
+            }
+
+            baseInfo.subtype = `[${dimensions}] of ${arrayType}`;
         }
     }
     // C. Controllo List o Dictionary
@@ -3195,6 +3204,7 @@ function getVariablesFromLine(lineText: string, isProcParameters: boolean): any[
             const typeMatch = beforeOf.match(/\b(List|Dictionary)\b/i);
             baseInfo.type = typeMatch ? typeHelper.toPascalCase(typeMatch[1]) : '';
             baseInfo.subtype = `of ${dummyDefinition.substring(ofIndex + ofMatch[0].length).trim()}`;
+
             if (baseInfo.subtype.endsWith(';')) {
                 baseInfo.subtype = baseInfo.subtype.substring(0, baseInfo.subtype.length - 1).trim();
             }
