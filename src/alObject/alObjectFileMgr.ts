@@ -3059,102 +3059,171 @@ export function findObjectRegions(alObject: ALObject, alObjectRegions: ALObjectR
 //#endregion Regions
 
 //#region Variables
-
 export function findObjectGlobalVariables(alObject: ALObject, alObjectVariables: ALObjectVariables) {
-    if (alObject) {
-        if (alObject.objectContentText) {
-            const lines = alObject.objectContentText.split('\n');
-            let insideMultiLineComment: boolean;
-            let insideGlobalVarSection = false;
-            let insideProcedureOrTrigger = false;
+    if (!alObject || !alObject.objectContentText) {return;}
 
-            lines.forEach((lineText, linePos) => {
-                lineText = cleanObjectLineText(lineText);
-                const lineNumber = linePos;
+    const lines = alObject.objectContentText.split('\n');
+    let insideMultiLineComment = false;
+    let insideGlobalVarSection = false;
+    let insideProcedureOrTrigger = false;
 
-                // Verifica inizio-fine commento multi-riga
-                if (isMultiLineCommentStart(lineText)) {
-                    insideMultiLineComment = true;
-                }
-                if (isMultiLineCommentEnd(lineText)) {
-                    insideMultiLineComment = false;
-                }
+    lines.forEach((lineText, linePos) => {
+        lineText = cleanObjectLineText(lineText);
+        const lineNumber = linePos;
 
-                // Verifico se la riga è commentata
-                const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
-                if (!commentedLine) {
-                    // Controlla se siamo in una sezione "procedure" o "trigger"
-                    if (/^(local|internal|protected)?\s*(procedure|trigger)\b/.test(lineText)) {
-                        insideProcedureOrTrigger = true;
-                        insideGlobalVarSection = false;
-                        return;
-                    }
+        // Gestione commenti multi-riga
+        if (isMultiLineCommentStart(lineText)) {insideMultiLineComment = true;}
 
-                    // Se troviamo un "begin" usciamo dalla sezione locale
-                    if (/^begin\b/.test(lineText)) {
-                        insideProcedureOrTrigger = false;
-                        return;
-                    }
-                    // Controlla se siamo in una sezione "var" globale
-                    if (/^var\s*$/.test(lineText) && !insideProcedureOrTrigger) {
-                        insideGlobalVarSection = true;
-                        return;
-                    }
+        // Verifico se la riga è commentata
+        const commentedLine = (insideMultiLineComment || isCommentedLine(lineText));
 
-                    if (!insideGlobalVarSection) {
-                        // Controlla se siamo in una sezione "protected var" globale
-                        if (/^protected var\s*$/.test(lineText) && !insideProcedureOrTrigger) {
-                            insideGlobalVarSection = true;
-                            return;
-                        }
-                    }
+        // Aggiornamento stato commento dopo il controllo per includere la riga di chiusura
+        if (isMultiLineCommentEnd(lineText)) {insideMultiLineComment = false;}
 
-                    // Controlla se siamo usciti dalla sezione globale
-                    if (/^(procedure|trigger|begin)\b/.test(lineText)) {
-                        insideGlobalVarSection = false;
-                        return;
-                    }
+        if (!commentedLine) {
+            // Controlla se siamo in una sezione "procedure" o "trigger"
+            if (/^(local|internal|protected)?\s*(procedure|trigger)\b/.test(lineText)) {
+                insideProcedureOrTrigger = true;
+                insideGlobalVarSection = false;
+                return;
+            }
 
-                    if (insideGlobalVarSection) {
-                        let variableInfo: {
-                            name: string,
-                            type: string,
-                            subtype?: string,
-                            size?: number,
-                            isALObject: boolean,
-                            value?: string,
-                            attributes?: string
-                        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
-                        if (isVariableDefinition(lineText, variableInfo)) {
-                            if (variableInfo.name) {
-                                alObjectVariables.variables.push({
-                                    name: variableInfo.name,
-                                    type: variableInfo.type,
-                                    subtype: variableInfo.subtype,
-                                    value: variableInfo.value,
-                                    size: variableInfo.size,
-                                    attributes: variableInfo.attributes,
-                                    isALObject: variableInfo.isALObject,
-                                    scope: 'global',
-                                    linePosition: lineNumber,
-                                    groupName: getVariableGroupName(variableInfo.type, variableInfo.attributes),
-                                    groupIndex: alObjectVariables.getDefaultSortingIndex(variableInfo.type),
-                                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type, variableInfo.attributes)
-                                });
-                            }
-                        }
-                    }
-                }
-            });
+            // Se troviamo un "begin" usciamo dalla sezione dedicata alle variabili locali
+            if (/^begin\b/.test(lineText)) {
+                insideProcedureOrTrigger = false;
+                return;
+            }
 
-            if (alObjectVariables.variables) {
-                if (alObjectVariables.variables.length > 0) {
-                    // Order by StartLine
-                    alObjectVariables.variables.sort((a, b) => a.linePosition - b.linePosition);
-                }
+            // Entrata nella sezione var o protected var (solo se non siamo dentro una procedura)
+            if (/^(protected\s+)?var\s*$/i.test(lineText) && !insideProcedureOrTrigger) {
+                insideGlobalVarSection = true;
+                return;
+            }
+
+            if (insideGlobalVarSection) {
+                const foundVariables = getVariablesFromLine(lineText, false);
+                foundVariables.forEach(vInfo => {
+                    alObjectVariables.variables.push({
+                        name: vInfo.name,
+                        type: vInfo.type,
+                        subtype: vInfo.subtype,
+                        value: vInfo.value,
+                        size: vInfo.size,
+                        attributes: vInfo.attributes,
+                        isALObject: vInfo.isALObject,
+                        scope: 'global',
+                        linePosition: lineNumber,
+                        groupName: getVariableGroupName(vInfo.type, vInfo.attributes),
+                        groupIndex: alObjectVariables.getDefaultSortingIndex(vInfo.type),
+                        iconName: alObjectVariables.getDefaultIconName(vInfo.type, vInfo.attributes)
+                    });
+
+                    alObjectVariables.elementsCount++;
+                });
+            }
+        }
+    });
+
+    // Ordinamento finale
+    if (alObjectVariables.variables?.length > 0) {
+        alObjectVariables.variables.sort((a, b) => a.linePosition - b.linePosition);
+    }
+}
+
+function getVariablesFromLine(lineText: string, isProcParameters: boolean): any[] {
+    const results: any[] = [];
+
+    // Verifica preliminare: deve esserci il separatore di tipo
+    if (!lineText || !lineText.includes(':')) {return results;}
+
+    // Divisione tra Nomi e Definizione (Tipo/Sottotipo)
+    const separatorIndex = lineText.indexOf(':');
+    const namesPart = lineText.substring(0, separatorIndex).trim();
+    const definitionPart = lineText.substring(separatorIndex).trim();
+    const dummyDefinition = 'Dummy' + definitionPart;
+
+    let isByRef = false;
+    let cleanNamesPart = namesPart;
+
+    if (isProcParameters) {
+        // Verifico se si tratta di un parametro passato per riferimento (var)
+        isByRef = /^var\b/i.test(namesPart);
+
+        if (isByRef) {
+            cleanNamesPart = namesPart.replace(/^var\b\s*/i, '');
+        }
+    }
+
+    const names = cleanNamesPart.split(',').map(n => n.trim()).filter(n => n !== '');
+
+    if (names.length === 0) {return results;}
+
+    let baseInfo = {
+        name: '', // Verrà sovrascritto nel loop finale
+        type: '',
+        subtype: '',
+        size: 0,
+        isALObject: false,
+        value: '',
+        attributes: '',
+        isByRef: isByRef
+    };
+
+    // A. Controllo Label
+    regExpr.label.lastIndex = 0;
+    const labelMatch = regExpr.label.exec(dummyDefinition);
+    if (labelMatch) {
+        baseInfo.type = 'Label';
+        baseInfo.value = labelMatch[3];
+    }
+    // B. Controllo Array
+    else if (regExpr.array.test(dummyDefinition)) {
+        regExpr.array.lastIndex = 0;
+        const arrayMatch = regExpr.array.exec(dummyDefinition);
+        if (arrayMatch) {
+            baseInfo.type = 'Array';
+            baseInfo.subtype = arrayMatch[3] ? `[${arrayMatch[2]}] of ${arrayMatch[3]}` : arrayMatch[4];
+        }
+    }
+    // C. Controllo List o Dictionary
+    else if (/\b(List|Dictionary)\b/i.test(dummyDefinition)) {
+        const ofMatch = /\bof\b/i.exec(dummyDefinition);
+        if (ofMatch) {
+            const ofIndex = ofMatch.index;
+
+            const beforeOf = dummyDefinition.substring(0, ofIndex);
+            const typeMatch = beforeOf.match(/\b(List|Dictionary)\b/i);
+            baseInfo.type = typeMatch ? typeHelper.toPascalCase(typeMatch[1]) : '';
+            baseInfo.subtype = `of ${dummyDefinition.substring(ofIndex + ofMatch[0].length).trim()}`;
+            if (baseInfo.subtype.endsWith(';')) {
+                baseInfo.subtype = baseInfo.subtype.substring(0, baseInfo.subtype.length - 1).trim();
             }
         }
     }
+    // D. Altre variabili standard (Record, Code, Integer, Boolean...)
+    else {
+        regExpr.variable.lastIndex = 0;
+        const varMatch = regExpr.variable.exec(dummyDefinition);
+        if (varMatch) {
+            baseInfo.type = typeHelper.toPascalCase(varMatch[2]);
+            baseInfo.subtype = typeHelper.addQuotesIfNeeded(varMatch[3]?.trim() || '');
+            baseInfo.size = Number(varMatch[4]) || 0;
+            baseInfo.isALObject = typeHelper.isALObjectType(baseInfo.type);
+            baseInfo.attributes = varMatch[5] ? typeHelper.toPascalCase(varMatch[5]) : '';
+        }
+    }
+
+    // Gestione variabili individuate
+    if (baseInfo.type) {
+        names.forEach(name => {
+            results.push({
+                ...baseInfo,
+                name: name
+            });
+        });
+    }
+
+    return results;
 }
 
 export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVariables) {
@@ -3238,38 +3307,27 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
     const paramsBlob = paren[1];
     const parts = paramsBlob.split(';').map(s => s.trim()).filter(Boolean);
     for (const p of parts) {
-        let variableInfo: {
-            name: string,
-            type: string,
-            subtype?: string,
-            size?: number,
-            isALObject: boolean,
-            value?: string,
-            attributes?: string
-        } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
-        if (isVariableDefinition(p, variableInfo)) {
-            if (variableInfo.name) {
-                alObjectVariables.variables.push({
-                    name: variableInfo.name,
-                    type: variableInfo.type,
-                    subtype: variableInfo.subtype,
-                    value: variableInfo.value,
-                    size: variableInfo.size,
-                    byRef: p.toLowerCase().startsWith('var ') ? true : false,
-                    attributes: variableInfo.attributes,
-                    isALObject: variableInfo.isALObject,
-                    scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
-                        scopeName ? scopeName : 'parameters',
-                    linePosition: startLine,
-                    groupName: 'Parameters',
-                    groupIndex: 1,
-                    iconName: alObjectVariables.getDefaultIconName(variableInfo.type, variableInfo.attributes)
-                });
+        const foundVariables = getVariablesFromLine(p, true);
+        foundVariables.forEach(vInfo => {
+            alObjectVariables.variables.push({
+                name: vInfo.name,
+                type: vInfo.type,
+                subtype: vInfo.subtype,
+                value: vInfo.value,
+                size: vInfo.size,
+                byRef: vInfo.byRef,
+                attributes: vInfo.attributes,
+                isALObject: vInfo.isALObject,
+                scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
+                    scopeName ? scopeName : 'parameters',
+                linePosition: startLine,
+                groupName: 'Parameters',
+                groupIndex: 1,
+                iconName: alObjectVariables.getDefaultIconName(vInfo.type, vInfo.attributes)
+            });
 
-                alObjectVariables.elementsCount++;
-            }
-        }
-
+            alObjectVariables.elementsCount++;
+        });
     }
 
     // Ricerca valore di ritorno della funzione
@@ -3351,124 +3409,33 @@ export function findLocalVariablesInCurrentScope(alObjectVariables: ALObjectVari
         }
 
         if (insideLocalVarSection) {
-            let variableInfo: {
-                name: string,
-                type: string,
-                subtype?: string,
-                size?: number,
-                isALObject: boolean,
-                value?: string,
-                attributes?: string
-            } = { name: '', type: '', subtype: '', size: 0, value: '', isALObject: false, attributes: '' };
-            if (isVariableDefinition(lineText, variableInfo)) {
-                if (variableInfo.name) {
-                    alObjectVariables.variables.push({
-                        name: variableInfo.name,
-                        type: variableInfo.type,
-                        subtype: variableInfo.subtype,
-                        value: variableInfo.value,
-                        size: variableInfo.size,
-                        attributes: variableInfo.attributes,
-                        isALObject: variableInfo.isALObject,
-                        scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
-                            scopeName ? scopeName : 'variables',
-                        linePosition: lineNumber,
-                        groupName: (variableInfo.type.toLocaleLowerCase() === 'label') ? 'Labels' : 'Variables',
-                        groupIndex: (variableInfo.type.toLocaleLowerCase() === 'label') ? 3 : 2,
-                        iconName: alObjectVariables.getDefaultIconName(variableInfo.type, variableInfo.attributes)
-                    });
+            const foundVariables = getVariablesFromLine(lineText, false);
+            foundVariables.forEach(vInfo => {
+                alObjectVariables.variables.push({
+                    name: vInfo.name,
+                    type: vInfo.type,
+                    subtype: vInfo.subtype,
+                    value: vInfo.value,
+                    size: vInfo.size,
+                    byRef: false,
+                    attributes: vInfo.attributes,
+                    isALObject: vInfo.isALObject,
+                    scope: (scopeName && scopeKind) ? `${scopeKind} ${scopeName}` :
+                        scopeName ? scopeName : 'variables',
+                    linePosition: lineNumber,
+                    groupName: (vInfo.type.toLocaleLowerCase() === 'label') ? 'Labels' : 'Variables',
+                    groupIndex: (vInfo.type.toLocaleLowerCase() === 'label') ? 3 : 2,
+                    iconName: alObjectVariables.getDefaultIconName(vInfo.type, vInfo.attributes)
+                });
 
-                    alObjectVariables.elementsCount++;
-                }
-            }
+                alObjectVariables.elementsCount++;
+            });
         }
 
         if (stopCondition(lineText, i)) {
             break;
         }
     }
-}
-
-function isVariableDefinition(
-    lineText: string,
-    variableInfo: {
-        name: string,
-        type: string,
-        subtype?: string,
-        size?: number,
-        value?: string,
-        isALObject: boolean,
-        attributes?: string
-    }
-): boolean {
-    if (lineText) {
-
-        // Verifico se si tratta di una label
-        //const cleanedText = lineText.replace(/,\s*Comment\s*=\s*'((?:''|[^'])*)'/gi, "").trim();
-        for (const match of lineText.matchAll(regExpr.label)) {
-            if (match && match.length > 1) {
-                variableInfo.name = match[1];
-                variableInfo.type = typeHelper.toPascalCase(match[2]);
-                variableInfo.value = match[3];
-                variableInfo.isALObject = false;
-                variableInfo.attributes = '';
-            }
-        }
-        if (variableInfo.name) {
-            return true;
-        }
-
-        // Verifico se si tratta di Array
-        for (const match of lineText.matchAll(regExpr.array)) {
-            if (match && match.length > 1) {
-                variableInfo.name = match[1];
-                variableInfo.type = 'Array';
-                variableInfo.value = '';
-                variableInfo.subtype = match[3] ? `[${match[2]}] of ${match[3]}` : match[4];
-                variableInfo.isALObject = false;
-                variableInfo.attributes = '';
-            }
-        }
-
-        if (variableInfo.name) {
-            return true;
-        }
-
-        // Verifico se si tratta di List o Dictionary
-        for (const match of lineText.matchAll(regExpr.listDictionary)) {
-            if (match && match.length > 1) {
-                variableInfo.name = match[1];
-                variableInfo.type = typeHelper.toPascalCase(match[2]);
-                variableInfo.value = '';
-                variableInfo.subtype = match[4] ? `of [${match[4]}]` : match[4];
-                variableInfo.isALObject = false;
-                variableInfo.attributes = '';
-            }
-        }
-
-        if (variableInfo.name) {
-            return true;
-        }
-
-        // Altre variabili
-        const matches = Array.from(lineText.matchAll(regExpr.variable));
-        if (matches) {
-            matches.forEach((match) => {
-                if (match[1]) {
-                    variableInfo.name = match[1];
-                    variableInfo.type = typeHelper.toPascalCase(match[2]);
-                    variableInfo.subtype = typeHelper.addQuotesIfNeeded(match[3]);
-                    variableInfo.size = Number(match[4]) || 0;
-                    variableInfo.isALObject = typeHelper.isALObjectType(variableInfo.type);
-                    variableInfo.attributes = (match[5]) ? typeHelper.toPascalCase(match[5]) : '';
-                }
-            });
-
-            return true;
-        }
-    }
-
-    return false;
 }
 
 function getVariableGroupName(type: string, attributes: string): string {
