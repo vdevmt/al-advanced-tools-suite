@@ -1,4 +1,5 @@
 src/
+src/**
 .vscode/
 .husky/
 *.js
