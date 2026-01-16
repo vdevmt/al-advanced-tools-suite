@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.12.0]
+- New command `ATS: Workspace Explorer` (CTRL+ALT+F12)
+
 ## [1.10.0]
 - Performance improvements
 
