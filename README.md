@@ -13,6 +13,13 @@ If you want to support my work:
 # Features
 These features are concluded at this moment:
 
+## Workspace Explorer
+ATS Workspace Explorer is a high-productivity tool for AL developers. 
+It provides a centralized, flat-view dashboard to browse, filter, and search all objects in your workspace. Instantly identify modified files, active editors, and compilation errors through a powerful dual-layer filtering system.
+
+<br />
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/WorkspaceExplorer.png" alt="Workspace Explorer">
+
 ## Go to AL Object (Workspace Only)
 Quickly access any AL object defined in your workspace, excluding dependency packages.
 Type parts of words and instantly jump to the selected object, or use the AL Object Explorer to find any symbols within it.
