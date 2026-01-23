@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.12.2",
+  "version": "1.13.0",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -413,6 +413,13 @@
             "order": 10,
             "scope": "resource"
           },
+          "ATS.RunWorkspaceExplorerAtStartup": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Automatically open the **ATS Workspace Explorer** when the workspace is loaded.",
+            "scope": "resource",
+            "order": 10
+          },          
           "ATS.RemoveObjectNamePrefixes": {
             "type": "boolean",
             "description": "Remove prefixes from object names (as defined in AppSourceCop.json or CRS extension settings) in ATS Object Explorer Tools.",
