@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.13.6",
+  "version": "1.14.1",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -415,7 +415,7 @@
           },
           "ATS.RunWorkspaceExplorerAtStartup": {
             "type": "boolean",
-            "default": true,
+            "default": false,
             "markdownDescription": "Automatically open the **ATS Workspace Explorer** when the workspace is loaded.",
             "scope": "resource",
             "order": 10
