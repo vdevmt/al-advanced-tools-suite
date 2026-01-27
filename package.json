@@ -415,7 +415,7 @@
           },
           "ATS.RunWorkspaceExplorerAtStartup": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "markdownDescription": "Automatically open the **ATS Workspace Explorer** when the workspace is loaded.",
             "scope": "resource",
             "order": 10
