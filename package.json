@@ -167,6 +167,11 @@
         "category": "ATS AL Object Explorer"
       },
       {
+        "command": "ats.openTranslationManager",
+        "title": "Open Translation Manager",
+        "category": "ATS AL Object Explorer"
+      },
+      {
         "command": "ats.copySelectionAsEventSubscriber",
         "title": "Copy as Event Subscriber",
         "category": "ATS"
@@ -224,6 +229,11 @@
       {
         "command": "ats.exportObjectsAssignmentDetailsAsCSV",
         "title": "Export AL objects assignment details as csv",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.openTranslationManager",
+        "title": "Open with ATS Translation Manager",
         "category": "ATS"
       }
     ],
@@ -314,6 +324,13 @@
           "group": "Object Field List",
           "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy as Report/Query Columns"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .xlf",
+          "command": "ats.openTranslationManager",
+          "group": "navigation"
         }
       ]
     },
@@ -419,7 +436,7 @@
             "markdownDescription": "Automatically open the **ATS Workspace Explorer** when the workspace is loaded.",
             "scope": "resource",
             "order": 10
-          },          
+          },
           "ATS.RemoveObjectNamePrefixes": {
             "type": "boolean",
             "description": "Remove prefixes from object names (as defined in AppSourceCop.json or CRS extension settings) in ATS Object Explorer Tools.",
@@ -462,7 +479,7 @@
         "command": "ats.ALObjectExplorer",
         "key": "alt+x",
         "when": "atsExtensionActive"
-      },      
+      },
       {
         "command": "ats.workspaceExplorer",
         "key": "ctrl+alt+f12",
