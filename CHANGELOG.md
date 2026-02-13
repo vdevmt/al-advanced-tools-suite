@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.15.0]
+- Added `ATS Translation Manager`
+- Added Bookmarks on `ATS Workspace Explorer`
+
 ## [1.14.0]
 - Added new features on `ATS: Workspace Explorer`
 
