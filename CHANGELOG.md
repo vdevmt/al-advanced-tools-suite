@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.15.3]
+- Added: Local translation archive management for `ATS Translation Manager` > Introduced a persistent local database to store and reuse previous translations, improving consistency and speed across different workspaces.
+
 ## [1.15.0]
 - Added `ATS Translation Manager`
 - Added Bookmarks on `ATS Workspace Explorer`
