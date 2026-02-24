@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.15.3",
+  "version": "1.15.5",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -164,11 +164,6 @@
       {
         "command": "ats.showAllActions",
         "title": "Show all page actions",
-        "category": "ATS AL Object Explorer"
-      },
-      {
-        "command": "ats.openTranslationManager",
-        "title": "Open Translation Manager",
         "category": "ATS AL Object Explorer"
       },
       {

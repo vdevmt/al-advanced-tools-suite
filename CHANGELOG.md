@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.15.5]
+- Improved Performance for ATS Translation Manager: We have optimized the underlying processes of the ATS Translation Manager to significantly reduce load times and improve overall responsiveness.
+
+- Smarter .al File Creation: To streamline developer workflows, new .al files will now be automatically populated with the default namespace. (Note: This only applies to completely empty files to avoid overwriting existing code)
+
 ## [1.15.3]
 - Added: Local translation archive management for `ATS Translation Manager` > Introduced a persistent local database to store and reuse previous translations, improving consistency and speed across different workspaces.
 

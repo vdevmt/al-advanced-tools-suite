@@ -11,7 +11,24 @@ If you want to support my work:
 [![https://www.buymeacoffee.com/viacovone](https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/buymeacoffee.png)](https://www.buymeacoffee.com/viacovone)
 
 # Features
-These features are concluded at this moment:
+
+## 🌐 ATS Translation Manager
+
+The **ATS Translation Manager** is a powerful, integrated tool designed specifically to accelerate and simplify the maintenance of translations in AL projects. By bringing advanced XLIFF editing directly into your editor, it completely eliminates the need for external translation software—allowing you to manage your entire localization workflow 100% natively within VS Code.
+
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ATSTranslationManager_Open.png" alt="ATS Translation Manager">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ATSTranslationManager.png" alt="ATS Translation Manager">
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/ATSTranslationManager_Edit.png" alt="ATS Translation Manager">
+
+### ✨ Key Features
+
+* **100% VS Code Native:** Say goodbye to external XLIFF editors. Handle all your translation tasks, synchronization, and reviews without ever leaving your IDE.
+* **Built for Scale:** Highly optimized engine capable of loading, processing, and saving very large `.xlf` files effortlessly.
+* **Flexible Editing Scopes:** Offers granular control over how you work. You can view and edit translations across an entire `.xlf` file, or drill down to manage multi-language target translations for a single, specific AL object.
+* **Smart Translation Suggestions:** Significantly speeds up the translation process by providing intelligent autocomplete suggestions dynamically pulled from:
+  * **Developer Comments:** Extracts context directly from the comments defined in your AL code.
+  * **Workspace Context:** Scans and reuses existing translations already present within your current project workspace.
+  * **Local Translation Memory (TM):** Uses a local, continually updating archive that "learns" from your daily translation habits to automatically suggest your most used terms.
 
 ## Workspace Explorer
 ATS Workspace Explorer is a high-productivity tool for AL developers. 
