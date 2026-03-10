@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.15.8]
+- Enhancements and performance on ATS Translation Manager
+- New Command: `ATS: Edit Workspace Translations`: This command allows you to quickly edit all translations in the workspace using the `ATS Translation Manager`
+
 ## [1.15.5]
 - Improved Performance for ATS Translation Manager: We have optimized the underlying processes of the ATS Translation Manager to significantly reduce load times and improve overall responsiveness.
 
