@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.15.10]
+- Added App filter to the Workspace Explorer (useful for multi-root workspaces).
+
 ## [1.15.8]
 - Enhancements and performance on ATS Translation Manager
 - New Command: `ATS: Edit Workspace Translations`: This command allows you to quickly edit all translations in the workspace using the `ATS Translation Manager`
