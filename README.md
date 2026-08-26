@@ -12,6 +12,22 @@ If you want to support my work:
 
 # Features
 
+
+## 🔎 Find in Dependencies
+Search the **source code of your dependency apps** (the `.app` packages in `.alpackages`, e.g. the Microsoft Base Application) directly from VS Code with the command **ATS: Find in Dependencies**.
+Since `Find All References` cannot reach objects outside your workspace, this tool lets you quickly locate where fields, procedures, and objects are used inside the base apps—invaluable while debugging, developing, or testing.
+
+<br />
+<img src="https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/FindExternalSymbols.png" alt="Find in Dependencies">
+
+* **Text or Regular Expression search**, with an optional **Match Case** toggle.
+* **App filter:** search across all dependencies or just a selected subset. Apps that do not ship their sources (`ShowMyCode` disabled) are automatically excluded—there is nothing to search in them.
+* **Grouped results:** matches are grouped by app and by object, with stepped **Expand all / Collapse all** controls.
+* **Multiple search tabs:** every search opens in its own tab, so previous results are never lost—switch between them and close tabs individually or all at once (tabs are discarded when the panel is closed).
+* **Prune results:** remove any row directly from the results.
+* **Double-click** a result to open the real source **read-only**.
+
+
 ## 🌐 ATS Translation Manager
 
 The **ATS Translation Manager** is a powerful, integrated tool designed specifically to accelerate and simplify the maintenance of translations in AL projects. By bringing advanced XLIFF editing directly into your editor, it completely eliminates the need for external translation software—allowing you to manage your entire localization workflow 100% natively within VS Code.
