@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.15.13",
+  "version": "1.17.0",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -10,7 +10,7 @@
     "email": "vdevmt@outlook.it"
   },
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.97.0"
   },
   "preview": false,
   "keywords": [
@@ -32,7 +32,8 @@
   "license": "MIT",
   "activationEvents": [
     "onLanguage:al",
-    "workspaceContains:**/*.al"
+    "workspaceContains:**/*.al",
+    "onFileSystem:atsext"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -84,6 +85,21 @@
       {
         "command": "ats.importAlSymbols",
         "title": "Import AL Symbols",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.browseExternalObjects",
+        "title": "Go to AL Object (External Packages)",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.refreshExternalObjects",
+        "title": "Refresh external AL symbols index",
+        "category": "ATS"
+      },
+      {
+        "command": "ats.findInExternalSymbols",
+        "title": "Find in Dependencies",
         "category": "ATS"
       },
       {
@@ -237,6 +253,25 @@
         "category": "ATS"
       }
     ],
+    "languages": [
+      {
+        "id": "ats-al-external",
+        "aliases": [
+          "AL (External Package)"
+        ],
+        "extensions": [
+          ".atsal"
+        ],
+        "configuration": "./syntaxes/ats-al-external.language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ats-al-external",
+        "scopeName": "source.atsal",
+        "path": "./syntaxes/ats-al-external.tmLanguage.json"
+      }
+    ],
     "snippets": [
       {
         "language": "al",
@@ -258,6 +293,20 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "ats.refreshExternalObjects",
+          "when": "false"
+        },
+        {
+          "command": "ats.browseExternalObjects",
+          "when": "false"
+        },
+        {
+          "command": "ats.openTranslationManager",
+          "when": "false"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "ats.specialCopy",
@@ -268,61 +317,61 @@
         {
           "command": "ats.copySelectionAsEventSubscriber",
           "group": "Integration Event",
-          "when": "editorTextFocus && resourceLangId == al",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external)",
           "title": "Copy as Event Subscriber"
         },
         {
           "command": "ats.copySelectionAsIntegrationEvent",
           "group": "Integration Event",
-          "when": "editorTextFocus && resourceLangId == al",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external)",
           "title": "Copy as Integration Event"
         },
         {
           "command": "ats.copySelectionAsProcedure",
           "group": "Procedure",
-          "when": "editorTextFocus && resourceLangId == al",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external)",
           "title": "Copy as Procedure"
         },
         {
           "command": "ats.copyAsRecordInsertStatement",
           "group": "Record Assignment",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Insert statement"
         },
         {
           "command": "ats.copyAsRecordInsertStatementWithValidation",
           "group": "Record Assignment",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Insert statement with validation"
         },
         {
           "command": "ats.copyAsRecordModifyStatement",
           "group": "Record Assignment",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Modify statement"
         },
         {
           "command": "ats.copyAsRecordModifyStatementWithValidation",
           "group": "Record Assignment",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Modify statement with validation"
         },
         {
           "command": "ats.copyAsRecordDeleteStatement",
           "group": "Record Assignment",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy Record Delete statement"
         },
         {
           "command": "ats.copyRecordAsPageFields",
           "group": "Object Field List",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy as Page Fields"
         },
         {
           "command": "ats.copyRecordAsReportColumns",
           "group": "Object Field List",
-          "when": "editorTextFocus && resourceLangId == al && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
+          "when": "editorTextFocus && (resourceLangId == al || resourceLangId == ats-al-external) && (ats.alObjectType === Table || ats.alObjectType === TableExtension)",
           "title": "Copy as Report/Query Columns"
         }
       ],
@@ -450,6 +499,40 @@
             "default": true,
             "order": 20,
             "scope": "resource"
+          },
+          "ATS.TranslationSuggestionsOrder": {
+            "type": "string",
+            "enum": [
+              "recent-first",
+              "frequency-first",
+              "dependencies-first"
+            ],
+            "enumDescriptions": [
+              "Your personal archive first (most recently used), then workspace matches (by frequency), then dependency app translations.",
+              "Workspace matches first (by frequency), then your personal archive (most recent), then dependency app translations.",
+              "Dependency app translations first (e.g. Microsoft Base Application), then your personal archive (most recent), then workspace matches."
+            ],
+            "default": "recent-first",
+            "markdownDescription": "Ordering of translation suggestions in the **ATS Translation Manager** (grouped by source).",
+            "scope": "resource",
+            "order": 25
+          },
+          "ATS.CustomTranslationFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Additional `.xlf` translation files to use as suggestion sources in the **ATS Translation Manager**, exactly like dependency app translations. Use this to reuse translations from one app while translating another. Each entry is a path to a language-specific `.xlf` file (absolute, or relative to a workspace folder). A file only contributes suggestions for the target language declared in its `target-language`.",
+            "scope": "resource",
+            "order": 26
+          },
+          "ATS.EnableTranslationQA": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Enable **quality checks** in the ATS Translation Manager: placeholder mismatch (`%1`, `#1`, `{0}`) and inconsistent translations (same source translated differently). Issues are shown as inline warning icons, inside the Edit Translation dialog, and can be filtered with the **QA issues only** toggle.",
+            "scope": "resource",
+            "order": 27
           }
         }
       }

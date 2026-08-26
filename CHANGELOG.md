@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.17.0]
+- New command `ATS: Find in Dependencies`: text/regex search across the source code of your dependency apps (`.app` packages), to quickly find where fields, procedures, and objects are used in the base apps. Includes a Match Case toggle, per-app filtering (apps that don't ship their sources are excluded), results grouped by app/object with stepped Expand all / Collapse all, and read-only navigation right to the matching line. Each search opens in its own **tab** (closable individually or all at once); results can be **pruned at any level** (a single match is removed instantly, while removing an object or an app asks for confirmation); very long source lines are **horizontally scrollable**; **double-click** a result to open it. 
+
+- External objects opened from the `ATS Workspace Explorer` (or from `ATS: Find in Dependencies`) now open in a **truly read-only preview**, no longer seen as an AL source file of your project: no more spurious diagnostics, and above all no more stray `.al` files created inside the project folder (which caused duplicate-object compile errors and unwanted git changes). Previews use the dedicated `AL (External Package)` language (`*.atsal`): syntax colors are preserved, while AL hover / Go to Definition *inside* the preview are not available (use Ctrl+Click from a project file for the native AL preview).
+
 ## [1.15.10]
 - Added App filter to the Workspace Explorer (useful for multi-root workspaces).
 
