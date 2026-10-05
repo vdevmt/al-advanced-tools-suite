@@ -2,10 +2,6 @@
 # Advanced Tools Suite for AL Language
 >A complete suite of utilities to enhance your development experience with AL Language
 
-[![version](https://img.shields.io/vscode-marketplace/v/vdevmt.al-advanced-tools-suite.svg?&label=vscode%20marketplace)](https://marketplace.visualstudio.com/items?itemName=vdevmt.al-advanced-tools-suite)
-[![installs](https://img.shields.io/vscode-marketplace/d/vdevmt.al-advanced-tools-suite.svg)](https://marketplace.visualstudio.com/items?itemName=vdevmt.al-advanced-tools-suite)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/vdevmt.al-advanced-tools-suite)](https://marketplace.visualstudio.com/items?itemName=vdevmt.al-advanced-tools-suite&ssr=false#review-details)
-
 If you want to support my work:
 
 [![https://www.buymeacoffee.com/viacovone](https://raw.githubusercontent.com/vdevmt/al-advanced-tools-suite/main/images/buymeacoffee.png)](https://www.buymeacoffee.com/viacovone)

@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.18.0]
+- External objects (Workspace Explorer, `ATS: Find in Dependencies`, View symbols) now open in the **native AL preview** (`.dal`) served by the AL extension, with Go to Definition, Find All References, hover and breakpoints. The read-only `AL (External Package)` preview is kept only as a fallback when the AL extension can't resolve the object.
+
+- Fixed the **`ATS: Add using`** quick fix, which was no longer offered for unrecognized objects (AL0185 / AL0427): recent versions of the AL extension attach a documentation link to their diagnostics, and the error was no longer recognized.
+
+- Fixed the namespace diagnostics on **empty `.al` files** (or files containing only comments), which raised an error; a problematic file no longer interrupts the validation of the remaining ones.
+
 ## [1.17.0]
 - New command `ATS: Find in Dependencies`: text/regex search across the source code of your dependency apps (`.app` packages), to quickly find where fields, procedures, and objects are used in the base apps. Includes a Match Case toggle, per-app filtering (apps that don't ship their sources are excluded), results grouped by app/object with stepped Expand all / Collapse all, and read-only navigation right to the matching line. Each search opens in its own **tab** (closable individually or all at once); results can be **pruned at any level** (a single match is removed instantly, while removing an object or an app asks for confirmation); very long source lines are **horizontally scrollable**; **double-click** a result to open it. 
 
