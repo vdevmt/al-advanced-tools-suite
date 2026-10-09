@@ -2,7 +2,7 @@
   "name": "al-advanced-tools-suite",
   "displayName": "Advanced Tools Suite for AL Language",
   "description": "Advanced Tools Suite for AL Language",
-  "version": "1.18.0",
+  "version": "1.18.1",
   "publisher": "vdevmt",
   "icon": "images/logo.png",
   "author": {
@@ -29,7 +29,10 @@
     "Snippets",
     "Programming Languages"
   ],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
+  "sponsor": {
+    "url": "https://www.buymeacoffee.com/viacovone"
+  },
   "activationEvents": [
     "onLanguage:al",
     "workspaceContains:**/*.al",
