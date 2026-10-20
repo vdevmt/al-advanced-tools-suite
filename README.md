@@ -228,7 +228,17 @@ With this structure you can create a complex grid like this:<br />
 This extension may collect anonymous usage data when telemetry is enabled.
 The information collected helps identify which features are most used and improve the overall experience.
 No personal or sensitive information is collected, and telemetry fully respects the global VS Code telemetry settings.
-You can disable telemetry at any time by setting: `ATS.EnableTelemetry` or by turning off VS Code telemetry in your global settings.
+You can disable telemetry at any time by setting: `ATS.EnableTelemetry` or by turning off VS Code telemetry in your global settings. Turning it off takes effect immediately. In a multi-root workspace, disabling `ATS.EnableTelemetry` in any folder disables it for the whole window.
+
+**What is sent**
+
+* **Usage counts.** For each command, how many times it was used, how many hours the count waited before being sent, together with three coarse attributes: the type of the AL object open in the editor (`table`, `page`, `codeunit`... or `none`), whether it comes from the workspace or from a dependency package (`workspace` / `external` / `none`), and the major version of Business Central taken from `application` in `app.json` (for example `27`). A few actions that do not go through a command (for example opening the Object Explorer from the Workspace Explorer) are counted the same way, by a fixed name. Counts are accumulated in memory and sent in batches every two hours. So that they are not lost if VS Code closes unexpectedly, the counts not yet sent are also saved every few minutes in a small file in the extension's own storage folder (`telemetry/`, a few KB, containing only the same counters described here); the file is deleted once the counts are sent and discarded if it is older than 7 days. Counts saved by a previous session are sent the next time VS Code starts. If you turn telemetry off, the file of the current session is deleted immediately and, shortly after, so are the leftover files of sessions that have already ended, without sending them.
+* **Once per session, the shape of the environment.** Only numbers and bands: how many workspace folders and AL apps are open, how many dependencies the active app declares, its `application` major and `runtime` version, the version (major.minor) of the AL Language extension, and the number of AL objects as a band (`<100`, `<500`, `<2000`, `2000+`).
+* **Standard VS Code properties**, added by the telemetry library (`common.*`): extension name and version, VS Code version and product, operating system, platform version and architecture, UI kind, remote type (if any), the VS Code session identifier, and the anonymous machine identifier that VS Code generates (`common.vscodemachineid`, also used as the user id).
+
+**What is never sent:** names of apps, publishers, objects, files or folders, paths, code, error messages, or anything that identifies you or your customers.
+
+Telemetry is off in development builds, and is enabled only when both `ATS.EnableTelemetry` and the VS Code telemetry level allow it.
 
 # Support my work: Elevate your AL development Experience
 As a passionate Business Central developer, I dedicate my free time to creating tools that make AL development smoother, faster, and more enjoyable. My goal is to simplify workflows, introduce practical features, and enhance the daily experience of developers like you.
