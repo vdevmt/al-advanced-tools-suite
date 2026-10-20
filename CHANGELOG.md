@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.19.0]
+- `ATS Translation Manager`: the original text of each entry is now a **link to the AL source**. Click it to open the `.al` file next to the Translation Manager, with the exact caption, tooltip or label selected (the right element is picked even when the same text appears several times in the object). Works both from an AL object and from a single `.xlf` file. Files always open in the editor group next to the Translation Manager, as a **preview tab** that is reused on the next click unless you edit or pin it.
+
+- `ATS Translation Manager`: **Accept Suggestions** is now also available as a quick icon button next to the search box, applying the suggestions to all the filtered rows.
+
+- `ATS Translation Manager`: new **Ignore all** button next to **Ignore** in the QA warning bar of the Edit Translation dialog. *Ignore* silences the warning for the single entry only; *Ignore all* silences it for every entry sharing the same source text (e.g. `Automatic` translated as both `Automatico` and `Automatica`). The choice is saved in the language file, so it survives restarts.
+
 ## [1.18.0]
 - External objects (Workspace Explorer, `ATS: Find in Dependencies`, View symbols) now open in the **native AL preview** (`.dal`) served by the AL extension, with Go to Definition, Find All References, hover and breakpoints. The read-only `AL (External Package)` preview is kept only as a fallback when the AL extension can't resolve the object.
 
